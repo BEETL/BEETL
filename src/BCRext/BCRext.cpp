@@ -193,6 +193,12 @@ void BCRext::run(void) {
 
 
   SequenceNumberType seqNum(0); 
+
+
+  const LetterCountType sameAsPrevFlag(((LetterCountType)1)<<((8*sizeof(LetterCountType))-1));
+  const LetterCountType sameAsPrevMask(~sameAsPrevFlag);
+  cout << sameAsPrevFlag << " "<< sameAsPrevMask << " "<< (sameAsPrevMask&sameAsPrevFlag) << " " << (((LetterCountType)1)<<63) << endl;
+
   LetterCountType seqPtr;
   int thisPile, lastPile;
   LetterCountType posInPile;
@@ -340,21 +346,37 @@ void BCRext::run(void) {
 
     // create BWT corresponding to 1-suffixes
 
-        if (whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]<0 ||
-            whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]>alphabetSize  ) {
-            cerr << "Trying to write non alphabet character to pile. Aborting." << endl;
-            exit(-1);
-        }
+    if (whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]<0 ||
+	whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]>alphabetSize  ) 
+    {
+      cerr << "Trying to write non alphabet character to pile. Aborting." << endl;
+      exit(-1);
+    }
     
     countedThisIter[thisPile].count_[whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]]++;   
     //    assert(fwrite( readBuffer.seqBufBase_+seqSize-2, sizeof(char), 1, outBwt[thisPile] )==1);
+
+    seqPtr=*(addedSoFar.count_+thisPile);
+    if (addedSoFar.count_[thisPile]!=0)
+    {
+      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 1\n";
+      seqPtr|=sameAsPrevFlag; // TBD replace if clause with sum
+      *(readBuffer.seqBufBase_+seqSize-2)+=32;//tolower(*(readBuffer.seqBufBase_+seqSize-2));
+    }
+    else
+    {
+      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 0\n";
+      
+    }
     (*outBwt[thisPile])( readBuffer.seqBufBase_+seqSize-2, 1 );
 
-        if (fwrite( addedSoFar.count_+thisPile, sizeof(LetterCountType), 
-		   1, outPtr[thisPile] )!=1) {
-            cerr << "Could no write to pointer pile. Aborting." << endl;
-            exit(-1);
-        }
+
+    if (fwrite( &seqPtr, sizeof(LetterCountType), 
+		1, outPtr[thisPile] )!=1) 
+    {
+      cerr << "Could not write to pointer pile. Aborting." << endl;
+      exit(-1);
+    }
     addedSoFar.count_[thisPile]++;
     seqNum++;
   } // ~while
@@ -376,27 +398,33 @@ void BCRext::run(void) {
   }
   //    return (0);
 
+  LetterCount lastSAPInterval;
+  LetterCountType thisSAPInterval;
+  bool thisSAPValue;
+
   //  ReadBuffer buffer(seqSize);
 
   // Main loop
   for (int i(2);i<=seqSize;i++)
   {
-
+    thisSAPInterval=0;
+    lastSAPInterval.clear();
 
     cout << "Starting iteration " << i << ", time now: " << timer.timeNow();
     cout << "Starting iteration " << i << ", usage: " << timer << endl;
 
-        // don't do j=0 - this is the $ sign which is done already
-        for (int j(1); j < alphabetSize; j++) {
-            // prep the output files
-
-            getFileName(tmpOut, 'S', j, fileName);
-            readWriteCheck(fileName.c_str(),true);
-            outSeq[j] = fopen(fileName.c_str(), "w");
-
-            getFileName(tmpOut, 'P', j, fileName);
-            readWriteCheck(fileName.c_str(),true);            
-            outPtr[j] = fopen(fileName.c_str(), "w");
+    // don't do j=0 - this is the $ sign which is done already
+    for (int j(1); j < alphabetSize; j++) 
+    {
+      // prep the output files
+      
+      getFileName(tmpOut, 'S', j, fileName);
+      readWriteCheck(fileName.c_str(),true);
+      outSeq[j] = fopen(fileName.c_str(), "w");
+      
+      getFileName(tmpOut, 'P', j, fileName);
+      readWriteCheck(fileName.c_str(),true);            
+      outPtr[j] = fopen(fileName.c_str(), "w");
 
 #ifdef TRACK_SEQUENCE_NUMBER
       getFileName(tmpOut,'N',j,fileName);
@@ -503,9 +531,20 @@ void BCRext::run(void) {
 #endif
 
       while ( buffer.getNext( seqNum, seqPtr))
-{
+      {
+	if ((seqPtr&sameAsPrevFlag)==0)
+	{
+	  thisSAPInterval++;
+	  thisSAPValue=false;
+	} // ~if
+	else
+	{
+	  seqPtr&=sameAsPrevMask;
+	  thisSAPValue=true;
+	} // ~else
 
         thisPile = buffer[seqSize - i];
+
         //thisPile=whichPile[seqBuff[seqSize-i]];
 
         if (thisPile < 0) {
@@ -520,7 +559,7 @@ void BCRext::run(void) {
             exit(-1);
         }
 
-
+	cout << ((thisSAPValue)?'1':'0') << " " << thisSAPInterval << " " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
 
 #ifdef DEBUG
 	cout << "Read in " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
@@ -609,14 +648,29 @@ void BCRext::run(void) {
 
 	//	bwtBuf[0]=(seqSize-i-1>=0)?baseNames[buffer[seqSize-i-1]]:'$';
 	bwtBuf[0]=(seqSize-i-1>=0)?alphabet[buffer[seqSize-i-1]]:alphabet[0];
-	(*outBwt[thisPile])( &bwtBuf[0], 1 );
+	//	if (thisSAPValue==true) bwtBuf[0]+=32;//=tolower(bwtBuf[0]);
+
+
 
 	prevCharsOutputThisIter.count_[thisPile]=posInPile;
 
 	// pointer into new pile must be offset by number of new entries added
 	//	seqPtr+=newCharsAddedThisIter.count_[thisPile];
 	seqPtr=posInPile+newCharsAddedThisIter.count_[thisPile];
-        
+	if (lastSAPInterval.count_[thisPile]==thisSAPInterval)
+	{
+	  bwtBuf[0]+=32;
+	  seqPtr|=sameAsPrevFlag;
+	  cout << thisSAPInterval << endl;
+	}
+	else
+	{
+	  cout << thisSAPInterval << " " << lastSAPInterval.count_[thisPile] << endl;
+	  lastSAPInterval.count_[thisPile]=thisSAPInterval;
+	}
+
+	(*outBwt[thisPile])( &bwtBuf[0], 1 );
+
         if (fwrite(&seqPtr, sizeof (LetterCountType),
                 1, outPtr[thisPile]) != 1) {
             cerr << "BWT readAndSend returned only " << readSendChars
