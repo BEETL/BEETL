@@ -128,51 +128,81 @@ int main(int numArgs, char** args) {
 
     } else if (strcmp(args[1], COMMAND_BCR_EXT) == 0) {
 
-        for (int i = 2; i < numArgs; i++)
 
-            if (args[i][0] == '-') { // only flags here "-X etc."
+      // set defaults for BCRext mode
+      bcrExtAsciiOutput=false; // use normal ASCII alphabet as output
+      bcrExtHuffmanOutput=false; // use huffman encoding as compression
+      bcrExtRunlengthOutput=true; // use RunLength encoding [default]
+      bcrExtImplicitSort=true; // do implicit sort of input sequences
 
-                switch (args[i][1]) {
-                    case 'i':
-                        // next param should be the filename, checking now
-                        isArgumentOrExit(i + 1, numArgs);
-                        fileIsReadableOrExit(args[i + 1]);
-                        bcrExtFileIn = args[i + 1]; // this should be the name
-                        cout << "-> input file is " << bcrExtFileIn << endl;
-                        break;
-                    case 'p':
-                        isArgumentOrExit(i + 1, numArgs);
-                        bcrExtFileOutPrefix = args[i + 1];
-                        cout << "-> output prefix set to "
-                                << bcrExtFileOutPrefix << endl;
-                        break;
-                    case 'a':
-                        if (!bcrExtRunlengthOutput && !bcrExtHuffmanOutput) {
-                            bcrExtAsciiOutput = true;
-                        }
-                        cout << "-> writing ASCII encoded output"
-                                << endl;
-                        break;
-                    case 'h':
-                        if (!bcrExtRunlengthOutput && !bcrExtAsciiOutput) {
-                            bcrExtHuffmanOutput = true;
-                        }
-                        cout << "-> writing huffman encoded output"
-                                << endl;                        
-                        break;
-                    case 'r':
-                        if (!bcrExtHuffmanOutput && !bcrExtAsciiOutput) {
-                            bcrExtRunlengthOutput = true;
-                        }
-                        cout << "-> writing runlength encoded output"
-                                << endl;
-                        break;
-                    default:
-                        cout << "!! unknown flag \""
-                                << args[i][1] << "\"" << endl;
-                        print_usage(args[0]);
-                }
-            }
+
+      for (int i = 2; i < numArgs; i++)
+      {
+	if (args[i][0] == '-') { // only flags here "-X etc."
+
+	  std::string thisArg((string)args[i]);
+	  if (thisArg=="-i")
+	  {
+	    // next param should be the filename, checking now
+	    isArgumentOrExit(i + 1, numArgs);
+	    fileIsReadableOrExit(args[i + 1]);
+	    bcrExtFileIn = args[i + 1]; // this should be the name
+	    cout << "-> input file is " << bcrExtFileIn << endl;
+	  }
+	  else if (thisArg=="-p")
+	  {
+	    isArgumentOrExit(i + 1, numArgs);
+	    bcrFileOut = args[i + 1];
+	    cout << "-> output prefix set to "
+		 << bcrFileOut << endl;
+	  }
+	  else if (thisArg=="-a")
+	  {
+	    bcrExtAsciiOutput = true;
+	    bcrExtRunlengthOutput = false;
+	    bcrExtHuffmanOutput = false;
+	    cout << "-> writing ASCII encoded output"
+		 << endl;
+	  }
+	  else if (thisArg=="-h")
+	  {
+	    bcrExtAsciiOutput = false;
+	    bcrExtRunlengthOutput = false;
+	    bcrExtHuffmanOutput = true;
+	    cout << "-> writing huffman encoded output"
+		 << endl;                        
+	  }
+	  else if (thisArg=="-r")
+	  {
+	    bcrExtAsciiOutput = false;
+	    bcrExtRunlengthOutput = true;
+	    bcrExtHuffmanOutput = false;
+	    cout << "-> writing runlength encoded output"
+		 << endl;
+	  }
+	  else if (thisArg=="-sap")
+	  {
+	    bcrExtImplicitSort=true;
+	    cout << "-> perform implicit sort of input sequences"
+		 << endl;
+	  }
+	  else
+	  {
+	    cout << "!! unknown flag \""
+		 << args[i][1] << "\"" << endl;
+	    print_usage(args[0]);
+	  }
+	} // ~if begins with -
+      } // ~for
+
+      //   cout << bcrExtImplicitSort << bcrExtHuffmanOutput << bcrExtRunlengthOutput << endl;
+      if ((bcrExtImplicitSort==true)&&
+	  ((bcrExtHuffmanOutput==true)||(bcrExtRunlengthOutput==true)))
+      {
+	cout << "-> Note: -sap mode needs ASCII intermediate files," << endl
+	     << "-> will revert to requested compression type for final output" << endl;
+
+      }
 
         // check if all arguments are given
         if ((bcrExtRunlengthOutput || bcrExtAsciiOutput || bcrExtHuffmanOutput) // no huffman for now
@@ -185,6 +215,7 @@ int main(int numArgs, char** args) {
             Algorithm * pBCRext = new BCRext(bcrExtHuffmanOutput,
                                              bcrExtRunlengthOutput,
                                              bcrExtAsciiOutput,
+					     bcrExtImplicitSort,
                                              bcrExtFileIn,
                                              bcrExtFileOutPrefix);
 
