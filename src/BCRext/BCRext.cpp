@@ -197,7 +197,8 @@ void BCRext::run(void) {
 
   const LetterCountType sameAsPrevFlag(((LetterCountType)1)<<((8*sizeof(LetterCountType))-1));
   const LetterCountType sameAsPrevMask(~sameAsPrevFlag);
-  cout << sameAsPrevFlag << " "<< sameAsPrevMask << " "<< (sameAsPrevMask&sameAsPrevFlag) << " " << (((LetterCountType)1)<<63) << endl;
+
+  //  cout << sameAsPrevFlag << " "<< sameAsPrevMask << " "<< (sameAsPrevMask&sameAsPrevFlag) << " " << (((LetterCountType)1)<<63) << endl;
 
   LetterCountType seqPtr;
   int thisPile, lastPile;
@@ -359,13 +360,13 @@ void BCRext::run(void) {
     seqPtr=*(addedSoFar.count_+thisPile);
     if (addedSoFar.count_[thisPile]!=0)
     {
-      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 1\n";
+      //      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 1\n";
       seqPtr|=sameAsPrevFlag; // TBD replace if clause with sum
       *(readBuffer.seqBufBase_+seqSize-2)+=32;//tolower(*(readBuffer.seqBufBase_+seqSize-2));
     }
     else
     {
-      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 0\n";
+      //      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 0\n";
       
     }
     (*outBwt[thisPile])( readBuffer.seqBufBase_+seqSize-2, 1 );
@@ -562,7 +563,7 @@ void BCRext::run(void) {
 	cout << ((thisSAPValue)?'1':'0') << " " << thisSAPInterval << " " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
 
 #ifdef DEBUG
-	cout << "Read in " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
+	cout << ((thisSAPValue)?'1':'0') << " " << thisSAPInterval << " " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;	cout << "Read in " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
 	for (int ZZ(0);ZZ<seqSize;ZZ++)
 	  { cout << "ZZ " <<ZZ <<endl;  cout << alphabet[buffer[ZZ]] <<endl;}
 	cout << endl;
@@ -661,11 +662,11 @@ void BCRext::run(void) {
 	{
 	  bwtBuf[0]+=32;
 	  seqPtr|=sameAsPrevFlag;
-	  cout << thisSAPInterval << endl;
+	  //	  cout << thisSAPInterval << endl;
 	}
 	else
 	{
-	  cout << thisSAPInterval << " " << lastSAPInterval.count_[thisPile] << endl;
+	  //	  cout << thisSAPInterval << " " << lastSAPInterval.count_[thisPile] << endl;
 	  lastSAPInterval.count_[thisPile]=thisSAPInterval;
 	}
 
