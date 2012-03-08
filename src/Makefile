@@ -22,11 +22,10 @@
 # >> SETUP SECTION
 
 # compiler: e.g. g++
-#CC=/illumina/development/gcc-4.4.0_install/bin/g++
 CC=g++
 
 # include path for header files
-INC:= -I. -Ishared/ -IBCR/ -IBCRext/ -IcountWords/ 
+INC:= -I. -Ishared/ -IBCR/ -IBCRext/  
 
 # DEBUG build build with make DEBUG
 ifdef DEBUG
@@ -46,7 +45,7 @@ OBJ_DIR:= ../build
 
 ### main target, Beetl executable	
 
-Beetl: Beetl.o BCRext.o BCR_BWTCollection.o countWords.o Timer.o Tools.o\
+Beetl: Beetl.o BCRext.o BCR_BWTCollection.o Timer.o Tools.o\
        BWTCollection.o BCRexternalBWT.o BuildBCR.o Sorting.o TransposeFasta.o BwtReader.o BwtWriter.o \
 	ReadBuffer.o 
 	cd ../build/; ${CC} $(CFLAGS) -o ../$@ $^
@@ -99,10 +98,6 @@ BCRexternalBWT.o: BCR/BCRexternalBWT.cpp
 BuildBCR.o: BCR/BuildBCR.cpp
 	${CC} -c $(CFLAGS) $< -o $(OBJ_DIR)/$@		
 
-### countWords 
-
-countWords.o: countWords/CountWords.cpp
-	${CC} -c $(CFLAGS) $< -o $(OBJ_DIR)/$@	
 
 
 ### >> done compiling / linking
