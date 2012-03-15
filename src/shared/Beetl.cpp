@@ -136,10 +136,15 @@ int main(int numArgs, char** args) {
                         break;
                     case 'p':
                         isArgumentOrExit(i + 1, numArgs);
-                        bcrFileOut = args[i + 1];
+                        bcrExtFileOutPrefix = args[i + 1];
                         cout << "-> output prefix set to "
-                                << bcrFileOut << endl;
+                                << bcrExtFileOutPrefix << endl;
                         break;
+                    case 's':
+                        cout << "-> using SeqFile input"
+                             << endl;
+                        bcrExtUseSeq = true;
+                        break;                        
                     case 'a':
                         if (!bcrExtRunlengthOutput && !bcrExtHuffmanOutput) {
                             bcrExtAsciiOutput = true;
@@ -169,8 +174,20 @@ int main(int numArgs, char** args) {
             }
 
         // check if all arguments are given
-        if ((bcrExtRunlengthOutput || bcrExtAsciiOutput || bcrExtHuffmanOutput) // no huffman for now
-             && isValidReadFile(bcrExtFileIn.c_str())) {
+	
+	
+	// check for compression method
+        if ((bcrExtRunlengthOutput || bcrExtAsciiOutput || bcrExtHuffmanOutput)
+		
+	     // is this a valid .seq file? only when no fasta flag
+		
+             && ( isValidFastaFile(bcrExtFileIn.c_str()) ||
+		
+             // check if its a fasta fiel when fasta flag set
+		(bcrExtUseSeq && isValidReadFile(bcrExtFileIn.c_str())))
+		) {
+	     // end checking	
+		
             if (bcrExtFileOutPrefix.length()==0){
                 bcrExtFileOutPrefix=bcrExtFileOutPrefixDefault;
             }
@@ -179,6 +196,7 @@ int main(int numArgs, char** args) {
             Algorithm * pBCRext = new BCRext(bcrExtHuffmanOutput,
                                              bcrExtRunlengthOutput,
                                              bcrExtAsciiOutput,
+		                             bcrExtUseSeq,
                                              bcrExtFileIn,
                                              bcrExtFileOutPrefix);
 
@@ -195,7 +213,7 @@ int main(int numArgs, char** args) {
             print_usage(args[0]);
         }
 
-    } 
+                        }
 	else {
         cerr << "!! \"" << args[1] << "\" is no known command" << endl;
         print_usage(args[0]);
@@ -229,8 +247,6 @@ void isArgumentOrExit(int num, int numArgs) {
 void print_usage(char *args) {
     cerr << endl << "- This is the BEETL software library -" << endl
             << endl
-            << "Framework version" << endl 
-            << BEETL_ID << endl            
             << endl
             << "Included in this framework are the following algorithms" << endl
             << endl
@@ -241,15 +257,15 @@ void print_usage(char *args) {
             << "uses significantly less RAM (a.k.a. none) but depends heavily on I/O" << endl
             << endl
             << "Usage: " << args << " "
-            << COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-r -a]" << endl
-            // below: for huffman encoding uncomment when implemented
-            //<< COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-h -r -a]" << endl
+            << COMMAND_BCR_EXT <<" -i <read file> -[a r h] [-p <output file prefix>] [-s]" << endl
+
             << endl
-            << "-i <file>:\tinput set of , 1 read per line, no fasta" << endl
+            << "-i <file>:\tinput file in FASTA format" << endl
             << "-p <string>:\toutput file names will start with \"prefix\"" << endl
             << "-a:\t\toutput ASCII encoded files" << endl
-            << "-r:\t\toutput runlength encoded files [default]" << endl
-            << "-h:\t\toutput Hufmann encoded files" << endl
+            << "-r:\t\toutput runlength encoded file" << endl
+            //<< "-h:\t\toutput Hufmann encoded files" << endl
+            << "-s:\t\tuse .seq input files (each line one sequence)" << endl
             << endl
             << endl
             << "-> BCR - command \"" << COMMAND_BCR << "\"" << endl

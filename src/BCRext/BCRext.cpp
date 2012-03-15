@@ -90,7 +90,7 @@ const string tmp2("temp2-XX");
 
 // added by Tobias, interface to new Beetl executable
 BCRext::BCRext(bool huffman, bool runlength,
-        bool ascii, string inFile, string prefix) {
+        bool ascii, bool seqFile, string inFile, string prefix) {
 
     // get memory allocated
     prefix_ = new char[prefix.length()+1];
@@ -108,6 +108,7 @@ BCRext::BCRext(bool huffman, bool runlength,
     useHuffmanEncoder_=huffman;
     useRunlengthEncoder_=runlength;
     useAsciiEncoder_=ascii;
+    useSeqFile_ = seqFile;
 }
 
 // called from beetl class, replaces main method
@@ -156,6 +157,7 @@ void BCRext::run(void) {
 
   //  string thisSeq;
   char seqBuf[maxSeqSize+1];
+  char descBuf[maxSeqSize+1];
   //  char* seqBuff;
 
   vector<char> bwtBuf;
@@ -214,8 +216,16 @@ void BCRext::run(void) {
   } // ~else
 
   // read first sequence to determine read size
-  fgets( seqBuf, maxSeqSize, inSeq); 
-
+  
+  if (!useSeqFile_){
+	// read the first line with fasta header and the sequence afterwards
+	fgets( descBuf, maxSeqSize, inSeq); // may be ugly, but probably 
+	fgets( seqBuf, maxSeqSize, inSeq); // faster than formated read stuff
+  } else {
+	// just read the first line  
+	fgets( seqBuf, maxSeqSize, inSeq); 
+  }
+  
   const int seqSize(strlen(seqBuf)-1); // -1 compensates for \n at end
   cerr << prefix << "Assuming all sequences are of length " << seqSize << endl;
   //  inFile.seekg(0,ios::beg);
@@ -299,9 +309,15 @@ void BCRext::run(void) {
 
   // copy first sequence over
   strcpy( readBuffer.seqBufBase_, seqBuf);
-	 //  while ( fgets( readBuffer.seqBufBase_, readBuffer.blockSize_, inSeq)!=NULL)
+
   do
   {
+  // check if we are reading a fasta file
+  if (!useSeqFile_ ){
+	  // read the fasta header
+	 fgets( descBuf, maxSeqSize, inSeq);	   
+  }
+
     thisPile=whichPile[(int)readBuffer.seqBufBase_[seqSize-1]];
 
         // zero is terminator so should not be present
@@ -327,7 +343,7 @@ void BCRext::run(void) {
             cerr << "Could not write to Dollar Pile. Aborting." << endl;
             exit(-1);
         }
-    
+
     //    fprintf( outSeq[thisPile], "%s", readBuffer.seqBufBase_);
     readBuffer.convertFromASCII();
     readBuffer.sendTo( outSeq[thisPile] );
@@ -360,6 +376,8 @@ void BCRext::run(void) {
   } // ~while
   while ( fgets( readBuffer.seqBufBase_, readBuffer.blockSize_, inSeq)!=NULL);  
 
+  
+  
   fclose (inSeq);
   fclose (outDollarBwt);
 

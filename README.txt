@@ -80,9 +80,10 @@ outfilebwt_5.aux
 
 /install_path/beetl/Beetl ext -i input.txt -a
 
-Input: input.txt
-Raw ASCII format, one sequence per line, each terminated by single carriage 
-return 
+Input: input.fasta OR input.txt
+FASTA formated onput file
+OR: Raw ASCII format, one sequence per line, each terminated by single
+carriage return (use -s cli flag)
 Only allowed ambiguity code is 'N'
 
 Output: all files are in ASCII format
@@ -100,7 +101,7 @@ BCRext-B04
 BCRext-B05
 - BWT of characters corresponding to suffixes beginning with 'T'
 
-/install_path/beetl/Beetl ext -i input.txt -r
+/install_path/beetl/Beetl ext -i input.fasta -r
 
 as above, but output files are in run-length-encoded format.
 

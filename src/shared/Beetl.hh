@@ -41,6 +41,7 @@ const string bcrModes[] = {("build BCR"),("unBCR"),("search Backward search + Lo
 bool bcrExtAsciiOutput; // use normal ASCII alphabet as output
 bool bcrExtHuffmanOutput; // use huffman encoding as compression
 bool bcrExtRunlengthOutput; // use RunLength encoding [default]
+bool bcrExtUseSeq; // use fasta input
 
 string bcrExtFileIn; // input file with read set (fasta)
 string bcrExtFileOutPrefix; // prefix of the output files
