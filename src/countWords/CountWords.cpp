@@ -48,8 +48,12 @@ using namespace std;
 
 countWords::countWords(bool bothSetsCompressed, bool inputACompressed,
         bool inputBCompressed, bool inputBIsReferenceGenome,
-        bool paramN, bool paramK, string setA, string setB) {
+		       int paramN, int paramK, const vector<string>& setA, 
+		       const vector<string>& setB) :
+  setA_(setA), setB_(setB)
+{
 
+#ifdef XXX
     // get memory allocated
     setA_ = new char[setA.length()+1];
     setB_ = new char[setB.length()+1];
@@ -61,6 +65,7 @@ countWords::countWords(bool bothSetsCompressed, bool inputACompressed,
     // append \0 to obtain a valid escaped c string
     setA_[setA.length()] = '\0';
     setB_[setB.length()] = '\0';
+#endif
 
     // set tool flags
     bothSetsCompressed_ = bothSetsCompressed;
@@ -527,6 +532,8 @@ void countWords::run(void) {
 
     int numCycles = paramK_;
     int minOcc = paramN_;
+
+    cout << numCycles << " " << minOcc << " fred" << endl;
   
   // see above, needed for old own main method
 
@@ -556,21 +563,24 @@ void countWords::run(void) {
       //  int numCycles(atoi(args[nextArg++]));
       //  int minOcc(atoi(args[nextArg++]));
 
+    cout << setA_.size() << " " << setB_.size() << endl;
+
   for (int i(0);i<alphabetSize;i++)
   {
-#ifdef DEBUGX
+    //#ifdef DEBUGX
     cout << i << " " << alphabet[i] << endl; 
-#endif
+    //#endif
+    cout << setA_[i] << " " << setB_[i] << endl;
     if ((compressedInputA==true)&&(i!=0))
-      inBwtA[i]= new BwtReaderRunLength(setA_);
+      inBwtA[i]= new BwtReaderRunLength(setA_[i]);
     else
-      inBwtA[i]= new BwtReaderASCII(setA_);
+      inBwtA[i]= new BwtReaderASCII(setA_[i]);
     inBwtA[i]->readAndCount(countsPerPileA[i]);
 
     if ((compressedInputB==true)&&(i!=0))
-      inBwtB[i]= new BwtReaderRunLength(setB_);
+      inBwtB[i]= new BwtReaderRunLength(setB_[i]);
     else
-      inBwtB[i]= new BwtReaderASCII(setB_);
+      inBwtB[i]= new BwtReaderASCII(setB_[i]);
     //    inBwtB[i]= new BwtReaderASCII(args[i+alphabetSize+nextArg]);
     inBwtB[i]->readAndCount(countsPerPileB[i]);
 

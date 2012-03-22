@@ -41,14 +41,17 @@ class countWords : public Algorithm {
     bool inputBCompressed_;
     bool inputBIsReferenceGenome_;
     
-    bool paramN_;
-    bool paramK_;
+    int paramN_;
+    int paramK_;
     
-    char* setA_;
-    char* setB_;
+  //    char* setA_;
+  //   char* setB_;
+  vector <string> setA_;
+  vector <string> setB_;
+
 public:
-    countWords(bool, bool, bool, bool, bool, bool, string, string);
-    virtual ~countWords() { delete[] setA_; delete setB_; }
+    countWords(bool, bool, bool, bool, int, int, const vector<string>&, const vector<string>& );
+    virtual ~countWords() {}
     void run(void);
 };
 // end

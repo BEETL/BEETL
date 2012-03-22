@@ -198,12 +198,27 @@ int main(int numArgs, char** args) {
 
     } else if (strcmp(args[1], COMMAND_COUNTWORDS) == 0) {
 
+
+      vector<string> filesA, filesB;
+
         for (int i = 2; i < numArgs; i++)
 
             if (args[i][0] == '-') { // only flags here "-X etc."
-
+	      cout << "blah" << endl;
                 switch (args[i][1]) {
                     case 'a':
+		      while (args[++i][0]!='-')
+		      {
+			cout << args[i] << " fred " << endl;
+                        fileIsReadableOrExit(args[i]);
+			filesA.push_back(args[i]);
+                        cout << "-> input file A is "
+			     << filesA.back()
+			     << endl;
+		      }
+		      i--;
+		      break;
+#ifdef OLD
                         // next param should be the filename, checking 
                         isArgumentOrExit(i + 1, numArgs);
                         fileIsReadableOrExit(args[i + 1]);
@@ -212,7 +227,19 @@ int main(int numArgs, char** args) {
                                 << countWordsInputA
                                 << endl;
                         break;
+#endif
                     case 'b':
+		      while ((++i)!=numArgs)
+		      {
+                        fileIsReadableOrExit(args[i]);
+			filesB.push_back(args[i]);
+                        cout << "-> input file B is "
+			     << filesB.back()
+			     << endl;
+		      }
+		      //		      i--;
+		      break;
+#ifdef OLD
                         // next param should be the filename, checking now
                         isArgumentOrExit(i + 1, numArgs);
                         fileIsReadableOrExit(args[i + 1]);
@@ -221,6 +248,7 @@ int main(int numArgs, char** args) {
                                 << countWordsInputB
                                 << endl;
                         break;
+#endif
                     case 'k':
                         isArgumentOrExit(i + 1, numArgs);
                         minimalLengthK = atoi(args[i + 1]);
@@ -275,13 +303,13 @@ int main(int numArgs, char** args) {
             }
 
         // check for required arguments
-        if (minimalLengthK>0 && minimalOccurencesN>0 &&
-                countWordsInputA.length()>0 && countWordsInputB.length()>0) {
+        if ( (minimalLengthK>0) && (minimalOccurencesN>0) &&
+	     (filesA.size()>0) && (filesA.size()==filesB.size())) {
 
             // create new tool object
             Algorithm * pcountWords = new countWords(compressedBoth, compressedInputA,
                     compressedInputB, ReferenceGenomeInputB, minimalOccurencesN,
-                    minimalLengthK, countWordsInputA, countWordsInputB);
+                    minimalLengthK, filesA, filesB);
             
             // run the "main" method
             pcountWords->run();
