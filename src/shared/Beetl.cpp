@@ -74,12 +74,12 @@ int main(int numArgs, char** args) {
                                 << endl;
                         break;
                     case 'a':
-		      bcrCompression=compressionASCII;;
+									      bcrCompression=compressionASCII;;
                         cout << "-> writing ASCII encoded output"
                                 << endl;
                         break;
                     case 'h':
-		      bcrCompression=compressionHuffman;
+		     								 bcrCompression=compressionHuffman;
                         cout << "Huffman encoding not yet supported, sorry."
                                 << endl;
                         exit(-1);
@@ -87,7 +87,7 @@ int main(int numArgs, char** args) {
                         //        << endl;                        
                         break;
                     case 'r':
-		      bcrCompression=compressionRunLength;
+		      							bcrCompression=compressionRunLength;
                         cout << "-> writing runlength encoded output"
                                 << endl;
                         break;
@@ -209,12 +209,12 @@ int main(int numArgs, char** args) {
                     case 'a':
 		      while (args[++i][0]!='-')
 		      {
-			cout << args[i] << " fred " << endl;
-                        fileIsReadableOrExit(args[i]);
-			filesA.push_back(args[i]);
-                        cout << "-> input file A is "
-			     << filesA.back()
-			     << endl;
+							cout << args[i] << " fred " << endl;
+              fileIsReadableOrExit(args[i]);
+							filesA.push_back(args[i]);
+              cout << "-> input file A is "
+			     		<< filesA.back()
+			     		<< endl;
 		      }
 		      i--;
 		      break;
@@ -231,11 +231,11 @@ int main(int numArgs, char** args) {
                     case 'b':
 		      while ((++i)!=numArgs)
 		      {
-                        fileIsReadableOrExit(args[i]);
-			filesB.push_back(args[i]);
-                        cout << "-> input file B is "
-			     << filesB.back()
-			     << endl;
+            fileIsReadableOrExit(args[i]);
+						filesB.push_back(args[i]);
+            cout << "-> input file B is "
+			     	<< filesB.back()
+			     	<< endl;
 		      }
 		      //		      i--;
 		      break;
