@@ -45,7 +45,8 @@ public:
     ~TransposeFasta();
 
     bool convert( const string& input,const string& output );
-	
+	bool convertFromCycFile();
+
 	dataTypelenSeq lengthRead;    //Lenght of each text
 	dataTypeNChar lengthTexts;   //Total length of all texts without $-symbols
 

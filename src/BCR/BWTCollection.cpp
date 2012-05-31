@@ -19,7 +19,7 @@
 /******************************************************************************
 * It assumes that:
 * -  the length of each sequence is 100.
-* -  the alphabet is $ACGNT
+* -  the alphabet is $ACGNTZ
 ******************************************************************************/
 
 #include "BWTCollection.h"

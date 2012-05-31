@@ -50,6 +50,8 @@ bool TransposeFasta::convert( const string& input,const string& output )
 	freq[int('G')]=1;
 	freq[int('N')]=1;
 	freq[int('T')]=1;
+	//GIOVANNA: ADDED THE SYMBOL Z IN THE ALPHABET, SO sizeAlpha = alphabetSize
+	freq[int('Z')]=1;	
 
     FILE* ifile;
 	ifile = fopen(input.c_str(), "rb");
@@ -143,3 +145,37 @@ bool TransposeFasta::convert( const string& input,const string& output )
 
     return true;
 }
+
+bool TransposeFasta::convertFromCycFile() {
+  		//TO DO
+	//lengthRead = CYCLENUM;
+	//The distribution of characters is useful
+	//for alpha[256] -->Corresponding between the alphabet, the piles and tableOcc
+	//and to know sizeAlpha
+
+	//TDB
+
+	// Setting useful to work:
+	//1) Alphabet
+	//We supposed that the symbols in the input file are the following
+	freq[int(TERMINATE_CHAR)]=1;
+	freq[int('A')]=1;
+	freq[int('C')]=1;
+	freq[int('G')]=1;
+	freq[int('N')]=1;
+	freq[int('T')]=1;
+	//GIOVANNA: ADDED THE SYMBOL Z IN THE ALPHABET, SO sizeAlpha = alphabetSize
+	freq[int('Z')]=1;	
+
+	//2) Number of sequences
+	nSeq = 100;
+	//3) Length of the longest sequence
+	lengthRead = 100;
+
+	std::cerr << "****number of sequences: " << nSeq << "\n";
+	std::cerr << "****max length of each sequence: " << lengthRead << "\n";
+	//4) Total Length 
+	lengthTexts = lengthRead * nSeq;
+	std::cerr << "****lengthTot: " << lengthTexts << "\n";
+    return 1;
+} 
