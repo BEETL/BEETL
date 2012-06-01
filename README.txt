@@ -1,6 +1,3 @@
-
-README version: $Id: README.txt,v 1.1 2011/11/18 13:14:50 acox Exp $
-
 BEETL: Burrows-Wheeler Extended Tool Library
 
 Copyright (c) 2011 Illumina, Inc.
@@ -52,39 +49,42 @@ make
 
 1. BCR algorithm (14 bytes of RAM required per input sequence)
 
-/install_path/beetl/Beetl bcr -i input.fa -o outfile
+/install_path/beetl/Beetl bcr -m 0 -i input.fa [-o outputPrefix]
 
-Input: input.fa
-FASTA format file, all sequences must be of same size
+Input: input.fa/.seq
+- FASTA format file, all sequences must be of same size
+- Raw ASCII format, one sequence per line, each terminated by single carriage 
 Only allowed ambiguity code is 'N'
 ------------
 You can set the length of each sequence by changing the parameter CYCLENUM in TransposeFasta.h
 ------------
 
 Output:
-outfile
+BCR-B0
 - BWT of entire collection in ASCII format
-outfilebwt_0.aux 
+BCR-B00
 - BWT of characters corresponding to suffixes beginning with '$'
-outfilebwt_1.aux
+BCR-B01
 - BWT of characters corresponding to suffixes beginning with 'A'
-outfilebwt_2.aux
+BCR-B02
 - BWT of characters corresponding to suffixes beginning with 'C'
-outfilebwt_3.aux
+BCR-B03
 - BWT of characters corresponding to suffixes beginning with 'G'
-outfilebwt_4.aux
+BCR-B04
 - BWT of characters corresponding to suffixes beginning with 'N'
-outfilebwt_5.aux
+BCR-B05
 - BWT of characters corresponding to suffixes beginning with 'T'
-(so outfile is just the concatenation of outfilebwt_[012345].aux)
+(so outfile is just the concatenation of BCR-B0[012345])
 
 
 2. BCRext algorithm (pure external memory)
 
 /install_path/beetl/Beetl ext -i input.txt -a
 
-Input: input.txt
-Raw ASCII format, one sequence per line, each terminated by single carriage 
+Input: input.fa/.seq
+- FASTA format file, all sequences must be of same size
+- Raw ASCII format, one sequence per line, each terminated by single carriage 
+
 return 
 Only allowed ambiguity code is 'N'
 
@@ -112,13 +112,13 @@ Parameters in Tools.h
 convertFromFasta:	if it is set to 1, it reads the input file (FASTA file: a sequence for line), otherwise it reads the cyc files.
 deletePartialBWT:	if it is set to 1, it deletes the BWT-segments files and keeps the entire BWT, otherwise renames them.
 deleteCycFile:		if it is set to 1, it deletes the cycs files.
-BUILD_SA:			if it is set to 1, it computes the GSA (seqID, position) and the SA (position of the concatenated sequences without a further end-marker).
+BUILD_SA:		if it is set to 1, it computes the GSA (seqID, position) and the SA (position of the concatenated sequences without a further end-marker).
 decodeBackward:		if it is set to 1, it computes the inverse BWT in backward direction, otherwise in forward direction.
 BackByVector:		if it is set to 1, it uses the sampling of the BWT segments for inverse BWT. More memory, less time.
 
 Inverse BWT by using BCR
 
-	/install_path/beetl/Beetl bcr -i outfile -o outputInverse -m 1
+	/install_path/beetl/Beetl bcr -i BCR-B0 -o outputInverse -m 1
 
 	Input: outfile of BCR
 
@@ -139,16 +139,16 @@ Inverse BWT by using BCR
 
 (Generalized) Suffix Array by using BCR
 	
-	/install_path/beetl/Beetl bcr -i input.fa -o outfile
+	/install_path/beetl/Beetl bcr -i input.fa -o BCR-B0
 
 	Input: input.fa (like above)
 	
 	Output: 
-		outfile. It is the concatenation of outfilebwt_[012345].aux
-		outfile.pairSA. It is the generalized suffix array (seqID, position) of the collection S.
+		BCR-B0. It is the concatenation of BCR-B0[012345]
+		BCR-B0.pairSA. It is the generalized suffix array (seqID, position) of the collection S.
 						It is defined as an array of N pairs (seqID, position), and GSA[i]=(t,j) is the the pair corresponding to the i-th smallest suffix of the strings in S.
-		outfile.sa. It is the suffix array of the concatenated strings of the collection (without to append a further end-marker)
-		outfile.txt. it produces an information file when verboseEncode == 1. Useful for small input.
+		BCR-B0.sa. It is the suffix array of the concatenated strings of the collection (without to append a further end-marker)
+		BCR-B0.txt. it produces an information file when verboseEncode == 1. Useful for small input.
 
 Example:
 input.fa

@@ -205,10 +205,10 @@ BCRexternalBWT::BCRexternalBWT
 
 		char *filenameIn = new char[12];
 		char *filename = new char[8];
-		const char *ext = ".aux";
+		const char *ext = "";
 		std::cerr << "Removing/Renaming the BWT segments\n";
 		for (dataTypedimAlpha g = 0 ; g < alphabetSize; g++) {  
-			int numchar=sprintf (filename, "bwt_%d", g);
+			int numchar=sprintf (filename, "%d", g);
 			numchar=sprintf (filenameIn,"%s%s",filename,ext);
 			if (deletePartialBWT == 1)  {
 				if (remove(filenameIn)!=0) 
@@ -410,7 +410,7 @@ int BCRexternalBWT::rankInverseManyByVector (char const* file1, char const* file
 	dataTypeNChar numchar=0;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	numchar=0;
 	static FILE *InFileBWT;
 	uchar *buf = new uchar[SIZEBUFFER];
@@ -500,7 +500,7 @@ dataTypeNChar BCRexternalBWT::findRankInBWT (char const* file1, char const* file
 {
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	
 	dataTypeNChar numchar=0;
 
@@ -556,7 +556,7 @@ dataTypeNChar BCRexternalBWT::findRankInBWTbyVector (char const* file1, char con
 {
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	
 	dataTypeNChar numchar=0;
 
@@ -697,7 +697,7 @@ int BCRexternalBWT::computeNewPositonForBackSearch(char const* file1, char const
 	dataTypeNChar numchar=0;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	numchar=0;
 	FILE *InFileBWT;
 	
@@ -780,7 +780,7 @@ int BCRexternalBWT::computeNewPositonForBackSearchByVector(char const* file1, ch
 	dataTypeNChar numchar=0;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	numchar=0;
 	FILE *InFileBWT;
 	
@@ -900,7 +900,7 @@ int BCRexternalBWT::computeManyNewPositonForBackSearchByVector(char const* file1
 	dataTypeNChar numchar=0;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	numchar=0;
 	FILE *InFileBWT;
 	
@@ -1256,7 +1256,7 @@ int BCRexternalBWT::computeVectorUnbuildBCR(char const* file1, char const* fileO
 		
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	dataTypeNChar numchar=0;
 	static FILE *InFileBWT;
 	uchar *bufBlock = new uchar[DIMBLOCK];
@@ -1369,7 +1369,7 @@ int BCRexternalBWT::initializeUnbuildBCR(char const* file1, char const* fileOutB
 
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	dataTypeNChar numchar=0;
 	static FILE *InFileBWT;
 	uchar *buf = new uchar[SIZEBUFFER];
@@ -1875,7 +1875,7 @@ int BCRexternalBWT::RecoverNsymbolsReverse(char const* file1, char const* fileOu
 	dataTypeNChar numchar=0;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	numchar=0;
 	static FILE *InFileBWT;
 	
@@ -1883,9 +1883,9 @@ int BCRexternalBWT::RecoverNsymbolsReverse(char const* file1, char const* fileOu
 	dataTypeNChar *counters = new dataTypeNChar[sizeAlpha];  //it counts the number of each symbol into the i-Pile-BWT
 	dataTypeNSeq j = 0;
 	while (j < nText) {			
-		for (dataTypedimAlpha i = 0 ; i < sizeAlpha; i++)
+		for (dataTypedimAlpha i = 0 ; i < sizeAlpha; i++){
 			counters[i]=0;
-
+		}
 		dataTypedimAlpha currentPile = vectTriple[j].pileN;
 		numchar=sprintf (filename, "%s%d", fileOutBwt, currentPile);
 		numchar=sprintf (filenameIn,"%s%s",filename,ext);
@@ -2013,7 +2013,7 @@ int BCRexternalBWT::RecoverNsymbolsReverseByVector(char const* file1, char const
 	dataTypeNChar numchar=0;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	numchar=0;
 	static FILE *InFileBWT;
 	
@@ -2179,7 +2179,7 @@ int BCRexternalBWT::Recover1symbolReverse(char const* file1, char const* fileOut
 	dataTypeNChar numchar=0;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	numchar=0;
 	static FILE *InFileBWT;
 	
@@ -2486,8 +2486,8 @@ void BCRexternalBWT::InsertFirstsymbols(uchar const * newSymb)
 	char *filenameOut = new char[12];
 	char *filename = new char[8];
 	dataTypeNChar numchar;
-	const char *ext = ".aux";
-	numchar=sprintf (filename, "bwt_%d",0);
+	const char *ext = "";
+	numchar=sprintf (filename, "%d",0);
 	
 	numchar=sprintf (filenameOut,"%s%s",filename,ext);
 	
@@ -2517,7 +2517,7 @@ void BCRexternalBWT::InsertFirstsymbols(uchar const * newSymb)
 
 	//Creates one file for each letter in the alphabet. From 1 to sizeAlpha-1
 	for (dataTypedimAlpha i = 1; i < sizeAlpha; i++) {
-		numchar=sprintf (filename, "bwt_%d", i);
+		numchar=sprintf (filename, "%d", i);
 		numchar=sprintf (filenameOut,"%s%s",filename,ext);
 		
 		OutFileBWT = fopen(filenameOut, "w");
@@ -2540,7 +2540,7 @@ void BCRexternalBWT::InsertNsymbols(uchar const * newSymb, dataTypelenSeq posSym
 	static FILE *InFileBWT;                  // output and input file BWT;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	
 	//std::cerr << "Compute new posN" << std::endl;
 	dataTypeNChar *counters = new dataTypeNChar[sizeAlpha];  //it counts the number of each symbol into the i-Pile-BWT
@@ -2553,7 +2553,7 @@ void BCRexternalBWT::InsertNsymbols(uchar const * newSymb, dataTypelenSeq posSym
 		
 	while (j < nText) {			
 		dataTypedimAlpha currentPile = vectTriple[j].pileN;
-		numchar=sprintf (filename, "bwt_%d", currentPile);
+		numchar=sprintf (filename, "%d", currentPile);
 		numchar=sprintf (filenameIn,"%s%s",filename,ext);
 		//printf("===Current BWT-partial= %d\n",currentPile);
 		
@@ -2615,7 +2615,7 @@ void BCRexternalBWT::InsertNsymbols(uchar const * newSymb, dataTypelenSeq posSym
 		uchar *buffer = new uchar[SIZEBUFFER];
 		dataTypedimAlpha mmm=0;
 		while (mmm < sizeAlpha) {			
-			numchar=sprintf (filename, "bwt_%d", mmm);
+			numchar=sprintf (filename, "%d", mmm);
 			numchar=sprintf (filenameIn,"%s%s",filename,ext);
 			//printf("===currentPile= %d\n",mmm);
 			InFileBWT = fopen(filenameIn, "r");
@@ -2743,7 +2743,7 @@ void BCRexternalBWT::storeBWT(uchar const * newSymb) {
 	char *filenameOut = new char[16]; 
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	
 	dataTypeNChar numchar=0;
 	dataTypeNChar numcharWrite=0;
@@ -2760,7 +2760,7 @@ void BCRexternalBWT::storeBWT(uchar const * newSymb) {
 			std::cerr << "index j= " << j << " current BWT segment " << (int)currentPile << std::endl;
 
 		//std::cerr << "Pile " << (int)currentPile << std::endl;
-		numchar=sprintf (filename, "bwt_%d", currentPile);
+		numchar=sprintf (filename, "%d", currentPile);
 		numchar=sprintf (filenameIn,"%s%s",filename,ext);
 		InFileBWT = fopen(filenameIn, "r");
 			// fileOut aperto?
@@ -2858,7 +2858,7 @@ void BCRexternalBWT::storeBWT(uchar const * newSymb) {
 	
 	//Renaming new to old
 	for (dataTypedimAlpha g = 0 ; g < sizeAlpha; g++) {  
-		numchar=sprintf (filename, "bwt_%d", g);
+		numchar=sprintf (filename, "%d", g);
 		numchar=sprintf (filenameIn,"%s%s",filename,ext);
 		numchar=sprintf (filenameOut,"new_%s%s",filename,ext);
 		//std::cerr << "Filenames:" << filenameIn << "\t" <<filenameOut << std::endl;
@@ -2900,7 +2900,7 @@ void BCRexternalBWT::storeEntireBWT( const char* fn ) {
 	static FILE *OutFileBWT, *InFileBWT;                  // output and input file BWT;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	dataTypeNChar numchar=0;
 	dataTypeNChar numcharWrite=0;
 
@@ -2922,7 +2922,7 @@ void BCRexternalBWT::storeEntireBWT( const char* fn ) {
 		std::cerr << "\nThe last BWT-segment:"<< std::endl;
 		uint mmm=0;
 		while (mmm < sizeAlpha) {			
-			numchar=sprintf (filename, "bwt_%d", mmm);
+			numchar=sprintf (filename, "%d", mmm);
 			numchar=sprintf (filenameIn,"%s%s",filename,ext);
 			//printf("===Current BWT-partial= %d\n",mmm);
 			InFileBWT = fopen(filenameIn, "r");
@@ -2945,7 +2945,7 @@ void BCRexternalBWT::storeEntireBWT( const char* fn ) {
 
 	std::cerr << "Compute the distribution of chars \n";
 	for (dataTypedimAlpha g = 0 ; g < sizeAlpha; g++) {  
-		numchar=sprintf (filename, "bwt_%d", g);
+		numchar=sprintf (filename, "%d", g);
 		numchar=sprintf (filenameIn,"%s%s",filename,ext);
 		InFileBWT = fopen(filenameIn, "rb");
 		if (InFileBWT==NULL) {

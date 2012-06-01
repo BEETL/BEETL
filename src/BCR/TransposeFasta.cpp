@@ -17,6 +17,7 @@
 
 #include "TransposeFasta.h"
 #include "Tools.h"
+#include <stdlib.h>
 #include <assert.h>
 
 
@@ -115,10 +116,11 @@ bool TransposeFasta::convert( const string& input,const string& output )
             }
             
             // increase the counter of chars buffered
-            charsBuffered++;            
+            charsBuffered++;        
+	    			nSeq++;
         }
-		else 
-			nSeq++;
+		//else 
+
 
         //num_read = fread(buf,sizeof(uchar),CYCLENUM,ifile);        
         fgets ( buf, 1024, ifile );
