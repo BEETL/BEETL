@@ -56,6 +56,8 @@ const string bcrExtFileOutPrefixDefault = "BCRext"; // default prefix
 // 2 -> search BCR
 string bcrFileIn; // input file
 string bcrFileOut; // output file
+const string bcrFileOutPrefixDefault = "BCR-B0"; // default prefix
+
 
 
 //////////////////////////////////////////////////////////////////////////

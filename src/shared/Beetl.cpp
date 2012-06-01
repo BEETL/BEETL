@@ -59,7 +59,7 @@ int main(int numArgs, char** args) {
                     case 'o':
                         isArgumentOrExit(i + 1, numArgs);
                         bcrFileOut = args[i + 1];
-                        cout << "-> output file is " << bcrFileOut << endl;
+                        cout << "-> output prefix is " << bcrFileOut << endl;
                         break;
                     case 'm':
                         isArgumentOrExit(i + 1, numArgs);
@@ -99,7 +99,11 @@ int main(int numArgs, char** args) {
             }
 
         // check if all arguments are given
-        if (bcrFileOut.length() > 0 && bcrFileIn.length() > 0 && bcrMode >= 0) {
+        if (bcrFileIn.length() > 0 && bcrMode >= 0) {
+		if (bcrFileOut.length() == 0){
+			bcrFileOut=bcrFileOutPrefixDefault;
+		}
+		
             if (bcrMode == 0){
                 isValidFastaFile(bcrFileIn.c_str());
             }

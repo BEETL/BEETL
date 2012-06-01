@@ -254,8 +254,8 @@ void BCRexternalBWT::InsertFirstsymbols(uchar const * newSymb)
 	char *filenameOut = new char[12];
 	char *filename = new char[8];
 	dataTypeNChar numchar;
-	const char *ext = ".aux";
-	numchar=sprintf (filename, "bwt_%d",0);
+	const char *ext = "";
+	numchar=sprintf (filename, "%d",0);
 	
 	numchar=sprintf (filenameOut,"%s%s",filename,ext);
 	
@@ -286,7 +286,7 @@ void BCRexternalBWT::InsertFirstsymbols(uchar const * newSymb)
 	//Creates one file for each letter in the alphabet. From 1 to alphabetSize-1
 	//GIOVANNA: In the For, it is need the ''='' symbol. The maximal value must be alphabetSize-1
 	for (dataTypedimAlpha i = 1; i <= alphabetSize-1; i++) {
-		numchar=sprintf (filename, "bwt_%d", i);
+		numchar=sprintf (filename, "%d", i);
 		numchar=sprintf (filenameOut,"%s%s",filename,ext);
 		OutFileBWT = fopen(filenameOut, "wb");
 		if (OutFileBWT==NULL) {
@@ -350,7 +350,7 @@ void BCRexternalBWT::InsertNsymbols(uchar const * newSymb, dataTypelenSeq posSym
   static FILE *InFileBWT;                  // output and input file BWT;
   char *filenameIn = new char[12];
   char *filename = new char[8];
-  const char *ext = ".aux";
+  const char *ext = "";
 	
   //std::cerr << "Compute new posN" << std::endl;
 
@@ -368,7 +368,7 @@ void BCRexternalBWT::InsertNsymbols(uchar const * newSymb, dataTypelenSeq posSym
   while (j < nText) {			
     dataTypedimAlpha currentPile = vectTriple[j].pileN;
     assert (currentPile<alphabetSize-1);
-    numchar=sprintf (filename, "bwt_%d", currentPile);
+    numchar=sprintf (filename, "%d", currentPile);
     numchar=sprintf (filenameIn,"%s%s",filename,ext);
     //printf("===Current BWT-partial= %d\n",currentPile);
     if (pReader!=NULL) delete pReader;
@@ -471,7 +471,7 @@ void BCRexternalBWT::InsertNsymbols(uchar const * newSymb, dataTypelenSeq posSym
     uchar *buffer = new uchar[SIZEBUFFER];
     dataTypedimAlpha mmm=0;
     while (mmm < alphabetSize) {			
-      numchar=sprintf (filename, "bwt_%d", mmm);
+      numchar=sprintf (filename, "%d", mmm);
       numchar=sprintf (filenameIn,"%s%s",filename,ext);
       //printf("===currentPile= %d\n",mmm);
       InFileBWT = fopen(filenameIn, "r");
@@ -609,7 +609,7 @@ void BCRexternalBWT::storeBWT(uchar const * newSymb) {
   char *filenameOut = new char[16]; 
   char *filenameIn = new char[12];
   char *filename = new char[8];
-  const char *ext = ".aux";
+  const char *ext = "";
 	
   dataTypeNChar numchar=0;
   //  dataTypeNChar numcharWrite=0;
@@ -633,7 +633,7 @@ void BCRexternalBWT::storeBWT(uchar const * newSymb) {
       std::cerr << "index j= " << j << " current BWT segment " << (int)currentPile << std::endl;
 
     //std::cerr << "Pile " << (int)currentPile << std::endl;
-    numchar=sprintf (filename, "bwt_%d", currentPile);
+    numchar=sprintf (filename, "%d", currentPile);
     numchar=sprintf (filenameIn,"%s%s",filename,ext);
     numchar=sprintf (filenameOut,"new_%s%s",filename,ext);
 
@@ -734,7 +734,7 @@ void BCRexternalBWT::storeBWT(uchar const * newSymb) {
   
   //Renaming new to old
   for (dataTypedimAlpha g = 0 ; g < alphabetSize-1; g++) {  
-    numchar=sprintf (filename, "bwt_%d", g);
+    numchar=sprintf (filename, "%d", g);
     numchar=sprintf (filenameIn,"%s%s",filename,ext);
     numchar=sprintf (filenameOut,"new_%s%s",filename,ext);
     //std::cerr << "Filenames:" << filenameIn << "\t" <<filenameOut << std::endl;
@@ -779,7 +779,7 @@ void BCRexternalBWT::storeEntireBWT( const char* fn ) {
 	static FILE *OutFileBWT, *InFileBWT;                  // output and input file BWT;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	dataTypeNChar numchar=0;
 	dataTypeNChar numcharWrite=0;
 
@@ -799,7 +799,7 @@ void BCRexternalBWT::storeEntireBWT( const char* fn ) {
 		std::cerr << "\nThe last BWT-segment:"<< std::endl;
 		uint mmm=0;
 		while (mmm < alphabetSize) {			
-			numchar=sprintf (filename, "bwt_%d", mmm);
+			numchar=sprintf (filename, "%d", mmm);
 			numchar=sprintf (filenameIn,"%s%s",filename,ext);
 			//printf("===Current BWT-partial= %d\n",mmm);
 			InFileBWT = fopen(filenameIn, "rb");
@@ -831,7 +831,7 @@ void BCRexternalBWT::storeEntireBWT( const char* fn ) {
 	std::cerr << "Compute the distribution of chars \n";
 
 	for (dataTypedimAlpha g = 0 ; g < alphabetSize; g++) {  
-		numchar=sprintf (filename, "bwt_%d", g);
+		numchar=sprintf (filename, "%d", g);
 		numchar=sprintf (filenameIn,"%s%s",filename,ext);
 		InFileBWT = fopen(filenameIn, "rb");
 		if (InFileBWT==NULL) {
@@ -893,7 +893,7 @@ void BCRexternalBWT::storeSA(dataTypelenSeq posSymb) {
 	char *filenameOut = new char[16]; 
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	
 	dataTypeNChar numchar=0;
 	dataTypeNChar numcharWrite=0;
@@ -1052,7 +1052,7 @@ void BCRexternalBWT::storeEntirePairSA( const char* fn ) {
 	static FILE *OutFileSA, *InFileSA;                  // output and input file SA;
 	char *filenameIn = new char[12];
 	char *filename = new char[8];
-	const char *ext = ".aux";
+	const char *ext = "";
 	dataTypeNChar numcharWrite, numcharRead;
 	ElementType *buffer = new ElementType[SIZEBUFFER];
 
@@ -1069,7 +1069,7 @@ void BCRexternalBWT::storeEntirePairSA( const char* fn ) {
 	std::vector <dataTypelenSeq> vectLen;
 	vectLen.resize(nText);
 
-	char *fileLen="outFileLen.aux";
+	char *fileLen="outFileLen";
 	static FILE *InFileLen;                  // file of the lengths;
 	InFileLen = fopen(fileLen, "rb");
 	if (InFileLen==NULL) {
@@ -1164,7 +1164,7 @@ void BCRexternalBWT::storeEntireSAfromPairSA( const char* fn ) {
 
 	std::vector <dataTypelenSeq> vectSumCumLen;
 	vectSumCumLen.resize(nText+1);
-	char *fileLen="outFileLen.aux";
+	char *fileLen="outFileLen";
 	static FILE *InFileLen;                  // file of the lengths;
 	InFileLen = fopen(fileLen, "rb");
 	if (InFileLen==NULL) {
