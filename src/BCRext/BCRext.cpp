@@ -363,17 +363,14 @@ void BCRext::run(void) {
     //    assert(fwrite( readBuffer.seqBufBase_+seqSize-2, sizeof(char), 1, outBwt[thisPile] )==1);
 
     seqPtr=*(addedSoFar.count_+thisPile);
-    if (addedSoFar.count_[thisPile]!=0)
+    if (useImplicitSort_&&(addedSoFar.count_[thisPile]!=0))
     {
       //      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 1\n";
       seqPtr|=sameAsPrevFlag; // TBD replace if clause with sum
-      *(readBuffer.seqBufBase_+seqSize-2)+=32;//tolower(*(readBuffer.seqBufBase_+seqSize-2));
+      //      *(readBuffer.seqBufBase_+seqSize-2)+=32;//tolower(*(readBuffer.seqBufBase_+seqSize-2));
+      *(readBuffer.seqBufBase_+seqSize-2)=tolower(*(readBuffer.seqBufBase_+seqSize-2));
     }
-    else
-    {
-      //      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 0\n";
-      
-    }
+
     (*outBwt[thisPile])( readBuffer.seqBufBase_+seqSize-2, 1 );
 
 
@@ -440,13 +437,22 @@ void BCRext::run(void) {
 
       getFileName(tmpOut,'B',j,fileName);
 
-      // Need to add custom writer class here
-      if (useImplicitSort_||useAsciiEncoder_)
+    
+
+
+      if ((useImplicitSort_&&(i!=seqSize))||useAsciiEncoder_)
 	outBwt[j] = new BwtWriterASCII( fileName.c_str() );
       else if (useHuffmanEncoder_)
 	outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
       else if (useRunlengthEncoder_)
 	outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
+
+      if(useImplicitSort_&&(i==seqSize))
+      {
+	BwtWriterBase* p(new BwtWriterImplicit(outBwt[j]));
+	outBwt[j]=p; // ... and the deception is complete!!!
+      } // ~if
+
 
 #ifdef DEBUG
       cout << "Prepping output file " << tmpOut << endl;
@@ -670,16 +676,20 @@ void BCRext::run(void) {
 	// pointer into new pile must be offset by number of new entries added
 	//	seqPtr+=newCharsAddedThisIter.count_[thisPile];
 	seqPtr=posInPile+newCharsAddedThisIter.count_[thisPile];
-	if (lastSAPInterval.count_[thisPile]==thisSAPInterval)
+
+	if (useImplicitSort_)
 	{
-	  bwtBuf[0]+=32;
-	  seqPtr|=sameAsPrevFlag;
-	  //	  cout << thisSAPInterval << endl;
-	}
-	else
-	{
-	  //	  cout << thisSAPInterval << " " << lastSAPInterval.count_[thisPile] << endl;
-	  lastSAPInterval.count_[thisPile]=thisSAPInterval;
+	  if (lastSAPInterval.count_[thisPile]==thisSAPInterval)
+	  {
+	    bwtBuf[0]+=32;
+	    seqPtr|=sameAsPrevFlag;
+	    //	  cout << thisSAPInterval << endl;
+	  }
+	  else
+	  {
+	    //	  cout << thisSAPInterval << " " << lastSAPInterval.count_[thisPile] << endl;
+	    lastSAPInterval.count_[thisPile]=thisSAPInterval;
+	  }
 	}
 
 	(*outBwt[thisPile])( &bwtBuf[0], 1 );

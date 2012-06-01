@@ -137,4 +137,34 @@ struct BwtWriterHuffman : public BwtWriterBase {
 #endif
 }; // ~BwtWriterHuffman
 
+struct BwtWriterImplicit : public BwtWriterBase
+{
+  BwtWriterImplicit( BwtWriterBase* pWriter ) : BwtWriterBase("dummy"),  pWriter_(pWriter) {}
+
+  virtual ~BwtWriterImplicit() { delete pWriter_; }
+  
+  virtual void operator()( const char* p, int numChars )
+  {
+    // could be smarter about this
+    char c;
+    for (int i(0);i<numChars;i++,p++)
+    {
+      c=toupper(*p);
+      (*pWriter_)(&c, 1);
+    }
+  }
+
+  virtual void sendRun( char c, int runLength )
+  {
+    (*pWriter_).sendRun(toupper(c), runLength);
+  }
+
+  BwtWriterBase* pWriter_;
+  //  FILE* pFile_;
+}; // ~BwtWriterImplicit : public BwtWriterBase
+
+
+
+
 #endif
+
