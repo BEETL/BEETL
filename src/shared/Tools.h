@@ -87,7 +87,7 @@ typedef struct ElementType {
 #define deletePartialBWT 0	//If it is set to 1, it deletes the BWT-segments files and keeps the entire BWT, otherwise renames them.
 //#define deletePartialSA 0	//If it is set to 1, it deletes the SA-segments files and keeps the entire BWT, otherwise renames them.
 #define deleteCycFile 1		//If it is set to 1, it deletes the cycs files.
-#define BUILD_SA 1			//If it is set to 1, it computes the GSA (seqID, position) and the SA (position of the concatenated sequences without a further end-marker).
+#define BUILD_SA 0			//If it is set to 1, it computes the GSA (seqID, position) and the SA (position of the concatenated sequences without a further end-marker).
 #define decodeBackward 1	//If it is set to 1, it computes the inverse BWT in backward direction, otherwise in forward direction.
 #define BackByVector 1		//if it is set to 1, it uses the sampling of the BWT segments for inverse BWT. More memory, less time.
 

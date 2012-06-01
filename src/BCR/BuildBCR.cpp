@@ -47,7 +47,7 @@ int BCRexternalBWT::buildBCR(char const * file1, char const * fileOut)
   #if convertFromFasta == 1   
 	res = trasp.convert( file1, fileOut);
   #else
-	res = trasp.convertFromCycFile();
+	res = trasp.inputCycFile();
   #endif
   
   if (res == false) {  //Error in the reading

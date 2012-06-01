@@ -146,7 +146,7 @@ bool TransposeFasta::convert( const string& input,const string& output )
     return true;
 }
 
-bool TransposeFasta::convertFromCycFile() {
+bool TransposeFasta::inputCycFile() {
   		//TO DO
 	//lengthRead = CYCLENUM;
 	//The distribution of characters is useful
@@ -179,3 +179,54 @@ bool TransposeFasta::convertFromCycFile() {
 	std::cerr << "****lengthTot: " << lengthTexts << "\n";
     return 1;
 } 
+
+bool TransposeFasta::convertFromCycFileToFasta(const string& fileOutput, dataTypeNSeq nSeq, dataTypelenSeq lengthRead) {	
+	vector <FILE*> inFilesCyc_; 
+	inFilesCyc_.resize(lengthRead);    //One for each symbol of the read.
+    const char* fileOut = "cyc.";
+	//Open all cyc files
+	for(dataTypelenSeq i=0;i<lengthRead;i++ ) {
+        std::stringstream fn;
+        fn << fileOut <<  (int)i << ".txt";
+        inFilesCyc_[i] = fopen( fn.str().c_str(),"rb" );
+        if (inFilesCyc_[i] == NULL) {
+                std::cerr << "TrasposeFasta: could not open file "  <<  fn.str().c_str() << std::endl;
+				exit (EXIT_FAILURE);
+		}
+    }
+//	FILE *outFile = fopen(fileOutput.c_str(), "rb");
+//	if (outFile==NULL) 
+
+	ofstream outFile (fileOutput.c_str());
+	if (outFile.is_open() == false)	{
+		 std::cerr << "Error opening \"" << fileOutput << "\" file"<< std::endl;
+		exit (1);
+	}
+	
+	//I must read a char for each sequence. The chars at the position i corresponds to the chars of the sequence i.
+	dataTypeNChar num_read;
+	char symbol;
+	string sequence = "";
+	for(dataTypeNSeq j=0;j<nSeq;j++ ) {
+		outFile << "> Read "  << j << std::endl;
+		for(dataTypelenSeq i=0;i<lengthRead;i++ ) {
+			num_read = fread (&symbol, sizeof(char), 1, inFilesCyc_[i] );
+			sequence.append (1, symbol);
+		}
+		outFile << sequence << std::endl;
+		if (verboseDecode == 1) 
+			std::cerr << sequence << std::endl;
+		sequence = "";
+	}
+
+	
+	outFile.close();
+		
+
+	//Close all cyc files
+	for(dataTypelenSeq i=0;i<lengthRead;i++){
+        fclose(inFilesCyc_[i]);
+    }
+
+	return 1;
+}

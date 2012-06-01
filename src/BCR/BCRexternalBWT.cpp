@@ -1441,10 +1441,26 @@ int BCRexternalBWT::unbuildBCR(char const* file1, char const* fileOutBwt, char c
 	  checkIfEqual(resultInit,1);
 	}
 
-
 	if (decodeBackward == 1) {
 		std::cerr << "Inverse BWT by Backward direction." << std::endl;
 		decodeBCRmultipleReverse(file1, fileOutBwt, fileOut);
+		std::cerr << "The cyc files have been built. Building the sequences." << std::endl;
+		TransposeFasta trasp;
+		int res = trasp.convertFromCycFileToFasta(fileOutput, nText, lengthRead);
+		checkIfEqual (res, 1);
+		if (deleteCycFile == 1)  {
+			std::cerr << "Removing the auxiliary input file (cyc files)\n";
+			char *filename1;
+			filename1 = new char[strlen(fileOut)+sizeof(dataTypelenSeq)*8];
+
+			// delete output files
+			for(dataTypelenSeq i=0;i<lengthRead;i++ ) {
+				sprintf (filename1, "%s%u.txt", fileOut, i);
+				if (remove(filename1)!=0) 
+					std::cerr << filename1 <<" BCRexternalBWT: Error deleting file" << std::endl;
+			}
+			delete [] filename1;
+		}
 	}
 	else {
 		std::cerr << "Inverse BWT by Forward direction."  << std::endl;
@@ -1733,10 +1749,10 @@ int BCRexternalBWT::decodeBCRnaiveForward(char const* file1, char const * fileOu
 	sortElement triple;
 	std::cerr << "Recover the sequences of the collection in lexicographic order. A sequence at a time!" << std::endl; 
 	if (BackByVector == 0) {
-		std::cerr << "It is not using the sampling of the BWT. It required more time!"<< std::endl;
+		std::cerr << "It is not using the sampling of the BWT. It requires more time!"<< std::endl;
 	}
 	else {
-		std::cerr << "It is using the sampling of the BWT. It required more memory!"<< std::endl;
+		std::cerr << "It is using the sampling of the BWT. It requires more memory!"<< std::endl;
 		std::cerr << "In order to do this, it uses a sampling of the occurrences for each segment: " << DIMBLOCK << " size." << std::endl;
 	}
 	for (dataTypeNSeq i = 0; i < nText; i++) {
@@ -1818,10 +1834,10 @@ int BCRexternalBWT::decodeBCRmultipleReverse(char const* file1, char const* file
 	//As we recover the symbol in reverse order, I store the first found symbol in cyc.(length-1).txt file
 	//and the last found symbol in cyc.0.txt file 
 	if (BackByVector == 0) {
-		std::cerr << "It is not using the sampling of the BWT. It required more time!"<< std::endl;
+		std::cerr << "It is not using the sampling of the BWT. It requires more time!"<< std::endl;
 	}
 	else {	
-		std::cerr << "It is using the sampling of the BWT. It required more memory!"<< std::endl;
+		std::cerr << "It is using the sampling of the BWT. It requires more memory!"<< std::endl;
 		std::cerr << "In order to do this, it uses a sampling of the occurrences for each segment: " << DIMBLOCK << " size." << std::endl;
 	}
 	for (dataTypelenSeq m = lengthRead ; m > 0 ; m--) {      
@@ -2259,13 +2275,17 @@ int BCRexternalBWT::Recover1symbolReverse(char const* file1, char const* fileOut
 int BCRexternalBWT::buildBCR(char const * file1, char const * fileOut)
 {
 	TransposeFasta trasp;
-	int controllo = trasp.convert( file1, fileOut);
+	#if convertFromFasta == 1   
+		res = trasp.convert( file1, fileOut);
+	#else
+		res = trasp.inputCycFile();
+	#endif
 	
-	if (controllo == false) {  //Error in the reading
+	if (res == false) {  //Error in the reading
 		std::cerr << "Reading Error \n";
 		exit (EXIT_FAILURE);
 	}
-	
+
 	nText = trasp.nSeq;
 	lengthRead = trasp.lengthRead;
 	lengthTot = trasp.lengthTexts;
