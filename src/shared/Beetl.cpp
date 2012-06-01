@@ -373,14 +373,14 @@ void print_usage(char *args) {
             << "uses significantly less RAM (a.k.a. none) but depends heavily on I/O" << endl
             << endl
             << "Usage: " << args << " "
-            << COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-r -a]" << endl
+            //<< COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-r -a]" << endl
             // below: for huffman encoding uncomment when implemented
-            //<< COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-h -r -a]" << endl
+            << COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-h -r -a]" << endl
             << endl
             << "-i <file>:\tinput set of , 1 read per line, no fasta" << endl
             << "-p <string>:\toutput file names will start with \"prefix\"" << endl
             << "-a:\t\toutput ASCII encoded files" << endl
-            << "-r:\t\toutput runlength encoded files [default]" << endl
+            << "-r:\t\toutput runlength encoded files [recommended]" << endl
             << "-h:\t\toutput Hufmann encoded files" << endl
             << endl
             << endl
