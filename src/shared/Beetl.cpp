@@ -31,7 +31,8 @@
 
 using namespace std;
 
-#define BEETL_ID "$Id: Beetl.cpp,v 1.14 2011/11/28 16:38:32 acox Exp $"
+//#define BEETL_ID "$Id$"
+const string BEETL_ID("0.0.2");
 
 
 int main(int numArgs, char** args) {
@@ -357,8 +358,7 @@ void isArgumentOrExit(int num, int numArgs) {
 void print_usage(char *args) {
     cerr << endl << "- This is the BEETL software library -" << endl
             << endl
-            << "Framework version" << endl 
-            << BEETL_ID << endl            
+            << "Framework version " << BEETL_ID << endl            
             << endl
             << "Included in this framework are the following algorithms" << endl
             << endl
