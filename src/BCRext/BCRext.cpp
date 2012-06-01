@@ -90,7 +90,14 @@ const string tmp2("temp2-XX");
 
 // added by Tobias, interface to new Beetl executable
 BCRext::BCRext(bool huffman, bool runlength,
-        bool ascii, string inFile, string prefix) {
+	       bool ascii, bool implicitSort, string inFile, string prefix) :
+
+    // set tool flags
+  useHuffmanEncoder_(huffman),
+  useRunlengthEncoder_(runlength),
+  useAsciiEncoder_(ascii),
+  useImplicitSort_(implicitSort)
+{
 
     // get memory allocated
     prefix_ = new char[prefix.length()+1];
@@ -104,10 +111,6 @@ BCRext::BCRext(bool huffman, bool runlength,
     inFile_[inFile.length()] = '\0';
     prefix_[prefix.length()] = '\0';
     
-    // set tool flags
-    useHuffmanEncoder_=huffman;
-    useRunlengthEncoder_=runlength;
-    useAsciiEncoder_=ascii;
 }
 
 // called from beetl class, replaces main method
@@ -266,12 +269,14 @@ void BCRext::run(void) {
 #endif
 
     getFileName(tmpIn,'B',j,fileName);
-    if (useHuffmanEncoder_)
+
+    if (useImplicitSort_||useAsciiEncoder_)
+      outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+    else if (useHuffmanEncoder_)
       outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
     else if (useRunlengthEncoder_)
       outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
-    else if (useAsciiEncoder_)
-      outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+
 
   } // ~for
 
@@ -435,12 +440,13 @@ void BCRext::run(void) {
 
       getFileName(tmpOut,'B',j,fileName);
 
-        if (useHuffmanEncoder_)
-          outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
-        else if (useRunlengthEncoder_)
-          outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
-        else if (useAsciiEncoder_)
-          outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+      // Need to add custom writer class here
+      if (useImplicitSort_||useAsciiEncoder_)
+	outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+      else if (useHuffmanEncoder_)
+	outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
+      else if (useRunlengthEncoder_)
+	outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
 
 #ifdef DEBUG
       cout << "Prepping output file " << tmpOut << endl;
@@ -454,16 +460,22 @@ void BCRext::run(void) {
       // prep the input files
       getFileName(tmpIn,'B',j,fileName);
       // select the proper input module
-        if (useHuffmanEncoder_) {
-            inBwt[j] = new BwtReaderHuffman(fileName.c_str());
-            inBwt2[j] = new BwtReaderHuffman(fileName.c_str());
-        } else if (useRunlengthEncoder_) {
+       if (useImplicitSort_||useAsciiEncoder_) 
+       {
+	 inBwt[j] = new BwtReaderASCII(fileName.c_str());
+	 inBwt2[j] = new BwtReaderASCII(fileName.c_str());
+       }
+       else if (useHuffmanEncoder_) 
+       {
+	 inBwt[j] = new BwtReaderHuffman(fileName.c_str());
+	 inBwt2[j] = new BwtReaderHuffman(fileName.c_str());
+       } 
+       else if (useRunlengthEncoder_) 
+       {
             inBwt[j] = new BwtReaderRunLength(fileName.c_str());
             inBwt2[j] = new BwtReaderRunLength(fileName.c_str());
-        } else if (useAsciiEncoder_) {
-            inBwt[j] = new BwtReaderASCII(fileName.c_str());
-            inBwt2[j] = new BwtReaderASCII(fileName.c_str());
-        }
+       }
+
 
 #ifdef DEBUG
       cout << "Prepping input file " << tmpIn << endl;

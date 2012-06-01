@@ -24,14 +24,18 @@ using namespace std;
 
 // by Tobias, small class interface to call from beetl executable 
 
+
+
+
 class BCRext : public Algorithm {
-    bool useHuffmanEncoder_;
-    bool useAsciiEncoder_;
-    bool useRunlengthEncoder_;
+    const bool useHuffmanEncoder_;
+    const bool useRunlengthEncoder_;
+    const bool useAsciiEncoder_;
+    const bool useImplicitSort_;
     char* inFile_;
     char* prefix_;
 public:
-    BCRext(bool, bool, bool, string, string);
+  BCRext(bool, bool, bool, bool, string, string);
     ~BCRext() { delete[] inFile_; delete prefix_; }
     void run(void);
 };

@@ -28,9 +28,10 @@ CC=g++
 # include path for header files
 INC:= -I. -Ishared/ -IBCR/ -IBCRext/ -IcountWords/ 
 
+# DEBUG=1
 # DEBUG build build with make DEBUG
 ifdef DEBUG
-CFLAGS:= $(INC) -Wall -g #-D DEBUG
+CFLAGS:= $(INC) -Wall -g  #-D DEBUG
 else
 # normal build, optimized for speed
 CFLAGS:= $(INC) -Wall -O3
