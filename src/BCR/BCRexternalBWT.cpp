@@ -248,7 +248,7 @@ BCRexternalBWT::BCRexternalBWT
 	}
 	else if (mode == 1) {
 		std::cerr << "Start BCR decode\n";
-		const char* fileOutBwt = "bwt_";
+		const char* fileOutBwt = "";
 		int result = -1;
 		result = unbuildBCR(file1, fileOutBwt, fileOut, fileOutput);
         checkIfEqual(result,1);
@@ -257,7 +257,7 @@ BCRexternalBWT::BCRexternalBWT
 
 		std::cerr << "Start Locate Function:\n";
 		std::cerr << "Backward Search and Recover of the number of sequences\n";
-		const char* fileOutBwt = "bwt_";
+		const char* fileOutBwt = "";
 		
 		vector<string> kmers;
 		char kmer[101];

@@ -390,9 +390,9 @@ void print_usage(char *args) {
             << "needs approximately 14GB of RAM for 1 billion reads" << endl
             << endl
             << "Usage: " << args << " " 
-            << COMMAND_BCR <<" -i <fasta read file> -o <output file> -m <[0,1,2]>" << endl
+            << COMMAND_BCR <<" -i <fasta or seq read file> -o <output file> -m <[0,1,2]>" << endl
             << endl
-            << "-i <file>:\tinput set of reads" << endl
+            << "-i <file>:\tinput set of reads [if mode = 1 set the prefix of the BWT files, normally BCR-B0]" << endl
             << "-o <file>:\toutput file" << endl
             << "-m <n>:\t\tmode = 0 --> BCR " << endl
             << "\t\tmode = 1 --> unBCR " << endl
