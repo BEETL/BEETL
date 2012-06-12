@@ -682,7 +682,8 @@ void BCRext::run(void) {
 	{
 	  if (lastSAPInterval.count_[thisPile]==thisSAPInterval)
 	  {
-	    bwtBuf[0]+=32;
+	    bwtBuf[0]=tolower(bwtBuf[0]);
+	    //	    bwtBuf[0]+=32;
 	    seqPtr|=sameAsPrevFlag;
 	    //	  cout << thisSAPInterval << endl;
 	  }
