@@ -31,19 +31,19 @@ using namespace std;
 //
 
 
-BwtWriterBase::BwtWriterBase( const std::string& fileName ) : pFile_(fopen(fileName.c_str(),"w"))
+BwtWriterFile::BwtWriterFile( const std::string& fileName ) : pFile_(fopen(fileName.c_str(),"w"))
   {
 #ifdef DEBUG
-    cout << "BwtWriterBase opened file " << fileName << " " << pFile_ << endl;
+    cout << "BwtWriterFile opened file " << fileName << " " << pFile_ << endl;
 #endif
    readWriteCheck(fileName.c_str(),1);    //    setvbuf( pFile_, NULL, _IOFBF, 262144);
   }
-BwtWriterBase::~BwtWriterBase() 
+BwtWriterFile::~BwtWriterFile() 
 { 
 
 fclose(pFile_); 
 #ifdef DEBUG
- cout << "BwtWriterBase: closed file " <<pFile_ << endl;
+ cout << "BwtWriterFile: closed file " <<pFile_ << endl;
 #endif
 
 }
@@ -53,7 +53,7 @@ fclose(pFile_);
 // BwtWriterASCII member function definitions
 //
 
-BwtWriterASCII::BwtWriterASCII( const std::string& fileName ) : BwtWriterBase(fileName)
+BwtWriterASCII::BwtWriterASCII( const std::string& fileName ) : BwtWriterFile(fileName)
   {
 #ifdef DEBUG
   cout << "BW ASCII ctor" << endl;
