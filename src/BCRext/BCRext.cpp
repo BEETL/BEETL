@@ -365,6 +365,7 @@ void BCRext::run(void) {
     //    assert(fwrite( readBuffer.seqBufBase_+seqSize-2, sizeof(char), 1, outBwt[thisPile] )==1);
 
     seqPtr=*(addedSoFar.count_+thisPile);
+
     if (useImplicitSort_&&(addedSoFar.count_[thisPile]!=0))
     {
       //      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 1\n";

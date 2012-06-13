@@ -196,6 +196,7 @@ int main(int numArgs, char** args) {
       } // ~for
 
       //   cout << bcrExtImplicitSort << bcrExtHuffmanOutput << bcrExtRunlengthOutput << endl;
+
       if ((bcrExtImplicitSort==true)&&
 	  ((bcrExtHuffmanOutput==true)||(bcrExtRunlengthOutput==true)))
       {
