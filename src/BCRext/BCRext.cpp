@@ -123,7 +123,9 @@ void BCRext::run(void) {
   
   string prefix = (string)"[" + (string)"BCRext" + (string)"]: ";
   cerr << prefix << "time now is " << timer.timeNow();
-  cerr << prefix << "software version is " << BCREXT_ID << endl;
+  // Tony 13.6.12 - BCREXT_ID is not informative now we are in git world
+  //  cerr << prefix << "software version is " << BCREXT_ID << endl;
+
 
   const string fileStem(prefix_);
   const string fileStemTemp("tmp");
