@@ -439,15 +439,19 @@ BwtWriterImplicit::~BwtWriterImplicit()
 
 void BwtWriterImplicit::flushSAP( void )
 {
+  assert(alphabet[firstSAP_]==lastChar_);
+  if (countSAP_.count_[firstSAP_]>0) pWriter_->sendRun(alphabet[firstSAP_],countSAP_.count_[firstSAP_]);
+
   for (int i(0);i<alphabetSize;i++) 
   {
-    if (countSAP_.count_[i]>0) pWriter_->sendRun(alphabet[i],countSAP_.count_[i]);
+    if ((i!=firstSAP_)&&(countSAP_.count_[i]>0)) pWriter_->sendRun(alphabet[i],countSAP_.count_[i]);
   }
 }
 
   
 void BwtWriterImplicit::operator()( const char* p, int numChars )
 {
+
   for (int i(0);i<numChars;i++,p++)
   {
     if (islower(*p))
@@ -455,8 +459,10 @@ void BwtWriterImplicit::operator()( const char* p, int numChars )
       if (inSAP_==false)
       {
 	countSAP_.clear();
-	if (lastChar_!=notInAlphabet)
-	  countSAP_.count_[whichPile[(int)lastChar_]]+=lastRun_;
+	assert (lastChar_!=notInAlphabet);
+	firstSAP_=whichPile[(int)lastChar_];
+	assert(firstSAP_!=nv);
+	countSAP_.count_[firstSAP_]+=lastRun_;
 	inSAP_=true;
       } // ~if
       countSAP_+=*p;
@@ -485,8 +491,10 @@ void BwtWriterImplicit::sendRun( char c, int runLength )
     if (inSAP_==false)
     {
       countSAP_.clear();
-      if (lastChar_!=notInAlphabet)
-	countSAP_.count_[whichPile[(int)lastChar_]]+=lastRun_;
+      assert (lastChar_!=notInAlphabet);
+      firstSAP_=whichPile[(int)lastChar_];
+      assert(firstSAP_!=nv);
+      countSAP_.count_[firstSAP_]+=lastRun_;
       inSAP_=true;
     } // ~if
     countSAP_.count_[whichPile[(int)c]]+=runLength;
