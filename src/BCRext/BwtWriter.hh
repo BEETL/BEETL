@@ -152,11 +152,13 @@ struct BwtWriterImplicit : public BwtWriterBase
   void flushSAP( void );
 
   LetterCount countSAP_;
+  int firstSAP_;
 
   BwtWriterBase* pWriter_;
 
   char lastChar_;
   int lastRun_;
+
 
   bool inSAP_;
   //  FILE* pFile_;
