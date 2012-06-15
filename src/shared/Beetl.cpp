@@ -152,9 +152,9 @@ int main(int numArgs, char** args) {
 	  else if (thisArg=="-p")
 	  {
 	    isArgumentOrExit(i + 1, numArgs);
-	    bcrFileOut = args[i + 1];
+	    bcrExtFileOutPrefix = args[i + 1];
 	    cout << "-> output prefix set to "
-		 << bcrFileOut << endl;
+		 << bcrExtFileOutPrefix << endl;
 	  }
 	  else if (thisArg=="-a")
 	  {
