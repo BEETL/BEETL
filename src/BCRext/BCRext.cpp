@@ -90,13 +90,15 @@ const string tmp2("temp2-XX");
 
 // added by Tobias, interface to new Beetl executable
 BCRext::BCRext(bool huffman, bool runlength,
-	       bool ascii, bool implicitSort, string inFile, string prefix) :
+	       bool ascii, bool implicitSort,
+	       bool seqFile, string inFile, string prefix) :
 
     // set tool flags
   useHuffmanEncoder_(huffman),
   useRunlengthEncoder_(runlength),
   useAsciiEncoder_(ascii),
-  useImplicitSort_(implicitSort)
+  useImplicitSort_(implicitSort),
+  useSeqFile_ (seqFile)
 {
 
     // get memory allocated
@@ -161,6 +163,7 @@ void BCRext::run(void) {
 
   //  string thisSeq;
   char seqBuf[maxSeqSize+1];
+  char descBuf[maxSeqSize+1];
   //  char* seqBuff;
 
   vector<char> bwtBuf;
@@ -226,7 +229,17 @@ void BCRext::run(void) {
   } // ~else
 
   // read first sequence to determine read size
-  fgets( seqBuf, maxSeqSize, inSeq); 
+
+	if (!useSeqFile_) {
+		// read the first line with fasta header and the sequence afterwards
+		fgets(descBuf, maxSeqSize, inSeq); // may be ugly, but probably 
+		fgets(seqBuf, maxSeqSize, inSeq); // faster than formated read stuff
+
+	} else {
+
+		// just read the first line
+		fgets( seqBuf, maxSeqSize, inSeq);
+	}
 
   const int seqSize(strlen(seqBuf)-1); // -1 compensates for \n at end
   cerr << prefix << "Assuming all sequences are of length " << seqSize << endl;
@@ -315,8 +328,14 @@ void BCRext::run(void) {
   strcpy( readBuffer.seqBufBase_, seqBuf);
 	 //  while ( fgets( readBuffer.seqBufBase_, readBuffer.blockSize_, inSeq)!=NULL)
   do
-  {
-    thisPile=whichPile[(int)readBuffer.seqBufBase_[seqSize-1]];
+{
+	// check if we are reading a fasta file
+	if (!useSeqFile_) {
+		// read the fasta header
+		fgets(descBuf, maxSeqSize, inSeq);
+	}
+
+	thisPile=whichPile[(int)readBuffer.seqBufBase_[seqSize-1]];
 
         // zero is terminator so should not be present
         if (thisPile < 0) {

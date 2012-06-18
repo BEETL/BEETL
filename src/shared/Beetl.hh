@@ -42,7 +42,7 @@ const string bcrModes[] = {("build BCR"),("unBCR"),("search Backward search + Lo
 bool bcrExtAsciiOutput; // use normal ASCII alphabet as output
 bool bcrExtHuffmanOutput; // use huffman encoding as compression
 bool bcrExtRunlengthOutput; // use RunLength encoding [default]
-
+bool bcrExtUseSeq; // use fasta input
 bool bcrExtImplicitSort; // do implicit sort of input sequences
 
 
