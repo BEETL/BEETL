@@ -117,7 +117,7 @@ cat ${TEST_FILE_SEQ} | ${PERL} -lane '{ $i++; print "\@seq_${i}\n$_\n+"; print "
 
 # Run BEETL BCRext code
 
-echo $0: Running BEETL BCRext code : `date`
+echo $0: Running BEETL BCRext code with ASCII output: `date`
 
 cd BCRext
 
@@ -125,9 +125,34 @@ ${TIME} ${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRext -a  >  run.stdout
 
 cd ..
 
+echo $0: Running BEETL BCRext code with run-length output: `date`
+
+cd BCRext
+
+${TIME} ${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRextRunLength -a  >  run_rle.stdout 2>run_rle.stderr
+
+cd ..
+
+echo $0: Running BEETL BCRext code with Huffman output: `date`
+
+cd BCRext
+
+${TIME} ${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRextHuffman -h  >  run_huff.stdout 2>run_huff.stderr
+
+cd ..
+
+echo $0: Partial comparison of BCRext output files: `date`
+
+cd BCRext
+
+compareFiles testBCRext-B00 testBCRextRunLength-B00
+compareFiles testBCRext-B00 testBCRextHuffman-B00
+
+cd ..
+
 # Run BEETL BCR code
 
-echo $0: Running BEETL BCR code : `date`
+echo $0: Running BEETL BCR code on FASTA format file: `date`
 
 cd BCR
 
@@ -135,14 +160,21 @@ ${TIME} ${INSTALL}/Beetl bcr -i ${TEST_FILE_FASTA} -o testBCR  >  run.stdout 2>r
 
 cd ..
 
-#echo $0: Comparing BWT files for CPM11 version and BCR: `date`
+echo $0: Running BEETL BCR code on raw sequence file format: `date`
 
-#compareFiles v1_30/tempN-BD BCR/testBCR0
-#compareFiles v1_30/temp2-B0 BCR/testBCR1
-#compareFiles v1_30/temp2-B1 BCR/testBCR2
-#compareFiles v1_30/temp2-B2 BCR/testBCR3
-#compareFiles v1_30/temp2-B3 BCR/testBCR4
-#compareFiles v1_30/temp2-B4 BCR/testBCR5
+cd BCR
+
+${TIME} ${INSTALL}/Beetl bcr -i ${TEST_FILE_SEQ} -o testBCRSeq  >  run.stdout 2>run.stderr
+
+cd ..
+
+echo $0: Comparing BWT files for BCR FASTA and raw sequence formats: `date`
+
+for d in 0 1 2 3 4 5
+do 
+  compareFiles BCR/testBCRSeq${d} BCR/testBCR${d}
+done
+cd ..
 
 echo $0: Comparing BWT files for BCRext and BCR: `date`
 
