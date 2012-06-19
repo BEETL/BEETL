@@ -76,7 +76,16 @@ then
 	exit -1
 fi
 
-TIME="/usr/bin/time -v"
+TIME="/usr/bin/time"
+
+if [ ! -e ${TIME} ]
+then
+	echo "$0: Can't find ${TIME}, so won't use it!"
+	TIME=
+else
+	TIME="${TIME} -v"
+
+fi
 
 DIRS="v1_30 BCR BCRext SAP"
 
@@ -174,7 +183,7 @@ for d in 0 1 2 3 4 5
 do 
   compareFiles BCR/testBCRSeq${d} BCR/testBCR${d}
 done
-cd ..
+//cd ..
 
 echo $0: Comparing BWT files for BCRext and BCR: `date`
 
