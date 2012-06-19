@@ -874,7 +874,7 @@ void BCRexternalBWT::storeEntireBWT( const char* fn ) {
 
 
 	
-	freqOut[256]=0;
+	//	freqOut[256]=0;
 		std::cerr << "Distribution in BWT\n";
 	for (dataTypedimAlpha i = 0; i < 255; ++i)
 		if (freqOut[i] > 0) 
