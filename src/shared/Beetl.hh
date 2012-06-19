@@ -38,9 +38,13 @@ const string bcrModes[] = {("build BCR"),("unBCR"),("search Backward search + Lo
 
 // flags for BCRext
 
+// TBD these three are better replaced by an enum defined in BCRext.hh
 bool bcrExtAsciiOutput; // use normal ASCII alphabet as output
 bool bcrExtHuffmanOutput; // use huffman encoding as compression
 bool bcrExtRunlengthOutput; // use RunLength encoding [default]
+
+bool bcrExtImplicitSort; // do implicit sort of input sequences
+
 
 string bcrExtFileIn; // input file with read set (fasta)
 string bcrExtFileOutPrefix; // prefix of the output files
@@ -56,6 +60,8 @@ const string bcrExtFileOutPrefixDefault = "BCRext"; // default prefix
 // 2 -> search BCR
 string bcrFileIn; // input file
 string bcrFileOut; // output file
+const string bcrFileOutPrefixDefault = "BCR-B0"; // default prefix
+
 
 
 //////////////////////////////////////////////////////////////////////////

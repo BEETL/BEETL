@@ -102,17 +102,21 @@ namespace SXSI
          * In other words, document identifiers start from 0.
          */
 		virtual int buildBCR(char const *, char const *) = 0;
-		virtual int unbuildBCR(char const*, char const*, char const *) = 0;
+		virtual int unbuildBCR(char const*, char const*, char const *, char const *) = 0;
 		virtual int backwardSearchBCR(char const* , char const* , char const * , char const *) = 0;
-		virtual int decodeBCRnaiveForward(char const *, char const *, char const *)= 0;
-		virtual int decodeBCRmultipleReverse(char const*, char const*, char const *)= 0;
+		virtual int decodeBCRnaiveForward(char const *, char const *, char const *)= 0;		//Inverse BWT by Forward direction of nText sequences, one sequence at a time, in lexicographic order.
+		virtual int decodeBCRmultipleReverse(char const*, char const*, char const *)= 0;   //Inverse BWT by Backward direction of nText sequences at the same time by lengthRead iterations.
 		virtual int RecoverNsymbolsReverse(char const*, char const*, uchar *) = 0;
+		virtual int RecoverNsymbolsReverseByVector(char const* file1, char const* fileOutBwt, uchar * newSymb) = 0;
 		virtual int Recover1symbolReverse(char const* , char const* , uchar *, sortElement *) = 0;
 		virtual dataTypeNSeq recover1SequenceForward(char const* , char const * , sortElement , uchar *, dataTypelenSeq *)=0 ;
 		virtual vector <int> recoverNSequenceForward(char const* , char const *, dataTypeNSeq)=0;
 		virtual int recoverNSequenceForwardSequentially(char const* , char const *, dataTypeNSeq)=0;
 		virtual void storeBWT(uchar const *) = 0;
 		virtual void storeEntireBWT(const char*) = 0;
+		virtual void storeSA(dataTypelenSeq) = 0;
+		virtual void storeEntirePairSA(const char*) = 0;
+		virtual void storeEntireSAfromPairSA(const char*) = 0;
 		virtual dataTypeNChar rankManySymbols(FILE &, dataTypeNChar *, dataTypeNChar, uchar *)=0;
 		virtual dataTypeNChar rankManySymbolsByVector(FILE & , dataTypeNChar *, dataTypeNChar, uchar *)=0;
 		virtual dataTypeNChar findRankInBWT (char const*, char const*, dataTypedimAlpha, dataTypeNChar, uchar)=0;

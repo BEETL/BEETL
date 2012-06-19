@@ -90,7 +90,14 @@ const string tmp2("temp2-XX");
 
 // added by Tobias, interface to new Beetl executable
 BCRext::BCRext(bool huffman, bool runlength,
-        bool ascii, string inFile, string prefix) {
+	       bool ascii, bool implicitSort, string inFile, string prefix) :
+
+    // set tool flags
+  useHuffmanEncoder_(huffman),
+  useRunlengthEncoder_(runlength),
+  useAsciiEncoder_(ascii),
+  useImplicitSort_(implicitSort)
+{
 
     // get memory allocated
     prefix_ = new char[prefix.length()+1];
@@ -104,10 +111,6 @@ BCRext::BCRext(bool huffman, bool runlength,
     inFile_[inFile.length()] = '\0';
     prefix_[prefix.length()] = '\0';
     
-    // set tool flags
-    useHuffmanEncoder_=huffman;
-    useRunlengthEncoder_=runlength;
-    useAsciiEncoder_=ascii;
 }
 
 // called from beetl class, replaces main method
@@ -120,7 +123,9 @@ void BCRext::run(void) {
   
   string prefix = (string)"[" + (string)"BCRext" + (string)"]: ";
   cerr << prefix << "time now is " << timer.timeNow();
-  cerr << prefix << "software version is " << BCREXT_ID << endl;
+  // Tony 13.6.12 - BCREXT_ID is not informative now we are in git world
+  //  cerr << prefix << "software version is " << BCREXT_ID << endl;
+
 
   const string fileStem(prefix_);
   const string fileStemTemp("tmp");
@@ -193,6 +198,13 @@ void BCRext::run(void) {
 
 
   SequenceNumberType seqNum(0); 
+
+
+  const LetterCountType sameAsPrevFlag(((LetterCountType)1)<<((8*sizeof(LetterCountType))-1));
+  const LetterCountType sameAsPrevMask(~sameAsPrevFlag);
+
+  //  cout << sameAsPrevFlag << " "<< sameAsPrevMask << " "<< (sameAsPrevMask&sameAsPrevFlag) << " " << (((LetterCountType)1)<<63) << endl;
+
   LetterCountType seqPtr;
   int thisPile, lastPile;
   LetterCountType posInPile;
@@ -259,12 +271,14 @@ void BCRext::run(void) {
 #endif
 
     getFileName(tmpIn,'B',j,fileName);
-    if (useHuffmanEncoder_)
+
+    if (useImplicitSort_||useAsciiEncoder_)
+      outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+    else if (useHuffmanEncoder_)
       outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
     else if (useRunlengthEncoder_)
       outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
-    else if (useAsciiEncoder_)
-      outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+
 
   } // ~for
 
@@ -340,21 +354,35 @@ void BCRext::run(void) {
 
     // create BWT corresponding to 1-suffixes
 
-        if (whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]<0 ||
-            whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]>alphabetSize  ) {
-            cerr << "Trying to write non alphabet character to pile. Aborting." << endl;
-            exit(-1);
-        }
+    if (whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]<0 ||
+	whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]>alphabetSize  ) 
+    {
+      cerr << "Trying to write non alphabet character to pile. Aborting." << endl;
+      exit(-1);
+    }
     
     countedThisIter[thisPile].count_[whichPile[(int)readBuffer.seqBufBase_[seqSize-2]]]++;   
     //    assert(fwrite( readBuffer.seqBufBase_+seqSize-2, sizeof(char), 1, outBwt[thisPile] )==1);
+
+    seqPtr=*(addedSoFar.count_+thisPile);
+
+    if (useImplicitSort_&&(addedSoFar.count_[thisPile]!=0))
+    {
+      //      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 1\n";
+      seqPtr|=sameAsPrevFlag; // TBD replace if clause with sum
+      //      *(readBuffer.seqBufBase_+seqSize-2)+=32;//tolower(*(readBuffer.seqBufBase_+seqSize-2));
+      *(readBuffer.seqBufBase_+seqSize-2)=tolower(*(readBuffer.seqBufBase_+seqSize-2));
+    }
+
     (*outBwt[thisPile])( readBuffer.seqBufBase_+seqSize-2, 1 );
 
-        if (fwrite( addedSoFar.count_+thisPile, sizeof(LetterCountType), 
-		   1, outPtr[thisPile] )!=1) {
-            cerr << "Could no write to pointer pile. Aborting." << endl;
-            exit(-1);
-        }
+
+    if (fwrite( &seqPtr, sizeof(LetterCountType), 
+		1, outPtr[thisPile] )!=1) 
+    {
+      cerr << "Could not write to pointer pile. Aborting." << endl;
+      exit(-1);
+    }
     addedSoFar.count_[thisPile]++;
     seqNum++;
   } // ~while
@@ -376,27 +404,33 @@ void BCRext::run(void) {
   }
   //    return (0);
 
+  LetterCount lastSAPInterval;
+  LetterCountType thisSAPInterval;
+  bool thisSAPValue;
+
   //  ReadBuffer buffer(seqSize);
 
   // Main loop
   for (int i(2);i<=seqSize;i++)
   {
-
+    thisSAPInterval=0;
+    lastSAPInterval.clear();
 
     cout << "Starting iteration " << i << ", time now: " << timer.timeNow();
     cout << "Starting iteration " << i << ", usage: " << timer << endl;
 
-        // don't do j=0 - this is the $ sign which is done already
-        for (int j(1); j < alphabetSize; j++) {
-            // prep the output files
-
-            getFileName(tmpOut, 'S', j, fileName);
-            readWriteCheck(fileName.c_str(),true);
-            outSeq[j] = fopen(fileName.c_str(), "w");
-
-            getFileName(tmpOut, 'P', j, fileName);
-            readWriteCheck(fileName.c_str(),true);            
-            outPtr[j] = fopen(fileName.c_str(), "w");
+    // don't do j=0 - this is the $ sign which is done already
+    for (int j(1); j < alphabetSize; j++) 
+    {
+      // prep the output files
+      
+      getFileName(tmpOut, 'S', j, fileName);
+      readWriteCheck(fileName.c_str(),true);
+      outSeq[j] = fopen(fileName.c_str(), "w");
+      
+      getFileName(tmpOut, 'P', j, fileName);
+      readWriteCheck(fileName.c_str(),true);            
+      outPtr[j] = fopen(fileName.c_str(), "w");
 
 #ifdef TRACK_SEQUENCE_NUMBER
       getFileName(tmpOut,'N',j,fileName);
@@ -406,12 +440,22 @@ void BCRext::run(void) {
 
       getFileName(tmpOut,'B',j,fileName);
 
-        if (useHuffmanEncoder_)
-          outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
-        else if (useRunlengthEncoder_)
-          outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
-        else if (useAsciiEncoder_)
-          outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+    
+
+
+      if ((useImplicitSort_&&(i!=seqSize))||useAsciiEncoder_)
+	outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+      else if (useHuffmanEncoder_)
+	outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
+      else if (useRunlengthEncoder_)
+	outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
+
+      if(useImplicitSort_&&(i==seqSize))
+      {
+	BwtWriterBase* p(new BwtWriterImplicit(outBwt[j]));
+	outBwt[j]=p; // ... and the deception is complete!!!
+      } // ~if
+
 
 #ifdef DEBUG
       cout << "Prepping output file " << tmpOut << endl;
@@ -425,16 +469,22 @@ void BCRext::run(void) {
       // prep the input files
       getFileName(tmpIn,'B',j,fileName);
       // select the proper input module
-        if (useHuffmanEncoder_) {
-            inBwt[j] = new BwtReaderHuffman(fileName.c_str());
-            inBwt2[j] = new BwtReaderHuffman(fileName.c_str());
-        } else if (useRunlengthEncoder_) {
+       if (useImplicitSort_||useAsciiEncoder_) 
+       {
+	 inBwt[j] = new BwtReaderASCII(fileName.c_str());
+	 inBwt2[j] = new BwtReaderASCII(fileName.c_str());
+       }
+       else if (useHuffmanEncoder_) 
+       {
+	 inBwt[j] = new BwtReaderHuffman(fileName.c_str());
+	 inBwt2[j] = new BwtReaderHuffman(fileName.c_str());
+       } 
+       else if (useRunlengthEncoder_) 
+       {
             inBwt[j] = new BwtReaderRunLength(fileName.c_str());
             inBwt2[j] = new BwtReaderRunLength(fileName.c_str());
-        } else if (useAsciiEncoder_) {
-            inBwt[j] = new BwtReaderASCII(fileName.c_str());
-            inBwt2[j] = new BwtReaderASCII(fileName.c_str());
-        }
+       }
+
 
 #ifdef DEBUG
       cout << "Prepping input file " << tmpIn << endl;
@@ -503,9 +553,20 @@ void BCRext::run(void) {
 #endif
 
       while ( buffer.getNext( seqNum, seqPtr))
-{
+      {
+	if ((seqPtr&sameAsPrevFlag)==0)
+	{
+	  thisSAPInterval++;
+	  thisSAPValue=false;
+	} // ~if
+	else
+	{
+	  seqPtr&=sameAsPrevMask;
+	  thisSAPValue=true;
+	} // ~else
 
         thisPile = buffer[seqSize - i];
+
         //thisPile=whichPile[seqBuff[seqSize-i]];
 
         if (thisPile < 0) {
@@ -523,7 +584,7 @@ void BCRext::run(void) {
 
 
 #ifdef DEBUG
-	cout << "Read in " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
+	cout << ((thisSAPValue)?'1':'0') << " " << thisSAPInterval << " " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;	cout << "Read in " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
 	for (int ZZ(0);ZZ<seqSize;ZZ++)
 	  { cout << "ZZ " <<ZZ <<endl;  cout << alphabet[buffer[ZZ]] <<endl;}
 	cout << endl;
@@ -609,14 +670,34 @@ void BCRext::run(void) {
 
 	//	bwtBuf[0]=(seqSize-i-1>=0)?baseNames[buffer[seqSize-i-1]]:'$';
 	bwtBuf[0]=(seqSize-i-1>=0)?alphabet[buffer[seqSize-i-1]]:alphabet[0];
-	(*outBwt[thisPile])( &bwtBuf[0], 1 );
+	//	if (thisSAPValue==true) bwtBuf[0]+=32;//=tolower(bwtBuf[0]);
+
+
 
 	prevCharsOutputThisIter.count_[thisPile]=posInPile;
 
 	// pointer into new pile must be offset by number of new entries added
 	//	seqPtr+=newCharsAddedThisIter.count_[thisPile];
 	seqPtr=posInPile+newCharsAddedThisIter.count_[thisPile];
-        
+
+	if (useImplicitSort_)
+	{
+	  if (lastSAPInterval.count_[thisPile]==thisSAPInterval)
+	  {
+	    bwtBuf[0]=tolower(bwtBuf[0]);
+	    //	    bwtBuf[0]+=32;
+	    seqPtr|=sameAsPrevFlag;
+	    //	  cout << thisSAPInterval << endl;
+	  }
+	  else
+	  {
+	    //	  cout << thisSAPInterval << " " << lastSAPInterval.count_[thisPile] << endl;
+	    lastSAPInterval.count_[thisPile]=thisSAPInterval;
+	  }
+	}
+
+	(*outBwt[thisPile])( &bwtBuf[0], 1 );
+
         if (fwrite(&seqPtr, sizeof (LetterCountType),
                 1, outPtr[thisPile]) != 1) {
             cerr << "BWT readAndSend returned only " << readSendChars

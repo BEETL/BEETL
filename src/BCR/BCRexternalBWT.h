@@ -36,17 +36,21 @@ public:
     ~BCRexternalBWT();
 	
 	int buildBCR(char const *, char const *);
-	int unbuildBCR(char const*, char const*, char const *);
+	int unbuildBCR(char const*, char const*, char const *, char const *);
 	int backwardSearchBCR(char const* , char const* , char const * , char const *);
-	int decodeBCRnaiveForward(char const *, char const *, char const *);
-	int decodeBCRmultipleReverse(char const*, char const*, char const *);
+	int decodeBCRnaiveForward(char const *, char const *, char const *);	//Inverse BWT by Forward direction of nText sequences, one sequence at a time, in lexicographic order.
+	int decodeBCRmultipleReverse(char const*, char const*, char const *);   //Inverse BWT by Backward direction of nText sequences at the same time by lengthRead iterations.
 	int Recover1symbolReverse(char const* , char const* , uchar *, sortElement *);
 	int RecoverNsymbolsReverse(char  const*, char const*, uchar *);
+	int RecoverNsymbolsReverseByVector(char const* file1, char const* fileOutBwt, uchar * newSymb);
 	dataTypeNSeq recover1SequenceForward(char const* , char const * , sortElement , uchar *, dataTypelenSeq *) ;
 	vector <int> recoverNSequenceForward(char const* , char const *, dataTypeNSeq);
 	int recoverNSequenceForwardSequentially(char const* , char const *, dataTypeNSeq);
 	void storeBWT(uchar const *);
 	void storeEntireBWT(const char*);
+	void storeSA(dataTypelenSeq);
+	void storeEntirePairSA(const char*);
+	void storeEntireSAfromPairSA(const char*);
 	dataTypeNChar rankManySymbols(FILE &, dataTypeNChar *, dataTypeNChar, uchar *);
 #ifdef XXX
 	dataTypeNChar rankManySymbols(FILE &, LetterCount&, dataTypeNChar, uchar *); // TEMP

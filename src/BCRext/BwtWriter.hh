@@ -28,9 +28,9 @@
 
 struct BwtWriterBase
 {
-  BwtWriterBase( const std::string& fileName );
+  //  BwtWriterBase( const std::string& fileName );
 
-  virtual ~BwtWriterBase();
+  virtual ~BwtWriterBase() {};
 
   virtual void operator()( const char* p, int numChars ) =0;
 
@@ -38,10 +38,27 @@ struct BwtWriterBase
   virtual void sendRun( char c, int runLength ) =0;
 
 
+  //  FILE* pFile_;
+}; // ~BwtWriterBase
+
+struct BwtWriterFile : public BwtWriterBase
+{
+  BwtWriterFile( const std::string& fileName );
+
+  virtual ~BwtWriterFile();
+
+  //  virtual void operator()( const char* p, int numChars ) =0;
+
+
+  //  virtual void sendRun( char c, int runLength ) =0;
+
+
   FILE* pFile_;
 }; // ~BwtWriterBase
 
-struct BwtWriterASCII : public BwtWriterBase
+
+
+struct BwtWriterASCII : public BwtWriterFile
 {
   BwtWriterASCII( const std::string& fileName );
 
@@ -57,10 +74,10 @@ struct BwtWriterASCII : public BwtWriterBase
 };
 
 
-struct BwtWriterRunLength : public BwtWriterBase
+struct BwtWriterRunLength : public BwtWriterFile
 {
   BwtWriterRunLength( const std::string& fileName ):
-    BwtWriterBase(fileName),
+    BwtWriterFile(fileName),
     runLength_(0),pBuf_(buf_),pBufMax_(buf_+ReadBufferSize), lastChar_(notInAlphabet)  
 #ifdef REPORT_COMPRESSION_RATIO 
     , charsReceived_(0), bytesWritten_(0)
@@ -92,10 +109,10 @@ struct BwtWriterRunLength : public BwtWriterBase
 // migrated & adapted from compression.cpp in Tony's Misc CVS tree
 // Tobias, 28/11/11
 
-struct BwtWriterHuffman : public BwtWriterBase {
+struct BwtWriterHuffman : public BwtWriterFile {
 
     BwtWriterHuffman(const std::string & fileName) :
-    BwtWriterBase(fileName),
+    BwtWriterFile(fileName),
     bitsUsed_(0), lastChar_(notInAlphabet), runLength_(0), huffmanBufferPos(0)
 #ifdef REPORT_COMPRESSION_RATIO 
     , charsReceived_(0), bytesWritten_(0)
@@ -137,4 +154,35 @@ struct BwtWriterHuffman : public BwtWriterBase {
 #endif
 }; // ~BwtWriterHuffman
 
+struct BwtWriterImplicit : public BwtWriterBase
+{
+  BwtWriterImplicit( BwtWriterBase* pWriter ) : 
+    BwtWriterBase(),  pWriter_(pWriter), 
+    lastChar_(notInAlphabet), lastRun_(0), inSAP_(false) {}
+
+  virtual ~BwtWriterImplicit();
+  
+  virtual void operator()( const char* p, int numChars );
+
+  virtual void sendRun( char c, int runLength );
+
+  void flushSAP( void );
+
+  LetterCount countSAP_;
+  int firstSAP_;
+
+  BwtWriterBase* pWriter_;
+
+  char lastChar_;
+  int lastRun_;
+
+
+  bool inSAP_;
+  //  FILE* pFile_;
+}; // ~BwtWriterImplicit : public BwtWriterBase
+
+
+
+
 #endif
+

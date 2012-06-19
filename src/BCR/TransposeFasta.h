@@ -44,8 +44,10 @@ public:
     TransposeFasta();
     ~TransposeFasta();
 
-    bool convert( const string& input,const string& output );
-	
+    bool convert( const string& input,const string& output );   //Input from Fasta file (converts Fasta File into cyc Files)
+	bool inputCycFile();									//Input from cyc files
+	bool convertFromCycFileToFasta(const string& fileOutput,  dataTypeNSeq, dataTypelenSeq);		//Convert cyc files into Fasta File
+
 	dataTypelenSeq lengthRead;    //Lenght of each text
 	dataTypeNChar lengthTexts;   //Total length of all texts without $-symbols
 

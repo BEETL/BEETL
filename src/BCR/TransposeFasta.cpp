@@ -17,6 +17,7 @@
 
 #include "TransposeFasta.h"
 #include "Tools.h"
+#include <stdlib.h>
 #include <assert.h>
 
 
@@ -50,6 +51,8 @@ bool TransposeFasta::convert( const string& input,const string& output )
 	freq[int('G')]=1;
 	freq[int('N')]=1;
 	freq[int('T')]=1;
+	//GIOVANNA: ADDED THE SYMBOL Z IN THE ALPHABET, SO sizeAlpha = alphabetSize
+	freq[int('Z')]=1;	
 
     FILE* ifile;
 	ifile = fopen(input.c_str(), "rb");
@@ -113,10 +116,11 @@ bool TransposeFasta::convert( const string& input,const string& output )
             }
             
             // increase the counter of chars buffered
-            charsBuffered++;            
+            charsBuffered++;        
+	    			nSeq++;
         }
-		else 
-			nSeq++;
+		//else 
+
 
         //num_read = fread(buf,sizeof(uchar),CYCLENUM,ifile);        
         fgets ( buf, 1024, ifile );
@@ -142,4 +146,89 @@ bool TransposeFasta::convert( const string& input,const string& output )
 	std::cout << "Number of characters reading/writing: " << lengthTexts << "\n";
 
     return true;
+}
+
+bool TransposeFasta::inputCycFile() {
+  		//TO DO
+	//lengthRead = CYCLENUM;
+	//The distribution of characters is useful
+	//for alpha[256] -->Corresponding between the alphabet, the piles and tableOcc
+	//and to know sizeAlpha
+
+	//TDB
+
+	// Setting useful to work:
+	//1) Alphabet
+	//We supposed that the symbols in the input file are the following
+	freq[int(TERMINATE_CHAR)]=1;
+	freq[int('A')]=1;
+	freq[int('C')]=1;
+	freq[int('G')]=1;
+	freq[int('N')]=1;
+	freq[int('T')]=1;
+	//GIOVANNA: ADDED THE SYMBOL Z IN THE ALPHABET, SO sizeAlpha = alphabetSize
+	freq[int('Z')]=1;	
+
+	//2) Number of sequences
+	nSeq = 100;
+	//3) Length of the longest sequence
+	lengthRead = 100;
+
+	std::cerr << "****number of sequences: " << nSeq << "\n";
+	std::cerr << "****max length of each sequence: " << lengthRead << "\n";
+	//4) Total Length 
+	lengthTexts = lengthRead * nSeq;
+	std::cerr << "****lengthTot: " << lengthTexts << "\n";
+    return 1;
+} 
+
+bool TransposeFasta::convertFromCycFileToFasta(const string& fileOutput, dataTypeNSeq nSeq, dataTypelenSeq lengthRead) {	
+	vector <FILE*> inFilesCyc_; 
+	inFilesCyc_.resize(lengthRead);    //One for each symbol of the read.
+    const char* fileOut = "cyc.";
+	//Open all cyc files
+	for(dataTypelenSeq i=0;i<lengthRead;i++ ) {
+        std::stringstream fn;
+        fn << fileOut <<  (int)i << ".txt";
+        inFilesCyc_[i] = fopen( fn.str().c_str(),"rb" );
+        if (inFilesCyc_[i] == NULL) {
+                std::cerr << "TrasposeFasta: could not open file "  <<  fn.str().c_str() << std::endl;
+				exit (EXIT_FAILURE);
+		}
+    }
+//	FILE *outFile = fopen(fileOutput.c_str(), "rb");
+//	if (outFile==NULL) 
+
+	ofstream outFile (fileOutput.c_str());
+	if (outFile.is_open() == false)	{
+		 std::cerr << "Error opening \"" << fileOutput << "\" file"<< std::endl;
+		exit (1);
+	}
+	
+	//I must read a char for each sequence. The chars at the position i corresponds to the chars of the sequence i.
+	dataTypeNChar num_read;
+	char symbol;
+	string sequence = "";
+	for(dataTypeNSeq j=0;j<nSeq;j++ ) {
+		outFile << "> Read "  << j << std::endl;
+		for(dataTypelenSeq i=0;i<lengthRead;i++ ) {
+			num_read = fread (&symbol, sizeof(char), 1, inFilesCyc_[i] );
+			sequence.append (1, symbol);
+		}
+		outFile << sequence << std::endl;
+		if (verboseDecode == 1) 
+			std::cerr << sequence << std::endl;
+		sequence = "";
+	}
+
+	
+	outFile.close();
+		
+
+	//Close all cyc files
+	for(dataTypelenSeq i=0;i<lengthRead;i++){
+        fclose(inFilesCyc_[i]);
+    }
+
+	return 1;
 }

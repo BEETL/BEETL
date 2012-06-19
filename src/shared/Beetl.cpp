@@ -31,7 +31,8 @@
 
 using namespace std;
 
-#define BEETL_ID "$Id: Beetl.cpp,v 1.14 2011/11/28 16:38:32 acox Exp $"
+//#define BEETL_ID "$Id$"
+const string BEETL_ID("0.0.2");
 
 
 int main(int numArgs, char** args) {
@@ -59,7 +60,7 @@ int main(int numArgs, char** args) {
                     case 'o':
                         isArgumentOrExit(i + 1, numArgs);
                         bcrFileOut = args[i + 1];
-                        cout << "-> output file is " << bcrFileOut << endl;
+                        cout << "-> output prefix is " << bcrFileOut << endl;
                         break;
                     case 'm':
                         isArgumentOrExit(i + 1, numArgs);
@@ -74,12 +75,12 @@ int main(int numArgs, char** args) {
                                 << endl;
                         break;
                     case 'a':
-		      bcrCompression=compressionASCII;;
+									      bcrCompression=compressionASCII;;
                         cout << "-> writing ASCII encoded output"
                                 << endl;
                         break;
                     case 'h':
-		      bcrCompression=compressionHuffman;
+		     								 bcrCompression=compressionHuffman;
                         cout << "Huffman encoding not yet supported, sorry."
                                 << endl;
                         exit(-1);
@@ -87,7 +88,7 @@ int main(int numArgs, char** args) {
                         //        << endl;                        
                         break;
                     case 'r':
-		      bcrCompression=compressionRunLength;
+		      							bcrCompression=compressionRunLength;
                         cout << "-> writing runlength encoded output"
                                 << endl;
                         break;
@@ -99,7 +100,11 @@ int main(int numArgs, char** args) {
             }
 
         // check if all arguments are given
-        if (bcrFileOut.length() > 0 && bcrFileIn.length() > 0 && bcrMode >= 0) {
+        if (bcrFileIn.length() > 0 && bcrMode >= 0) {
+		if (bcrFileOut.length() == 0){
+			bcrFileOut=bcrFileOutPrefixDefault;
+		}
+		
             if (bcrMode == 0){
                 isValidFastaFile(bcrFileIn.c_str());
             }
@@ -123,51 +128,82 @@ int main(int numArgs, char** args) {
 
     } else if (strcmp(args[1], COMMAND_BCR_EXT) == 0) {
 
-        for (int i = 2; i < numArgs; i++)
 
-            if (args[i][0] == '-') { // only flags here "-X etc."
+      // set defaults for BCRext mode
+      bcrExtAsciiOutput=false; // use normal ASCII alphabet as output
+      bcrExtHuffmanOutput=false; // use huffman encoding as compression
+      bcrExtRunlengthOutput=true; // use RunLength encoding [default]
+      bcrExtImplicitSort=false; // do implicit sort of input sequences
 
-                switch (args[i][1]) {
-                    case 'i':
-                        // next param should be the filename, checking now
-                        isArgumentOrExit(i + 1, numArgs);
-                        fileIsReadableOrExit(args[i + 1]);
-                        bcrExtFileIn = args[i + 1]; // this should be the name
-                        cout << "-> input file is " << bcrExtFileIn << endl;
-                        break;
-                    case 'p':
-                        isArgumentOrExit(i + 1, numArgs);
-                        bcrFileOut = args[i + 1];
-                        cout << "-> output prefix set to "
-                                << bcrFileOut << endl;
-                        break;
-                    case 'a':
-                        if (!bcrExtRunlengthOutput && !bcrExtHuffmanOutput) {
-                            bcrExtAsciiOutput = true;
-                        }
-                        cout << "-> writing ASCII encoded output"
-                                << endl;
-                        break;
-                    case 'h':
-                        if (!bcrExtRunlengthOutput && !bcrExtAsciiOutput) {
-                            bcrExtHuffmanOutput = true;
-                        }
-                        cout << "-> writing huffman encoded output"
-                                << endl;                        
-                        break;
-                    case 'r':
-                        if (!bcrExtHuffmanOutput && !bcrExtAsciiOutput) {
-                            bcrExtRunlengthOutput = true;
-                        }
-                        cout << "-> writing runlength encoded output"
-                                << endl;
-                        break;
-                    default:
-                        cout << "!! unknown flag \""
-                                << args[i][1] << "\"" << endl;
-                        print_usage(args[0]);
-                }
-            }
+
+      for (int i = 2; i < numArgs; i++)
+      {
+	if (args[i][0] == '-') { // only flags here "-X etc."
+
+	  std::string thisArg((string)args[i]);
+	  if (thisArg=="-i")
+	  {
+	    // next param should be the filename, checking now
+	    isArgumentOrExit(i + 1, numArgs);
+	    fileIsReadableOrExit(args[i + 1]);
+	    bcrExtFileIn = args[i + 1]; // this should be the name
+	    cout << "-> input file is " << bcrExtFileIn << endl;
+	  }
+	  else if (thisArg=="-p")
+	  {
+	    isArgumentOrExit(i + 1, numArgs);
+	    bcrExtFileOutPrefix = args[i + 1];
+	    cout << "-> output prefix set to "
+		 << bcrExtFileOutPrefix << endl;
+	  }
+	  else if (thisArg=="-a")
+	  {
+	    bcrExtAsciiOutput = true;
+	    bcrExtRunlengthOutput = false;
+	    bcrExtHuffmanOutput = false;
+	    cout << "-> writing ASCII encoded output"
+		 << endl;
+	  }
+	  else if (thisArg=="-h")
+	  {
+	    bcrExtAsciiOutput = false;
+	    bcrExtRunlengthOutput = false;
+	    bcrExtHuffmanOutput = true;
+	    cout << "-> writing huffman encoded output"
+		 << endl;                        
+	  }
+	  else if (thisArg=="-r")
+	  {
+	    bcrExtAsciiOutput = false;
+	    bcrExtRunlengthOutput = true;
+	    bcrExtHuffmanOutput = false;
+	    cout << "-> writing runlength encoded output"
+		 << endl;
+	  }
+	  else if (thisArg=="-sap")
+	  {
+	    bcrExtImplicitSort=true;
+	    cout << "-> perform implicit sort of input sequences"
+		 << endl;
+	  }
+	  else
+	  {
+	    cout << "!! unknown flag \""
+		 << args[i][1] << "\"" << endl;
+	    print_usage(args[0]);
+	  }
+	} // ~if begins with -
+      } // ~for
+
+      //   cout << bcrExtImplicitSort << bcrExtHuffmanOutput << bcrExtRunlengthOutput << endl;
+
+      if ((bcrExtImplicitSort==true)&&
+	  ((bcrExtHuffmanOutput==true)||(bcrExtRunlengthOutput==true)))
+      {
+	cout << "-> Note: -sap mode needs ASCII intermediate files," << endl
+	     << "-> will revert to requested compression type for final output" << endl;
+
+      }
 
         // check if all arguments are given
         if ((bcrExtRunlengthOutput || bcrExtAsciiOutput || bcrExtHuffmanOutput) // no huffman for now
@@ -180,6 +216,7 @@ int main(int numArgs, char** args) {
             Algorithm * pBCRext = new BCRext(bcrExtHuffmanOutput,
                                              bcrExtRunlengthOutput,
                                              bcrExtAsciiOutput,
+					     bcrExtImplicitSort,
                                              bcrExtFileIn,
                                              bcrExtFileOutPrefix);
 
@@ -209,12 +246,12 @@ int main(int numArgs, char** args) {
                     case 'a':
 		      while (args[++i][0]!='-')
 		      {
-			cout << args[i] << " fred " << endl;
-                        fileIsReadableOrExit(args[i]);
-			filesA.push_back(args[i]);
-                        cout << "-> input file A is "
-			     << filesA.back()
-			     << endl;
+							cout << args[i] << " fred " << endl;
+              fileIsReadableOrExit(args[i]);
+							filesA.push_back(args[i]);
+              cout << "-> input file A is "
+			     		<< filesA.back()
+			     		<< endl;
 		      }
 		      i--;
 		      break;
@@ -231,11 +268,11 @@ int main(int numArgs, char** args) {
                     case 'b':
 		      while ((++i)!=numArgs)
 		      {
-                        fileIsReadableOrExit(args[i]);
-			filesB.push_back(args[i]);
-                        cout << "-> input file B is "
-			     << filesB.back()
-			     << endl;
+            fileIsReadableOrExit(args[i]);
+						filesB.push_back(args[i]);
+            cout << "-> input file B is "
+			     	<< filesB.back()
+			     	<< endl;
 		      }
 		      //		      i--;
 		      break;
@@ -357,27 +394,27 @@ void isArgumentOrExit(int num, int numArgs) {
 void print_usage(char *args) {
     cerr << endl << "- This is the BEETL software library -" << endl
             << endl
-            << "Framework version" << endl 
-            << BEETL_ID << endl            
+      // Tony 13.6.12 - BEETL_ID is not informative now we have moved to git
+      //            << "Framework version" << endl 
+      //            << BEETL_ID << endl            
             << endl
             << "Included in this framework are the following algorithms" << endl
             << endl
             << endl
             << "-> BCRext - command \"" << COMMAND_BCR_EXT << "\"" << endl
             << "========================================================" << endl
-            << "improved version of the orginal algorithm" << endl
+            << "improved version of the original algorithm" << endl
             << "uses significantly less RAM (a.k.a. none) but depends heavily on I/O" << endl
             << endl
             << "Usage: " << args << " "
-            << COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-r -a]" << endl
-            // below: for huffman encoding uncomment when implemented
-            //<< COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-h -r -a]" << endl
+            << COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-h -r -a] [-sap]" << endl
             << endl
             << "-i <file>:\tinput set of , 1 read per line, no fasta" << endl
             << "-p <string>:\toutput file names will start with \"prefix\"" << endl
             << "-a:\t\toutput ASCII encoded files" << endl
-            << "-r:\t\toutput runlength encoded files [default]" << endl
+            << "-r:\t\toutput runlength encoded files [recommended]" << endl
             << "-h:\t\toutput Hufmann encoded files" << endl
+            << "-sap:\t\tperform implicit permutation of collection to obtain more compressible BWT"  
             << endl
             << endl
             << "-> BCR - command \"" << COMMAND_BCR << "\"" << endl
@@ -386,9 +423,9 @@ void print_usage(char *args) {
             << "needs approximately 14GB of RAM for 1 billion reads" << endl
             << endl
             << "Usage: " << args << " " 
-            << COMMAND_BCR <<" -i <fasta read file> -o <output file> -m <[0,1,2]>" << endl
+            << COMMAND_BCR <<" -i <fasta or seq read file> -o <output file> -m <[0,1,2]>" << endl
             << endl
-            << "-i <file>:\tinput set of reads" << endl
+            << "-i <file>:\tinput set of reads [if mode = 1 set the prefix of the BWT files, normally BCR-B0]" << endl
             << "-o <file>:\toutput file" << endl
             << "-m <n>:\t\tmode = 0 --> BCR " << endl
             << "\t\tmode = 1 --> unBCR " << endl
@@ -417,6 +454,23 @@ void print_usage(char *args) {
             << "---------------------------------------------------" << endl          
             << "Markus J. Bauer, Anthony J. Cox and Giovanna Rosone" << endl
             << "Lightweight BWT Construction for Very Large String Collections. " << endl
-            << "Proceedings of CPM 2011, pp.219-231" << endl;
+	 << "Proceedings of CPM 2011, pp.219-231, doi: 10.1007/978-3-642-21458-5_20" << endl 
+	 << "[Description of BWT construction algorithms in 'bcr' and 'ext' modes]" << endl << endl
+	 << "Markus J. Bauer, Anthony J. Cox and Giovanna Rosone" << endl
+	 << "Lightweight algorithms for constructing and inverting the BWT of string collections " 
+	 << endl << "Theoretical Computer Science, doi: 10.1016/j.tcs.2012.02.002" << endl 
+	 << "[As above plus description of BWT inversion in 'bcr' mode]" << endl << endl
+	 << "Anthony J. Cox, Markus J. Bauer, Tobias Jakobi and Giovanna Rosone" << endl
+	 << "Large-scale compression of genomic sequence databases with the Burrows-Wheeler transform"
+	 << endl
+	 << "Bioinformatics, doi: 10.1093/bioinformatics/bts173" << endl 
+	 << "[Description of '-sap' compression boosting strategy in 'ext' mode]" << endl << endl
+	 << "BEETL web page:" << endl
+	 << "---------------" << endl
+	 << "http://beetl.github.com/BEETL/" << endl << endl	 
+	 << "BEETL user group:" << endl
+	 << "-----------------" << endl
+	 << "http://tech.groups.yahoo.com/group/BEETL/" << endl << endl;
+
     exit(0);
 }

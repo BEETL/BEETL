@@ -75,10 +75,21 @@ typedef SequenceNumberType dataTypeNSeq;
 
 #endif
 
+//It is the definition of each element of the generalized suffix array (GSA)
+typedef struct ElementType {
+	dataTypelenSeq sa;          //It is the position in the sequence, so it goes from 0 a length read
+	dataTypeNSeq numSeq;		//It is the number of the sequence.
+};
+
 #define verboseEncode 0
 #define verboseDecode 0
-#define deletePartialBWT 0
-#define BackByVector 1
+#define convertFromFasta 1  //If it is set to 1, it reads the input file, otherwise it reads the cyc files.
+#define deletePartialBWT 0	//If it is set to 1, it deletes the BWT-segments files and keeps the entire BWT, otherwise renames them.
+//#define deletePartialSA 0	//If it is set to 1, it deletes the SA-segments files and keeps the entire BWT, otherwise renames them.
+#define deleteCycFile 1		//If it is set to 1, it deletes the cycs files.
+#define BUILD_SA 0			//If it is set to 1, it computes the GSA (seqID, position) and the SA (position of the concatenated sequences without a further end-marker).
+#define decodeBackward 1	//If it is set to 1, it computes the inverse BWT in backward direction, otherwise in forward direction.
+#define BackByVector 1		//if it is set to 1, it uses the sampling of the BWT segments for inverse BWT. More memory, less time.
 
 class Tools
 {

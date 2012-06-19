@@ -31,19 +31,19 @@ using namespace std;
 //
 
 
-BwtWriterBase::BwtWriterBase( const std::string& fileName ) : pFile_(fopen(fileName.c_str(),"w"))
+BwtWriterFile::BwtWriterFile( const std::string& fileName ) : pFile_(fopen(fileName.c_str(),"w"))
   {
 #ifdef DEBUG
-    cout << "BwtWriterBase opened file " << fileName << " " << pFile_ << endl;
+    cout << "BwtWriterFile opened file " << fileName << " " << pFile_ << endl;
 #endif
    readWriteCheck(fileName.c_str(),1);    //    setvbuf( pFile_, NULL, _IOFBF, 262144);
   }
-BwtWriterBase::~BwtWriterBase() 
+BwtWriterFile::~BwtWriterFile() 
 { 
 
 fclose(pFile_); 
 #ifdef DEBUG
- cout << "BwtWriterBase: closed file " <<pFile_ << endl;
+ cout << "BwtWriterFile: closed file " <<pFile_ << endl;
 #endif
 
 }
@@ -53,7 +53,7 @@ fclose(pFile_);
 // BwtWriterASCII member function definitions
 //
 
-BwtWriterASCII::BwtWriterASCII( const std::string& fileName ) : BwtWriterBase(fileName)
+BwtWriterASCII::BwtWriterASCII( const std::string& fileName ) : BwtWriterFile(fileName)
   {
 #ifdef DEBUG
   cout << "BW ASCII ctor" << endl;
@@ -419,3 +419,118 @@ int charIndex(whichPile[(int)c]);
             while (runLength != 0);
         } // ~else      
     } // sendNum
+
+//
+// BwtWriterRunLength member function definitions
+//
+
+BwtWriterImplicit::~BwtWriterImplicit() 
+{ 
+  if (inSAP_==true)
+  {
+    flushSAP();
+  }
+  else if (lastChar_!=notInAlphabet)
+  {
+    pWriter_->sendRun(lastChar_, lastRun_);
+  }
+  delete pWriter_; 
+}
+
+void BwtWriterImplicit::flushSAP( void )
+{
+  assert(alphabet[firstSAP_]==lastChar_);
+  if (countSAP_.count_[firstSAP_]>0) pWriter_->sendRun(alphabet[firstSAP_],countSAP_.count_[firstSAP_]);
+
+  for (int i(0);i<alphabetSize;i++) 
+  {
+    if ((i!=firstSAP_)&&(countSAP_.count_[i]>0)) pWriter_->sendRun(alphabet[i],countSAP_.count_[i]);
+  }
+}
+
+  
+void BwtWriterImplicit::operator()( const char* p, int numChars )
+{
+
+  for (int i(0);i<numChars;i++,p++)
+  {
+    if (islower(*p))
+    {
+      if (inSAP_==false)
+      {
+	countSAP_.clear();
+	assert (lastChar_!=notInAlphabet);
+	firstSAP_=whichPile[(int)lastChar_];
+	assert(firstSAP_!=nv);
+	countSAP_.count_[firstSAP_]+=lastRun_;
+	inSAP_=true;
+      } // ~if
+      countSAP_+=*p;
+    } // ~if
+    else
+    {
+      if (inSAP_==true)
+      {
+	flushSAP();
+	inSAP_=false;
+      } 
+      else if (lastChar_!=notInAlphabet)
+      {
+	pWriter_->sendRun(lastChar_, lastRun_);
+      }
+      lastChar_=*p;
+      lastRun_=1;
+    }
+  }
+}
+
+void BwtWriterImplicit::sendRun( char c, int runLength )
+{
+  if (islower(c))
+  {
+    if (inSAP_==false)
+    {
+      countSAP_.clear();
+      assert (lastChar_!=notInAlphabet);
+      firstSAP_=whichPile[(int)lastChar_];
+      assert(firstSAP_!=nv);
+      countSAP_.count_[firstSAP_]+=lastRun_;
+      inSAP_=true;
+    } // ~if
+    countSAP_.count_[whichPile[(int)c]]+=runLength;
+  }
+  else
+  {
+    if (inSAP_==true)
+      {
+	flushSAP();
+	inSAP_=false;
+      } 
+      else if (lastChar_!=notInAlphabet)
+      {
+	pWriter_->sendRun(lastChar_, lastRun_);
+      }
+      lastChar_=c;
+      lastRun_=runLength;
+  }
+
+  //  (*pWriter_).sendRun(toupper(c), runLength);
+}
+
+#ifdef XXX  
+void BwtWriterImplicit::operator()( const char* p, int numChars )
+{
+  // could be smarter about this
+  char c;
+  for (int i(0);i<numChars;i++,p++)
+  {
+    c=toupper(*p);
+    (*pWriter_)(&c, 1);
+  }
+}
+
+void BwtWriterImplicit::sendRun( char c, int runLength )
+{
+  (*pWriter_).sendRun(toupper(c), runLength);
+}
+#endif
