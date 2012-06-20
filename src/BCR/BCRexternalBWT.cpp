@@ -268,8 +268,7 @@ BCRexternalBWT::BCRexternalBWT
 		static FILE *InFileKmer;                  
 		InFileKmer = fopen(fileOutput, "rb");
 		if (InFileKmer==NULL) {
-		// NO, abort program
-			 std::cerr << "Error opening \"" << fileOut << "\" file"<< std::endl;
+			 std::cerr << "Error opening \"" << fileOutput << "\" file"<< std::endl;
 			exit (1);
 		}
 		while (fgets(kmer, sizeof(kmer), InFileKmer)) { 
