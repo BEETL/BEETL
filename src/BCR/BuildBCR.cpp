@@ -26,7 +26,6 @@
 #include "BwtWriter.hh"
 
 
-
 //#ifdef COMPRESS_BWT
 //typedef BwtReaderRunLength BwtReader;
 //typedef BwtWriterRunLength BwtWriter;
@@ -91,7 +90,7 @@ int BCRexternalBWT::buildBCR(char const * file1, char const * fileOut)
   std::cerr << "Partial File name for input: " << fileOut <<" \n\n";
 
   static FILE *InFileInputText;
-	
+
   uchar *newSymb = new uchar[nText];
   vectTriple.resize(nText); 
 

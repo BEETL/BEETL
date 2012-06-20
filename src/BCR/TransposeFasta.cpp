@@ -19,6 +19,8 @@
 #include "Tools.h"
 #include <stdlib.h>
 #include <assert.h>
+#include "SeqReader.hh"
+
 
 
 using std::cout;
@@ -56,6 +58,12 @@ bool TransposeFasta::convert( const string& input,const string& output )
 
     FILE* ifile;
 	ifile = fopen(input.c_str(), "rb");
+
+	SeqReaderFile* pReader(SeqReaderFile::getReader(fopen(input.c_str(),"rb")));
+
+	
+
+
     
     if( ifile == NULL ) { cerr << "TrasposeFasta: could not open file " << input << " !" << endl; }
 
@@ -83,10 +91,12 @@ bool TransposeFasta::convert( const string& input,const string& output )
         buf[i] = '\0';
     }
 
-	nSeq = 0;
+    nSeq = 0;
 //    num_read = fread(buf,sizeof(uchar),CYCLENUM,ifile);
-    fgets ( buf,1024, ifile );
-    while( !feof(ifile) )
+
+//    fgets ( buf,1024, ifile ); %%%%%
+//    while( !feof(ifile) ) %%%%%
+    while( pReader->allRead()==false )
     {
         //cerr << "current line : " << buf << endl;
         
@@ -105,7 +115,16 @@ bool TransposeFasta::convert( const string& input,const string& output )
             charsBuffered=0;
         }
 
+	for(dataTypelenSeq i=0;i<CYCLENUM;i++ )
+	{
+	  buf_[i][charsBuffered] = pReader->thisSeq()[i];
+            // increase the counter of chars buffered
+	}
+	  charsBuffered++;        
+	  nSeq++;
 
+
+#ifdef XXX
         // process the input
         if( buf[0] != '>' ) 
         {
@@ -119,11 +138,12 @@ bool TransposeFasta::convert( const string& input,const string& output )
             charsBuffered++;        
 	    			nSeq++;
         }
-		//else 
+#endif		//else 
 
 
         //num_read = fread(buf,sizeof(uchar),CYCLENUM,ifile);        
-        fgets ( buf, 1024, ifile );
+	//        fgets ( buf, 1024, ifile );
+	pReader->readNext();
     }
 
     // write the rest
@@ -142,9 +162,10 @@ bool TransposeFasta::convert( const string& input,const string& output )
         fclose( outputFiles_[i] );
     }
 
-	std::cout << "Number of sequences reading/writing: " << nSeq << "\n";
-	std::cout << "Number of characters reading/writing: " << lengthTexts << "\n";
+    std::cout << "Number of sequences reading/writing: " << nSeq << "\n";
+    std::cout << "Number of characters reading/writing: " << lengthTexts << "\n";
 
+    delete pReader;
     return true;
 }
 
