@@ -47,7 +47,7 @@ OBJ_DIR:= ../build
 
 ### main target, Beetl executable	
 
-Beetl: Beetl.o BCRext.o BCR_BWTCollection.o countWords.o Timer.o Tools.o\
+Beetl: Beetl.o BCRext.o BCR_BWTCollection.o countWords.o Timer.o Tools.o SeqReader.o \
        BWTCollection.o BCRexternalBWT.o BuildBCR.o Sorting.o TransposeFasta.o BwtReader.o BwtWriter.o \
 	ReadBuffer.o 
 	cd ../build/; ${CC} $(CFLAGS) -o ../$@ $^
@@ -61,6 +61,9 @@ Tools.o: shared/Tools.cpp
 	${CC} -c $(CFLAGS) $< -o $(OBJ_DIR)/$@
 
 Timer.o: shared/Timer.cpp
+	${CC} -c $(CFLAGS) $< -o $(OBJ_DIR)/$@
+
+SeqReader.o: shared/SeqReader.cpp
 	${CC} -c $(CFLAGS) $< -o $(OBJ_DIR)/$@
 
 ### BCRext
