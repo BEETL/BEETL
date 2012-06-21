@@ -27,9 +27,22 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+TransposeFasta::TransposeFasta( SeqReaderFile* pReader ) :
+  pReader_(pReader),
+  cycleNum_(pReader->length()),
+  outputFiles_(pReader->length()),
+  buf_( pReader->length(), vector<uchar>(BUFFERSIZE))
+{
+  cerr << "Constructing TransposeFasta, found read length of " 
+       << cycleNum_ << endl;
+  for (int i(0);i<256;i++) freq[i]=0;
+}
+
+
+
 TransposeFasta::TransposeFasta()
 {
-
+  for (int i(0);i<256;i++) freq[i]=0;
 }
 
 
@@ -42,7 +55,7 @@ TransposeFasta::~TransposeFasta()
 bool TransposeFasta::convert( const string& input,const string& output )
 {
 	//TO DO
-	lengthRead = CYCLENUM;
+	lengthRead = cycleNum_;
 	//The distribution of characters is useful
 	//for alpha[256] -->Corresponding between the alphabet, the piles and tableOcc
 	//and to know sizeAlpha
@@ -59,16 +72,16 @@ bool TransposeFasta::convert( const string& input,const string& output )
     FILE* ifile;
 	ifile = fopen(input.c_str(), "rb");
 
-	SeqReaderFile* pReader(SeqReaderFile::getReader(fopen(input.c_str(),"rb")));
+	//	SeqReaderFile* pReader(SeqReaderFile::getReader(fopen(input.c_str(),"rb")));
 
-	
-
+	//	cycleNum_=pReader->getLength();
+	//	cerr << "Deduced read length of " << cycleNum_ << endl;
 
     
     if( ifile == NULL ) { cerr << "TrasposeFasta: could not open file " << input << " !" << endl; }
 
     // create output files
-    for(dataTypelenSeq i=0;i<CYCLENUM;i++ )
+    for(dataTypelenSeq i=0;i<cycleNum_;i++ )
     {
         std::stringstream fn;
         fn << output <<  i << ".txt";
@@ -81,32 +94,32 @@ bool TransposeFasta::convert( const string& input,const string& output )
     unsigned int num_write = 0;    
     unsigned int charsBuffered = 0;
 
-    	//******************************buf[CYCLENUM+1];  ********* is CYCLENUM right?
-	char buf[CYCLENUM+1];
+    	//******************************buf[cycleNum_+1];  ********* is cycleNum_ right?
+	char buf[cycleNum_+1];
 	lengthTexts = 0;
 
 
-    for(dataTypelenSeq i=0;i<CYCLENUM;i++ )
+    for(dataTypelenSeq i=0;i<cycleNum_;i++ )
     {
         buf[i] = '\0';
     }
 
     nSeq = 0;
-//    num_read = fread(buf,sizeof(uchar),CYCLENUM,ifile);
+//    num_read = fread(buf,sizeof(uchar),cycleNum_,ifile);
 
 //    fgets ( buf,1024, ifile ); %%%%%
 //    while( !feof(ifile) ) %%%%%
-    while( pReader->allRead()==false )
+    while( pReader_->allRead()==false )
     {
         //cerr << "current line : " << buf << endl;
         
         if( charsBuffered == BUFFERSIZE )
         {
             // write buffers to the files, clear buffers
-            for(dataTypelenSeq i=0;i<CYCLENUM;i++ )
+            for(dataTypelenSeq i=0;i<cycleNum_;i++ )
             {
                 //cerr << "writing to " << i << " : " << buf_[i] << endl;
-                num_write = fwrite ( buf_[i],sizeof(char),charsBuffered,outputFiles_[i] );
+	      num_write = fwrite ( (void*)(&buf_[i][0]),sizeof(char),charsBuffered,outputFiles_[i] );
 				lengthTexts += num_write;
             }
             checkIfEqual( num_write,charsBuffered ); // we should always read/write the same number of characters
@@ -115,9 +128,9 @@ bool TransposeFasta::convert( const string& input,const string& output )
             charsBuffered=0;
         }
 
-	for(dataTypelenSeq i=0;i<CYCLENUM;i++ )
+	for(dataTypelenSeq i=0;i<cycleNum_;i++ )
 	{
-	  buf_[i][charsBuffered] = pReader->thisSeq()[i];
+	  buf_[i][charsBuffered] = pReader_->thisSeq()[i];
             // increase the counter of chars buffered
 	}
 	  charsBuffered++;        
@@ -129,7 +142,7 @@ bool TransposeFasta::convert( const string& input,const string& output )
         if( buf[0] != '>' ) 
         {
             // add the characters
-            for(dataTypelenSeq i=0;i<CYCLENUM;i++ )
+            for(dataTypelenSeq i=0;i<cycleNum_;i++ )
             {
                 buf_[i][charsBuffered] = buf[i];
             }
@@ -141,15 +154,15 @@ bool TransposeFasta::convert( const string& input,const string& output )
 #endif		//else 
 
 
-        //num_read = fread(buf,sizeof(uchar),CYCLENUM,ifile);        
+        //num_read = fread(buf,sizeof(uchar),cycleNum_,ifile);        
 	//        fgets ( buf, 1024, ifile );
-	pReader->readNext();
+	pReader_->readNext();
     }
 
     // write the rest
-    for(dataTypelenSeq i=0;i<CYCLENUM;i++ )
+    for(dataTypelenSeq i=0;i<cycleNum_;i++ )
     {
-        num_write = fwrite ( buf_[i],sizeof(uchar),charsBuffered,outputFiles_[i] );
+      num_write = fwrite ( (void*)(&buf_[i][0]),sizeof(uchar),charsBuffered,outputFiles_[i] );
 		lengthTexts += num_write;
     }
     checkIfEqual( num_write,charsBuffered );
@@ -157,7 +170,7 @@ bool TransposeFasta::convert( const string& input,const string& output )
 
 
     // closing all the output file streams
-    for(dataTypelenSeq i=0;i<CYCLENUM;i++ )
+    for(dataTypelenSeq i=0;i<cycleNum_;i++ )
     {
         fclose( outputFiles_[i] );
     }
@@ -165,13 +178,13 @@ bool TransposeFasta::convert( const string& input,const string& output )
     std::cout << "Number of sequences reading/writing: " << nSeq << "\n";
     std::cout << "Number of characters reading/writing: " << lengthTexts << "\n";
 
-    delete pReader;
+    //    delete pReader;
     return true;
 }
 
 bool TransposeFasta::inputCycFile() {
   		//TO DO
-	//lengthRead = CYCLENUM;
+	//lengthRead = cycleNum_;
 	//The distribution of characters is useful
 	//for alpha[256] -->Corresponding between the alphabet, the piles and tableOcc
 	//and to know sizeAlpha
