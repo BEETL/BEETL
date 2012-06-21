@@ -121,7 +121,7 @@ SeqReaderRaw::~SeqReaderRaw() {}
 
 void SeqReaderRaw::readNext(void)
 {
-  cout << "readNext" << endl;
+  //  cout << "readNext" << endl;
   if (allRead_==true)
   {
     cerr << "Tried to read an empty sequence stream" << endl;
@@ -143,7 +143,21 @@ void SeqReaderRaw::readNext(void)
 // SeqReaderFasta member function definitions
 //
 
-SeqReaderFasta::SeqReaderFasta( FILE* pFile ) : SeqReaderFile(pFile) {}
+SeqReaderFasta::SeqReaderFasta( FILE* pFile ) : SeqReaderFile(pFile) 
+{
+  cout << "Creating SeqReaderFasta" << endl;
+  readNext();
+  if (allRead()==true)
+  {
+    cerr << "No sequences in file!" << endl;
+    exit(-1);
+  }
+  else
+  {
+    length_=strlen(bufSeq_)-1;
+    cerr << "Deducing read length of " << length_ << endl;
+  }
+}
 
 SeqReaderFasta::~SeqReaderFasta() {}
 
@@ -171,7 +185,8 @@ void SeqReaderFasta::readNext(void)
       cerr << "read FASTA header with no entry, incomplete file?" << endl;
       exit (-1);
     }
-    else if (strlen(bufSeq_)!=length_)
+    else if ((length_!=-1)&&(((int)strlen(bufSeq_))!=length_+1))
+      //else if (strlen(bufSeq_)!=length_)
     {
       cerr << "Length of current sequence does not match length of first" << endl;    exit (-1);      
     }
@@ -187,13 +202,73 @@ void SeqReaderFasta::readNext(void)
 // SeqReaderFastq member function definitions
 //
 
-SeqReaderFastq::SeqReaderFastq( FILE* pFile ) : SeqReaderFile(pFile) {}
+SeqReaderFastq::SeqReaderFastq( FILE* pFile ) : SeqReaderFile(pFile) 
+{
+  cout << "Creating SeqReaderFastq" << endl;
+  readNext();
+  if (allRead()==true)
+  {
+    cerr << "No sequences in file!" << endl;
+    exit(-1);
+  }
+  else
+  {
+    length_=strlen(bufSeq_)-1;
+    cerr << "Deducing read length of " << length_ << endl;
+  }
+}
 
 SeqReaderFastq::~SeqReaderFastq() {}
 
 
 void SeqReaderFastq::readNext(void)
-{  }
+{  
+  if (allRead_==true)
+  {
+    cerr << "Tried to read an empty sequence stream" << endl;
+    exit (-1);
+  }
+  else if( fgets( bufName_, maxSeqSize, pFile_)==NULL)
+  {
+    allRead_=true;
+  }
+  else
+  {
+    if (bufName_[0]!='@')
+    {
+      cerr << "Expected FASTQ header, got " << bufName_ << endl;
+      exit (-1);
+    }
+    if( fgets( bufSeq_, maxSeqSize, pFile_)==NULL)
+    {
+      cerr << "read FASTA header with no entry, incomplete file?" << endl;
+      exit (-1);
+    }
+    else 
+    {
+      if ((length_!=-1)&&(((int)strlen(bufSeq_))!=length_+1))
+	//else if (strlen(bufSeq_)!=length_)
+      {
+	cerr << "Length of current sequence does not match length of first" << endl;    exit (-1);      
+      }
+      else if ( fgets( bufQual_, maxSeqSize, pFile_)==NULL)
+      {
+	cerr << "Could not read FASTQ quality spacer, incomplete file?" << endl;
+	exit (-1);
+      }
+      else if (bufQual_[0]!='+')
+      {
+	cerr << "Expected FASTQ quality spacer, got " << bufQual_ << endl;
+	exit (-1);
+      }
+      else if ( fgets( bufQual_, maxSeqSize, pFile_)==NULL)
+      {
+	cerr << "Could not read FASTQ quality string, incomplete file?" << endl;
+	exit (-1);
+      }
+    } // ~else
+  } // ~else
+} // ~Fastq::readNext
 
 
 
