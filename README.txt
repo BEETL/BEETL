@@ -1,3 +1,4 @@
+
 BEETL: Burrows-Wheeler Extended Tool Library
 
 Copyright (c) 2011 Illumina, Inc.
@@ -39,76 +40,87 @@ to be particularly suitable.
 Assumes BEETL tar file is in direction /tar_path
 Assumes code should be unpacked into directory /install_path
 
+Install:
 cd /install_path
 tar -jxvf /tar_path/localBEETL_0_0_1_alpha.tar.bz2
 cd /install_path/beetl/src
 make
+
+Test:
+cd /tmp
+[or another folder where you don't mind a small number of files being created]
+/install_path/test_v_0_0_2.sh
 
 *** Usage ***
  
 
 1. BCR algorithm (14 bytes of RAM required per input sequence)
 
-/install_path/beetl/Beetl bcr -m 0 -i input.fa [-o outputPrefix]
+/install_path/beetl/Beetl bcr -i input.file -o outfile -m 0
 
-Input: input.fa/.seq
-- FASTA format file, all sequences must be of same size
-- Raw ASCII format, one sequence per line, each terminated by single carriage 
+Input: input.file
+FASTA/FASTQ/raw sequence format file, all sequences must be of same size
 Only allowed ambiguity code is 'N'
-------------
-You can set the length of each sequence by changing the parameter CYCLENUM in TransposeFasta.h
-------------
 
 Output:
-BCR-B0
+outfile
 - BWT of entire collection in ASCII format
-BCR-B00
+mybwt0 
 - BWT of characters corresponding to suffixes beginning with '$'
-BCR-B01
+mybwt1
 - BWT of characters corresponding to suffixes beginning with 'A'
-BCR-B02
+mybwt2
 - BWT of characters corresponding to suffixes beginning with 'C'
-BCR-B03
+mybwt3
 - BWT of characters corresponding to suffixes beginning with 'G'
-BCR-B04
+mybwt4
 - BWT of characters corresponding to suffixes beginning with 'N'
-BCR-B05
+mybwt5
 - BWT of characters corresponding to suffixes beginning with 'T'
-(so outfile is just the concatenation of BCR-B0[012345])
+(so outfile is just the concatenation of outfilebwt_[012345].aux)
+
+/install_path/beetl/Beetl bcr -i mybwt -o inverted.fa -m 1
+
+Input: BWT files as defined above (i.e. output of "-m 0" mode)
+
+Output: Original sequences in FASTA format 
+(NB original sequence names are not retained)
 
 
 2. BCRext algorithm (pure external memory)
 
-/install_path/beetl/Beetl ext -i input.txt -a
+/install_path/beetl/Beetl ext -i input.file -p mybwt [-h -r -a] [-s] [-sap]
 
-Input: input.fa/.seq
-- FASTA format file, all sequences must be of same size
-- Raw ASCII format, one sequence per line, each terminated by single carriage 
-
-return 
+Input: input.file
+FASTA format file, all sequences must be of same size
 Only allowed ambiguity code is 'N'
+If -s option is set: input in raw ASCII format, one sequence per line, 
+each terminated by single carriage return 
 
 Output: all files are in ASCII format
 
-BCRext-B00
+mybwt-B00
 - BWT of characters corresponding to suffixes beginning with '$'
-BCRext-B01
+mybwt-B01
 - BWT of characters corresponding to suffixes beginning with 'A'
-BCRext-B02
+mybwt-B02
 - BWT of characters corresponding to suffixes beginning with 'C'
-BCRext-B03
+mybwt-B03
 - BWT of characters corresponding to suffixes beginning with 'G'
-BCRext-B04
+mybwt-B04
 - BWT of characters corresponding to suffixes beginning with 'N'
-BCRext-B05
+mybwt-B05
 - BWT of characters corresponding to suffixes beginning with 'T'
 
-/install_path/beetl/Beetl ext -i input.txt -r
+-a: output ASCII encoded files
+-r: output runlength encoded files [recommended]
+-h: output Hufmann encoded files
+-sap: perform implicit permutation of collection to obtain more compressible BWT
 
-as above, but output files are in run-length-encoded format.
 
--------------------------------------------------------------
-Parameters in Tools.h
+
+Note 1: Configuration parameters for BCR mode in Tools.h
+
 convertFromFasta:	if it is set to 1, it reads the input file (FASTA file: a sequence for line), otherwise it reads the cyc files.
 deletePartialBWT:	if it is set to 1, it deletes the BWT-segments files and keeps the entire BWT, otherwise renames them.
 deleteCycFile:		if it is set to 1, it deletes the cycs files.
@@ -116,7 +128,7 @@ BUILD_SA:		if it is set to 1, it computes the GSA (seqID, position) and the SA (
 decodeBackward:		if it is set to 1, it computes the inverse BWT in backward direction, otherwise in forward direction.
 BackByVector:		if it is set to 1, it uses the sampling of the BWT segments for inverse BWT. More memory, less time.
 
-Inverse BWT by using BCR
+Note 2: More detail on inverting BWT by using BCR
 
 	/install_path/beetl/Beetl bcr -i BCR-B0 -o outputInverse -m 1
 
@@ -190,6 +202,34 @@ G	7	0	7
 -------------------------------------------------------------
 
 *** Release notes ***
+
+Version 0.0.2 (25th June 2012)
+
+Main new feature is an implementation of the compression boosting strategy
+described in our Bioinformatics paper [doi: 10.1093/bioinformatics/bts173].
+This is the '-sap' flag in BCRext mode.
+
+
+Other improvements:
+
+Both BCR and BCRext modes can take FASTA or raw sequence format as input
+
+BCR mode can also take FASTQ as input
+
+BCR mode has a '-m 1' submode for inversion of a BWT back to its original
+sequences.
+
+Potential gotcha for '-m 1' mode: if using this mode to invert a BWT created 
+via the BCRext mode, you will need to create an additional empty file with the
+same name as the input name (i.e. 'touch mybwt', if you are using the same 
+names as in the above examples)
+
+BCRext mode can produce output in Huffman or run-length encoded format
+as well as ASCII. 
+
+BCR mode can now process reads of any length (both modes still demand that
+all reads in a dataset are of the same length, however)
+
 
 Version 0.0.1 (18th November 2011)
 
