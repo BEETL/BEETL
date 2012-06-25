@@ -30,18 +30,19 @@
 #include "Tools.h"
 
 #define BUFFERSIZE 1024 // 2^20
-#define CYCLENUM 100
+//#define CYCLENUM 100
 
 //#define uchar unsigned char
 
 
-
+class SeqReaderFile;
 using std::string;
 
 class TransposeFasta
 {
-public:
-    TransposeFasta();
+public: 
+  TransposeFasta();
+   TransposeFasta( SeqReaderFile* pReader );
     ~TransposeFasta();
 
     bool convert( const string& input,const string& output );   //Input from Fasta file (converts Fasta File into cyc Files)
@@ -55,10 +56,13 @@ public:
 	dataTypeNChar freq[256];  //contains the distribution of the symbols. It is useful only for testing. It depends on the #characters
     
 private:
-    FILE* outputFiles_[CYCLENUM];
+	SeqReaderFile* pReader_;
+	uint cycleNum_;
+	vector<FILE*> outputFiles_;
+	vector<vector<uchar> > buf_;
+	//    FILE* outputFiles_[CYCLENUM];
 
-    uchar buf_[CYCLENUM][BUFFERSIZE];
-    
+    //    uchar buf_[CYCLENUM][BUFFERSIZE];
 };
 
 

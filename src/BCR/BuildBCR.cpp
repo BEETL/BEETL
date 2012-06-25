@@ -24,8 +24,7 @@
 #include "LetterCount.hh"
 #include "BwtReader.hh"
 #include "BwtWriter.hh"
-
-
+#include "SeqReader.hh"
 
 //#ifdef COMPRESS_BWT
 //typedef BwtReaderRunLength BwtReader;
@@ -42,12 +41,15 @@
 
 int BCRexternalBWT::buildBCR(char const * file1, char const * fileOut)
 {
-  TransposeFasta trasp;
   int res;  
   #if convertFromFasta == 1   
-	res = trasp.convert( file1, fileOut);
+  SeqReaderFile* pReader(SeqReaderFile::getReader(fopen(file1,"rb")));
+  TransposeFasta trasp(pReader);
+  res = trasp.convert( file1, fileOut);
+  delete pReader;
   #else
-	res = trasp.inputCycFile();
+  TransposeFasta trasp();
+  res = trasp.inputCycFile();
   #endif
   
   if (res == false) {  //Error in the reading
@@ -91,7 +93,7 @@ int BCRexternalBWT::buildBCR(char const * file1, char const * fileOut)
   std::cerr << "Partial File name for input: " << fileOut <<" \n\n";
 
   static FILE *InFileInputText;
-	
+
   uchar *newSymb = new uchar[nText];
   vectTriple.resize(nText); 
 
