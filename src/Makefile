@@ -16,7 +16,6 @@
 
 # Makefile for the BEETL software library
 #
-# Makefile version $Id: Makefile,v 1.7 2011/11/28 16:38:32 acox Exp $
 
 
 # >> SETUP SECTION
@@ -47,7 +46,7 @@ OBJ_DIR:= ../build
 
 ### main target, Beetl executable	
 
-Beetl: Beetl.o BCRext.o BCR_BWTCollection.o countWords.o Timer.o Tools.o SeqReader.o \
+Beetl: Beetl.o BCRext.o BCR_BWTCollection.o Timer.o Tools.o SeqReader.o \
        BWTCollection.o BCRexternalBWT.o BuildBCR.o Sorting.o TransposeFasta.o BwtReader.o BwtWriter.o \
 	ReadBuffer.o 
 	cd ../build/; ${CC} $(CFLAGS) -o ../$@ $^
@@ -103,10 +102,6 @@ BCRexternalBWT.o: BCR/BCRexternalBWT.cpp
 BuildBCR.o: BCR/BuildBCR.cpp
 	${CC} -c $(CFLAGS) $< -o $(OBJ_DIR)/$@		
 
-### countWords 
-
-countWords.o: countWords/CountWords.cpp
-	${CC} -c $(CFLAGS) $< -o $(OBJ_DIR)/$@	
 
 
 ### >> done compiling / linking

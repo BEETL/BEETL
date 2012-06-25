@@ -25,7 +25,6 @@
 #include "Algorithm.hh"   // framework class declaration
 
 #include "BWTCollection.h" // interface to BCR
-#include "CountWords.hh" // interface to countwords
 #include "BCRext.hh"    // interface to BCRext
 
 
@@ -247,134 +246,6 @@ int main(int numArgs, char** args) {
             print_usage(args[0]);
         }
 
-    } else if (strcmp(args[1], COMMAND_COUNTWORDS) == 0) {
-
-
-      vector<string> filesA, filesB;
-
-        for (int i = 2; i < numArgs; i++)
-
-            if (args[i][0] == '-') { // only flags here "-X etc."
-	      cout << "blah" << endl;
-                switch (args[i][1]) {
-                    case 'a':
-		      while (args[++i][0]!='-')
-		      {
-							cout << args[i] << " fred " << endl;
-              fileIsReadableOrExit(args[i]);
-							filesA.push_back(args[i]);
-              cout << "-> input file A is "
-			     		<< filesA.back()
-			     		<< endl;
-		      }
-		      i--;
-		      break;
-#ifdef OLD
-                        // next param should be the filename, checking 
-                        isArgumentOrExit(i + 1, numArgs);
-                        fileIsReadableOrExit(args[i + 1]);
-                        countWordsInputA = args[i + 1]; // should be the name
-                        cout << "-> input file A is "
-                                << countWordsInputA
-                                << endl;
-                        break;
-#endif
-                    case 'b':
-		      while ((++i)!=numArgs)
-		      {
-            fileIsReadableOrExit(args[i]);
-						filesB.push_back(args[i]);
-            cout << "-> input file B is "
-			     	<< filesB.back()
-			     	<< endl;
-		      }
-		      //		      i--;
-		      break;
-#ifdef OLD
-                        // next param should be the filename, checking now
-                        isArgumentOrExit(i + 1, numArgs);
-                        fileIsReadableOrExit(args[i + 1]);
-                        countWordsInputB = args[i + 1]; // should be the name
-                        cout << "-> input file B is "
-                                << countWordsInputB
-                                << endl;
-                        break;
-#endif
-                    case 'k':
-                        isArgumentOrExit(i + 1, numArgs);
-                        minimalLengthK = atoi(args[i + 1]);
-                        if (minimalLengthK < 0) {
-                            cerr << "!! "
-                                    << minimalLengthK
-                                    << " is no valid length "
-                                    << endl;
-                            exit(-1);
-                        }
-                        cout << "-> minimal length k set to \""
-                                << minimalLengthK
-                                << "\""
-                                << endl;
-                        break;
-                    case 'n':
-                        isArgumentOrExit(i + 1, numArgs);
-                        minimalOccurencesN = atoi(args[i + 1]);
-                        if (minimalOccurencesN < 0) {
-                            cerr << "!! "
-                                    << minimalOccurencesN
-                                    << " is no valid value "
-                                    << endl;
-                            exit(-1);
-                        }
-                        cout << "-> maximal occurences n set to \""
-                                << minimalOccurencesN
-                                << "\""
-                                << endl;
-                        break;
-                    case 'r':
-                        cout << "-> reference genome mode for set B " << endl;
-                        ReferenceGenomeInputB = true;
-                        break;
-                    case 'A':
-                        cout << "-> assuming set A is compressed" << endl;
-                        compressedInputA = true;
-                        break;
-                    case 'B':
-                        cout << "-> assuming set B is compressed" << endl;
-                        compressedInputB = true;
-                        break;
-                    case 'C':
-                        cout << "-> assuming set A&B are compressed" << endl;
-                        compressedBoth = true;
-                        break;
-                    default:
-                        cout << "!! unknown flag \"" << args[i][1]
-                                << "\"" << endl;
-                        print_usage(args[0]);
-                }
-            }
-
-        // check for required arguments
-        if ( (minimalLengthK>0) && (minimalOccurencesN>0) &&
-	     (filesA.size()>0) && (filesA.size()==filesB.size())) {
-
-            // create new tool object
-            Algorithm * pcountWords = new countWords(compressedBoth, compressedInputA,
-                    compressedInputB, ReferenceGenomeInputB, minimalOccurencesN,
-                    minimalLengthK, filesA, filesB);
-            
-            // run the "main" method
-            pcountWords->run();
-            
-            // clean up
-            delete pcountWords;
-            
-            // closing time
-            exit(0);
-        } else {
-            // oops
-            print_usage(args[0]);
-        }
-
     } else {
         cerr << "!! \"" << args[1] << "\" is no known command" << endl;
         print_usage(args[0]);
@@ -451,18 +322,6 @@ void print_usage(char *args) {
             << "========================================================" << endl
             << "find all words of length at least k that occur" << endl
             << "at least n times in string set A and never in string set B" << endl
-            << endl
-            << "Usage: " << args << " " 
-            << COMMAND_COUNTWORDS <<" [-A -B -C -r] -k <n> -n <n> -a <set A> -b <set B>" << endl
-            << endl
-            << "-A:\t\tassume BWT files for set A are in compressed format" << endl
-            << "-B:\t\tassume BWT files for set B are in compressed format" << endl
-            << "-C:\t\tassume BWT files for sets A and B are in compressed format" << endl
-            << "-r:\t\tassume set B is a reference genome" << endl
-            << "-k <n>:\t\tminimal length" << endl
-            << "-n <n>:\t\tminimal occurences" << endl
-            << "-a <file>:\tinput set A" << endl
-            << "-b <file>:\tinput set B" << endl
             << endl
             << endl
             << "If you had fun using these algorithms you may cite:" << endl

@@ -23,7 +23,6 @@
 #include "BwtReader.hh"
 #include "LetterCount.hh"
 #include "BwtWriter.hh"
-#include "CountWords.hh"
 
 //#define DEBUG 1
 
