@@ -156,6 +156,12 @@ int main(int numArgs, char** args) {
 	    cout << "-> output prefix set to "
 		 << bcrExtFileOutPrefix << endl;
 	  }
+	  else if (thisArg=="-s")
+	  {
+	   cout << "-> using SeqFile input"
+		<< endl;
+	  bcrExtUseSeq = true;
+	  }
 	  else if (thisArg=="-a")
 	  {
 	    bcrExtAsciiOutput = true;
@@ -206,8 +212,15 @@ int main(int numArgs, char** args) {
       }
 
         // check if all arguments are given
-        if ((bcrExtRunlengthOutput || bcrExtAsciiOutput || bcrExtHuffmanOutput) // no huffman for now
-             && isValidReadFile(bcrExtFileIn.c_str())) {
+        if ((bcrExtRunlengthOutput || bcrExtAsciiOutput || bcrExtHuffmanOutput)
+		
+	// check if its a fasta file when fasta flag set
+	&& ( isValidFastaFile(bcrExtFileIn.c_str()) ||
+	
+	// is this a valid .seq file? only when no fasta flag
+	(bcrExtUseSeq && isValidReadFile(bcrExtFileIn.c_str())))
+	) {
+		
             if (bcrExtFileOutPrefix.length()==0){
                 bcrExtFileOutPrefix=bcrExtFileOutPrefixDefault;
             }
@@ -217,6 +230,7 @@ int main(int numArgs, char** args) {
                                              bcrExtRunlengthOutput,
                                              bcrExtAsciiOutput,
 					     bcrExtImplicitSort,
+					     bcrExtUseSeq,
                                              bcrExtFileIn,
                                              bcrExtFileOutPrefix);
 
@@ -407,9 +421,10 @@ void print_usage(char *args) {
             << "uses significantly less RAM (a.k.a. none) but depends heavily on I/O" << endl
             << endl
             << "Usage: " << args << " "
-            << COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-h -r -a] [-sap]" << endl
+            << COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-h -r -a] [-s] [-sap]" << endl
             << endl
-            << "-i <file>:\tinput set of , 1 read per line, no fasta" << endl
+            << "-i <file>:\tinput file in fasta format" << endl
+            << "-s:\t\tuse .seq input files instead of fasta (each line one sequence)" << endl
             << "-p <string>:\toutput file names will start with \"prefix\"" << endl
             << "-a:\t\toutput ASCII encoded files" << endl
             << "-r:\t\toutput runlength encoded files [recommended]" << endl
