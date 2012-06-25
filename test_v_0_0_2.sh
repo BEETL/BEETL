@@ -46,6 +46,21 @@ else
 fi
 }
 
+runCommand()
+{
+#COMMAND="${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRext -a -s" 
+echo $0: Command to run: $COMMAND
+#${TIME} $COMMAND 
+${TIME} $COMMAND > $1.stdout 2>$1.stderr
+echo $0: done
+}
+
+nextTest()
+{
+TEST_NUM=$(($TEST_NUM+1))
+TEST_NAME=TEST_${TEST_NUM}
+echo $0: $TEST_NAME - $1: `date`
+}
 
 
 PERL=/usr/bin/perl 
@@ -126,31 +141,42 @@ cat ${TEST_FILE_SEQ} | ${PERL} -lane '{ $i++; print "\@seq_${i}\n$_\n+"; print "
 
 # Run BEETL BCRext code
 
-echo $0: Running BEETL BCRext code with ASCII output: `date`
+TEST_NUM=0
+
+#TEST_NUM=$(($TEST_NUM+1))
+#TEST_NAME=TEST_${TEST_NUM}
+#echo $0: $TEST_NAME - running BEETL BCRext code with ASCII output: `date`
+nextTest "running BEETL BCRext code with ASCII output"
 
 cd BCRext
 
-${TIME} ${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRext -a  >  run.stdout 2>run.stderr
+#${TIME} ${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRext -a  >  run.stdout 2>run.stderr
+
+COMMAND="${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRext -a -s" 
+runCommand $TEST_NAME
+#exit -1
 
 cd ..
 
-echo $0: Running BEETL BCRext code with run-length output: `date`
+nextTest "Running BEETL BCRext code with run-length output"
 
 cd BCRext
 
-${TIME} ${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRextRunLength -a  >  run_rle.stdout 2>run_rle.stderr
+COMMAND="${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRextRunLength -a -s"
+runCommand $TEST_NAME
 
 cd ..
 
-echo $0: Running BEETL BCRext code with Huffman output: `date`
+nextTest "Running BEETL BCRext code with Huffman output"
 
 cd BCRext
 
-${TIME} ${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRextHuffman -h  >  run_huff.stdout 2>run_huff.stderr
+COMMAND="${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRextHuffman -h -s"
+runCommand $TEST_NAME
 
 cd ..
 
-echo $0: Partial comparison of BCRext output files: `date`
+nextTest "Partial comparison of BCRext output files"
 
 cd BCRext
 
@@ -161,31 +187,33 @@ cd ..
 
 # Run BEETL BCR code
 
-echo $0: Running BEETL BCR code on FASTA format file: `date`
+nextTest "Running BEETL BCR code on FASTA format file"
 
 cd BCR
 
-${TIME} ${INSTALL}/Beetl bcr -i ${TEST_FILE_FASTA} -o testBCR  >  run.stdout 2>run.stderr
+COMMAND="${INSTALL}/Beetl bcr -i ${TEST_FILE_FASTA} -o testBCR"
+runCommand $TEST_NAME
 
 cd ..
 
-echo $0: Running BEETL BCR code on raw sequence file format: `date`
+nextTest "Running BEETL BCR code on raw sequence file format"
 
 cd BCR
 
-${TIME} ${INSTALL}/Beetl bcr -i ${TEST_FILE_SEQ} -o testBCRSeq  >  run.stdout 2>run.stderr
+COMMAND="${INSTALL}/Beetl bcr -i ${TEST_FILE_SEQ} -o testBCRSeq"
+runCommand $TEST_NAME
 
 cd ..
 
-echo $0: Comparing BWT files for BCR FASTA and raw sequence formats: `date`
+nextTest "Comparing BWT files for BCR FASTA and raw sequence formats"
 
 for d in 0 1 2 3 4 5
 do 
   compareFiles BCR/testBCRSeq${d} BCR/testBCR${d}
 done
-//cd ..
 
-echo $0: Comparing BWT files for BCRext and BCR: `date`
+
+nextTest "Comparing BWT files for BCRext and BCR"
 
 for d in 0 1 2 3 4 5
 do 
@@ -194,19 +222,18 @@ done
 
 
 
-
 # Make BCR do BWT inversion 
 
-echo $0: Running BEETL BCR inversion code : `date`
+nextTest "Running BEETL BCR inversion code"
 
 cd BCR
 
 #for d in testBCR?; do cp ${d} test_invert${d}; done
 #touch test_invert
-${TIME} ${INSTALL}/Beetl bcr -i testBCR -o testInvert.fa -m 1 > invert.stdout 2> invert.stderr
+COMMAND="${INSTALL}/Beetl bcr -i testBCR -o testInvert.fa -m 1"
+runCommand $TEST_NAME
 
-echo $0: Checking BCR inversion against original output : `date`
-
+nextTest "Checking BCR inversion against original output"
 
 #for d in cyc.*.txt
 #do
@@ -225,25 +252,26 @@ cd ..
 
 # Run BEETL BCRext code in SAP mode
 
-echo $0: Running BEETL BCRext code in SAP mode: `date`
+nextTest "Running BEETL BCRext code in SAP mode"
 
 cd SAP
 
-${TIME} ${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRext -a -sap  >  run.stdout 2>run.stderr
+COMMAND="${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRext -a -sap -s"
+runCommand $TEST_NAME
 
 # Make BCR do BWT inversion 
 
-echo $0: Running BEETL BCR inversion code on SAP-permuted BWT: `date`
+nextTest "Running BEETL BCR inversion code on SAP-permuted BWT"
 
 #cd SAP
 
 
 #for d in BCR?; do cp ${d} test_invert${d}; done
 touch testBCRext-B0
-${TIME} ${INSTALL}/Beetl bcr -i testBCRext-B0 -o testInvert.fa -m 1 > invert.stdout 2> invert.stderr
+COMMAND="${INSTALL}/Beetl bcr -i testBCRext-B0 -o testInvert.fa -m 1"
+runCommand $TEST_NAME
 
-echo $0: Checking BCR inversion against original output : `date`
-
+nextTest "Checking BCR inversion against original output"
 
 grep -v '>' testInvert.fa | sort > testInvertSorted.txt
 
@@ -251,6 +279,8 @@ sort ${TEST_FILE_SEQ} > testFileSeqSorted.txt
 
 compareFiles testFileSeqSorted.txt testInvertSorted.txt
 
+
+# All tests done
 
 if [ -n "$TEST_FAILED" ]
 then 
