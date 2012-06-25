@@ -102,16 +102,17 @@ else
 
 fi
 
-DIRS="v1_30 BCR BCRext SAP"
+DIRS="BCR BCRext SAP"
 
-
+READ_LENGTH_SHORT=37
 TEST_FILE_SEQ=${PWD}/test.seq
 TEST_FILE_FASTA=${PWD}/test.fasta
 TEST_FILE_FASTQ=${PWD}/test.fastq
+TEST_FILE_SEQ_SHORT=${PWD}/test_${READ_LENGTH_SHORT}.seq
 
 echo $0: Cleaning up from previous test runs : `date`
 
-/bin/rm -rf ${DIRS} ${TEST_FILE_SEQ} ${TEST_FILE_FASTA} ${TEST_FILE_FASTQ}
+/bin/rm -rf ${DIRS} ${TEST_FILE_SEQ} ${TEST_FILE_FASTA} ${TEST_FILE_FASTQ} ${TEST_FILE_SEQ_SHORT}
 
 mkdir ${DIRS}
 
@@ -125,7 +126,8 @@ cat ${TEST_FILE_SEQ} | ${PERL} -lane '{ $i++; print ">seq_${i}\n$_" }' > ${TEST_
 
 cat ${TEST_FILE_SEQ} | ${PERL} -lane '{ $i++; print "\@seq_${i}\n$_\n+"; print "X" x length($_) }' > ${TEST_FILE_FASTQ}
 
-#exit;
+cat ${TEST_FILE_SEQ} | ${PERL} -lane "{ print substr(\$_,0, ${READ_LENGTH_SHORT}) }" > ${TEST_FILE_SEQ_SHORT}
+
 
 # Run CPM 2011 code
 
@@ -143,18 +145,12 @@ cat ${TEST_FILE_SEQ} | ${PERL} -lane '{ $i++; print "\@seq_${i}\n$_\n+"; print "
 
 TEST_NUM=0
 
-#TEST_NUM=$(($TEST_NUM+1))
-#TEST_NAME=TEST_${TEST_NUM}
-#echo $0: $TEST_NAME - running BEETL BCRext code with ASCII output: `date`
 nextTest "running BEETL BCRext code with ASCII output"
 
 cd BCRext
 
-#${TIME} ${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRext -a  >  run.stdout 2>run.stderr
-
 COMMAND="${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ} -p testBCRext -a -s" 
 runCommand $TEST_NAME
-#exit -1
 
 cd ..
 
@@ -185,6 +181,24 @@ compareFiles testBCRext-B00 testBCRextHuffman-B00
 
 cd ..
 
+nextTest "running BEETL BCRext code with FASTA input"
+
+cd BCRext
+
+COMMAND="${INSTALL}/Beetl ext -i ${TEST_FILE_FASTA} -p testBCRextFASTA -a" 
+runCommand $TEST_NAME
+
+cd ..
+
+nextTest "Comparing BWT files for BCRext raw and FASTA input"
+
+for d in 0 1 2 3 4 5
+do 
+  compareFiles BCRext/testBCRext-B0${d} BCRext/testBCRextFASTA-B0${d}
+done
+
+
+
 # Run BEETL BCR code
 
 nextTest "Running BEETL BCR code on FASTA format file"
@@ -205,11 +219,27 @@ runCommand $TEST_NAME
 
 cd ..
 
+nextTest "Running BEETL BCR code on FASTQ file format"
+
+cd BCR
+
+COMMAND="${INSTALL}/Beetl bcr -i ${TEST_FILE_FASTQ} -o testBCRFASTQ"
+runCommand $TEST_NAME
+
+cd ..
+
 nextTest "Comparing BWT files for BCR FASTA and raw sequence formats"
 
 for d in 0 1 2 3 4 5
 do 
   compareFiles BCR/testBCRSeq${d} BCR/testBCR${d}
+done
+
+nextTest "Comparing BWT files for BCR FASTA and FASTQ formats"
+
+for d in 0 1 2 3 4 5
+do 
+  compareFiles BCR/testBCRFASTQ${d} BCR/testBCR${d}
 done
 
 
@@ -278,6 +308,49 @@ grep -v '>' testInvert.fa | sort > testInvertSorted.txt
 sort ${TEST_FILE_SEQ} > testFileSeqSorted.txt
 
 compareFiles testFileSeqSorted.txt testInvertSorted.txt
+
+cd ..
+
+nextTest "running BEETL BCRext code on reads of length ${READ_LENGTH_SHORT}"
+
+cd BCRext
+
+COMMAND="${INSTALL}/Beetl ext -i ${TEST_FILE_SEQ_SHORT} -p testBCRext${READ_LENGTH_SHORT} -a -s" 
+runCommand $TEST_NAME
+
+cd ..
+
+nextTest "Running BEETL BCR code on reads of length ${READ_LENGTH_SHORT}"
+
+cd BCR
+
+COMMAND="${INSTALL}/Beetl bcr -i ${TEST_FILE_SEQ_SHORT} -o testBCR${READ_LENGTH_SHORT}_"
+runCommand $TEST_NAME
+
+cd ..
+
+nextTest "Comparing BWT files for BCRext and BCR on reads of length ${READ_LENGTH_SHORT}"
+
+for d in 0 1 2 3 4 5
+do 
+  compareFiles BCRext/testBCRext${READ_LENGTH_SHORT}-B0${d} BCR/testBCR${READ_LENGTH_SHORT}_${d}
+done
+
+nextTest "Running BEETL BCR inversion code on reads of length ${READ_LENGTH_SHORT}"
+
+cd BCR
+
+#for d in testBCR?; do cp ${d} test_invert${d}; done
+#touch test_invert
+COMMAND="${INSTALL}/Beetl bcr -i testBCR${READ_LENGTH_SHORT}_ -o testInvert${READ_LENGTH_SHORT}.fa -m 1"
+runCommand $TEST_NAME
+
+nextTest "Checking BCR inversion against original output"
+
+grep -v '>' testInvert${READ_LENGTH_SHORT}.fa > testInvert${READ_LENGTH_SHORT}.txt
+
+compareFiles ${TEST_FILE_SEQ_SHORT} testInvert${READ_LENGTH_SHORT}.txt
+
 
 
 # All tests done
