@@ -1,7 +1,7 @@
 /**
  ** Copyright (c) 2011 Illumina, Inc.
  **
- ** 
+ **
  ** This software is covered by the "Illumina Non-Commercial Use Software
  ** and Source Code License Agreement" and any user of this software or
  ** source file is bound by the terms therein (see accompanying file
@@ -10,7 +10,7 @@
  ** This file is part of the BEETL software package.
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
- ** Lightweight BWT Construction for Very Large String Collections. 
+ ** Lightweight BWT Construction for Very Large String Collections.
  ** Proceedings of CPM 2011, pp.219-231
  **
  **/
@@ -18,87 +18,89 @@
 #ifndef INCLUDED_READBUFFER_HH
 #define INCLUDED_READBUFFER_HH
 
-
-#include <cstdio>
-#include <cassert>
-#include <iostream>
-#include <cstdlib>
-
+#include "Alphabet.hh"
 #include "Config.hh"
 #include "Types.hh"
-#include "Alphabet.hh"
 
-using namespace std; 
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+
 
 struct ReadBufferBase
 {
-  ReadBufferBase( int readSize, int fdSeq, int fdNum, int fdPtr ) : 
-    thisEntry_(ReadBufferSize), 
-    maxEntry_(ReadBufferSize), 
-    readSize_(readSize),
-    blockSize_(readSize_*ReadBufferSize),
-    fdSeq_(fdSeq),
-    fdNum_(fdNum),
-    fdPtr_(fdPtr),
-    lastIter_(false)
-  {
+    ReadBufferBase( int readSize, int fdSeq, int fdNum, int fdPtr ) :
+        thisEntry_( ReadBufferSize ),
+        maxEntry_( ReadBufferSize ),
+        readSize_( readSize ),
+        blockSize_( readSize_*ReadBufferSize ),
+        fdSeq_( fdSeq ),
+        fdNum_( fdNum ),
+        fdPtr_( fdPtr ),
+        lastIter_( false )
+    {
 #ifdef DEBUG
-    std::cout << "Creating abstract read buffer: " 
-	 << readSize_ << " bytes per base, "
-	 << blockSize_ << " bytes per block" << std::endl;
+        std::cout << "Creating abstract read buffer: "
+                  << readSize_ << " bytes per base, "
+                  << blockSize_ << " bytes per block" << std::endl;
 #endif
-    seqBufBase_ = new char[ blockSize_ ];
-    seqBuf_=seqBufBase_;
-  }
-  virtual ~ReadBufferBase() { delete [] seqBufBase_; }
+        seqBufBase_ = new char[ blockSize_ ];
+        seqBuf_=seqBufBase_;
+    }
+    virtual ~ReadBufferBase()
+    {
+        delete [] seqBufBase_;
+    }
 
 
-  bool getNext( 
-	       //char*& seqBuf, 
-	       SequenceNumberType& seqNum, LetterCountType& seqPtr );    
+    bool getNext(
+        //char*& seqBuf,
+        SequenceNumberType &seqNum, LetterCountType &seqPtr );
 
-  virtual void sendTo( FILE* pFile )
-  {
-    sendTo(pFile, readSize_);
-    //    assert(fwrite(seqBuf_, sizeof(char), readSize_, pFile)==readSize_);
-  } // ~sendTo
-  void sendTo( FILE* pFile, int readSize )
-  {
-       size_t bytesWritten = fwrite(seqBuf_, sizeof(char), readSize, pFile);
-       if (bytesWritten != (size_t)readSize) {
-           cerr << "Unable to write "<< ReadBufferSize
-                   << " chars. Aborting." << endl;
-                   exit(-1);
-       }
-  }
+    virtual void sendTo( FILE *pFile )
+    {
+        sendTo( pFile, readSize_ );
+        //    assert(fwrite(seqBuf_, sizeof(char), readSize_, pFile)==readSize_);
+    } // ~sendTo
+    void sendTo( FILE *pFile, int readSize )
+    {
+        size_t bytesWritten = fwrite( seqBuf_, sizeof( char ), readSize, pFile );
+        if ( bytesWritten != ( size_t )readSize )
+        {
+            std::cerr << "Unable to write "<< ReadBufferSize
+                      << " chars. Aborting." << std::endl;
+            exit( -1 );
+        }
+    }
 
 
-  virtual int operator[]( const int i)=0;
-  virtual void convertFromASCII( void )=0;
-  
+    virtual int operator[]( const int i )=0;
+    virtual void convertFromASCII( void )=0;
 
-  int thisEntry_;
-  int maxEntry_;
-  const int readSize_;
-  const int blockSize_;
-  const int fdSeq_;
-  const int fdNum_;
-  const int fdPtr_;
 
-  //  FILE* inSeq_;
-  // FILE* inNum_;
-  // FILE* inPtr_;
+    int thisEntry_;
+    int maxEntry_;
+    const int readSize_;
+    const int blockSize_;
+    const int fdSeq_;
+    const int fdNum_;
+    const int fdPtr_;
 
-  bool lastIter_;
+    //  FILE* inSeq_;
+    // FILE* inNum_;
+    // FILE* inPtr_;
+
+    bool lastIter_;
 
 #ifdef TRACK_SEQUENCE_NUMBER
-  SequenceNumberType seqNum_[ReadBufferSize];
+    SequenceNumberType seqNum_[ReadBufferSize];
 #endif
-  LetterCountType seqPtr_[ReadBufferSize];
-  // start of storage buffer
-  char* seqBufBase_;
-  // start of storage buffer for last entry read
-  char* seqBuf_;
+    LetterCountType seqPtr_[ReadBufferSize];
+    // start of storage buffer
+    char *seqBufBase_;
+    // start of storage buffer for last entry read
+    char *seqBuf_;
 
 };
 
@@ -106,109 +108,109 @@ struct ReadBufferBase
 
 struct ReadBufferASCII : public ReadBufferBase
 {
-  ReadBufferASCII( int seqSize, int fdSeq, int fdNum, int fdPtr ) : 
-    ReadBufferBase(1+seqSize,fdSeq,fdNum,fdPtr)
-  {
+    ReadBufferASCII( int seqSize, int fdSeq, int fdNum, int fdPtr ) :
+        ReadBufferBase( 1+seqSize,fdSeq,fdNum,fdPtr )
+    {
 #ifdef DEBUG
-    std::cout << "Creating ASCII read buffer: " << seqSize << " symbols per read"
-	 << std::endl;
+        std::cout << "Creating ASCII read buffer: " << seqSize << " symbols per read"
+                  << std::endl;
 #endif
-  } // ~ctor
-  virtual int operator[]( const int i)
-  {
-    return whichPile[(int)seqBuf_[i]];
-  } // ~operator[]
-  virtual void convertFromASCII( void )
-  {} // ~convertFromASCII( void )
+    } // ~ctor
+    virtual int operator[]( const int i )
+    {
+        return whichPile[( int )seqBuf_[i]];
+    } // ~operator[]
+    virtual void convertFromASCII( void )
+    {} // ~convertFromASCII( void )
 }; // ~struct ReadBufferASCII
 
 struct ReadBuffer4Bits : public ReadBufferBase
 {
-  ReadBuffer4Bits( int seqSize, int fdSeq, int fdNum, int fdPtr ) : 
-    ReadBufferBase(convertBasesToBytes(seqSize),fdSeq,fdNum,fdPtr),
-    seqSize_(seqSize)
-  {
-#ifdef DEBUG
-    std::cout << "Creating 4-bits-per-base read buffer: " 
-	 << seqSize << " symbols per read" << std::endl;
-#endif
-  } // ~ctor
-  virtual int operator[]( const int i)
-  {
-    char idx(seqBuf_[i>>1]);
-    if ((i%2)!=0) idx>>=4;
-    idx&=(char)0xF;
-#ifdef DEBUG
-    std::cout << i << " " << (int)idx << std::endl;
-#endif
-    return (int)idx;
-  } // ~operator[]
-  virtual void convertFromASCII( void )
-  {
-    char code;
-#ifdef DEBUG
-    std::cout << seqBuf_;
-#endif
-    for (int i(0),j(0); i<seqSize_;i++)
+    ReadBuffer4Bits( int seqSize, int fdSeq, int fdNum, int fdPtr ) :
+        ReadBufferBase( convertBasesToBytes( seqSize ),fdSeq,fdNum,fdPtr ),
+        seqSize_( seqSize )
     {
 #ifdef DEBUG
-      std::cout << seqBuf_[i];
+        std::cout << "Creating 4-bits-per-base read buffer: "
+                  << seqSize << " symbols per read" << std::endl;
 #endif
-      code=(char)whichPile[(int)seqBuf_[i]];
-      if ((i%2)==0)
-	seqBuf_[j]=code;
-      else
-      {
-	code<<=4;
-	seqBuf_[j++]|=code;
+    } // ~ctor
+    virtual int operator[]( const int i )
+    {
+        char idx( seqBuf_[i>>1] );
+        if ( ( i%2 )!=0 ) idx>>=4;
+        idx&=( char )0xF;
 #ifdef DEBUG
-	std::cout << std::endl << (int)seqBuf_[j-1] << std::endl;
+        std::cout << i << " " << ( int )idx << std::endl;
+#endif
+        return ( int )idx;
+    } // ~operator[]
+    virtual void convertFromASCII( void )
+    {
+        char code;
+#ifdef DEBUG
+        std::cout << seqBuf_;
+#endif
+        for ( int i( 0 ),j( 0 ); i<seqSize_; i++ )
+        {
+#ifdef DEBUG
+            std::cout << seqBuf_[i];
+#endif
+            code=( char )whichPile[( int )seqBuf_[i]];
+            if ( ( i%2 )==0 )
+                seqBuf_[j]=code;
+            else
+            {
+                code<<=4;
+                seqBuf_[j++]|=code;
+#ifdef DEBUG
+                std::cout << std::endl << ( int )seqBuf_[j-1] << std::endl;
 #endif
 
-      } // ~else
-    }  
+            } // ~else
+        }
 
-  } // ~convertFromASCII
+    } // ~convertFromASCII
 
 
-  int convertBasesToBytes( int numBases ) const 
-  {  
-    return ((numBases>>1)+(1*((numBases&0x1)!=0)));
-  } // ~convertBasesToBytes( int numBases ) const 
+    int convertBasesToBytes( int numBases ) const
+    {
+        return ( ( numBases>>1 )+( 1*( ( numBases&0x1 )!=0 ) ) );
+    } // ~convertBasesToBytes( int numBases ) const
 
-  const int seqSize_;
+    const int seqSize_;
 };
 
 struct ReadBufferPrefix: public ReadBuffer4Bits
 {
-  ReadBufferPrefix
-  ( int seqSize, int cycleNum, int fdSeq, int fdNum, int fdPtr ) : 
-    ReadBuffer4Bits(getPrefixBases(seqSize, cycleNum),fdSeq,fdNum,fdPtr),
-    cycleNum_(cycleNum)
-  {
+    ReadBufferPrefix
+    ( int seqSize, int cycleNum, int fdSeq, int fdNum, int fdPtr ) :
+        ReadBuffer4Bits( getPrefixBases( seqSize, cycleNum ),fdSeq,fdNum,fdPtr ),
+        cycleNum_( cycleNum )
+    {
 #ifdef DEBUG
-    std::cout << "Creating prefix read buffer for cycle " << cycleNum  
-	 << " of " << seqSize << std::endl;
+        std::cout << "Creating prefix read buffer for cycle " << cycleNum
+                  << " of " << seqSize << std::endl;
 #endif
-  }
+    }
 
-  int getPrefixBases( int seqSize, int cycleNum )
-  {
-    return (seqSize-cycleNum+2);
-  }
+    int getPrefixBases( int seqSize, int cycleNum )
+    {
+        return ( seqSize-cycleNum+2 );
+    }
 
-  virtual void sendTo( FILE* pFile )
-  {
+    virtual void sendTo( FILE *pFile )
+    {
 #ifdef DEBUG
-    std::cout << "Outputting " << convertBasesToBytes(getPrefixBases(seqSize_,cycleNum_+1)) << " bytes" << std::endl;
+        std::cout << "Outputting " << convertBasesToBytes( getPrefixBases( seqSize_,cycleNum_+1 ) ) << " bytes" << std::endl;
 #endif
 
-    ReadBufferBase::sendTo
-      (pFile, convertBasesToBytes(seqSize_-1));
-  } // ~sendTo
+        ReadBufferBase::sendTo
+        ( pFile, convertBasesToBytes( seqSize_-1 ) );
+    } // ~sendTo
 
 
-  const int cycleNum_;
+    const int cycleNum_;
 
 };
 

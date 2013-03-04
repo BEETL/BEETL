@@ -1,0 +1,125 @@
+#!/bin/bash
+
+## Copyright (c) 2013 Illumina, Inc.
+##
+## 
+## This software is covered by the "Illumina Non-Commercial Use Software
+## and Source Code License Agreement" and any user of this software or
+## source file is bound by the terms therein (see accompanying file
+## Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
+##
+
+## test-new-beetl
+## Regression tests for BEETL
+## Author: Lilian Janin
+
+
+PERL=/usr/bin/perl 
+
+if [ ! -e ${PERL} ]
+then
+	echo "$0: A Perl installation is needed to run this script, can't find one at ${PERL}."
+	echo "$0: Either install Perl, or (more likely) modify variable PERL in $0 to point to a Perl installation on your system."
+	exit -1
+fi
+
+
+BEETL_CONVERT=`pwd`/../src/frontends/beetl-convert
+BEETL_BWT=`pwd`/../src/frontends/beetl-bwt
+
+TIME="/usr/bin/time"
+
+if [ ! -e ${TIME} ]
+then
+	echo "$0: Can't find ${TIME}, so won't use it!"
+	TIME=
+else
+	TIME="${TIME} -v"
+
+fi
+
+READ_LENGTH_SHORT=37
+INPUTS_DIR=${PWD}/Inputs
+TEST_FILE_PREFIX=${INPUTS_DIR}/test
+TEST_FILE_FASTQ=${TEST_FILE_PREFIX}.fastq
+TEST_FILE_FASTA=${TEST_FILE_PREFIX}.fasta
+TEST_FILE_SEQ=${TEST_FILE_PREFIX}.seq
+TEST_FILE_CYC=${TEST_FILE_PREFIX}.cyc
+TEST_FILE2_FASTA=${TEST_FILE_PREFIX}2.fasta
+TEST_FILE2_SEQ=${TEST_FILE_PREFIX}2.seq
+TEST_FILE_SEQ_SHORT={TEST_FILE_PREFIX}_${READ_LENGTH_SHORT}.seq
+
+echo $0: Building test data files : `date`
+
+# Bases    : definition of $c ensures 1 in 100 chars is an N
+# Qualities: sqrt distribution ensures more high quality bases
+mkdir ${INPUTS_DIR}
+${PERL} -e '{ srand(1103); $c='ACGT' x 100 . 'NNNN' ; for ($i=0;$i<1000;$i++) { print "\@seq${i}\n" ; for ($j=0;$j<100;$j++) { print substr($c,rand(length($c)),1) } print "\n+\n" ; for ($j=0;$j<100;$j++) { print chr(int(sqrt(rand(39*39)))+2+64) } print "\n" }}' > ${TEST_FILE_FASTQ}
+
+${BEETL_CONVERT} -i ${TEST_FILE_FASTQ} -o ${TEST_FILE_FASTA}
+${BEETL_CONVERT} -i ${TEST_FILE_FASTA} -o ${TEST_FILE_SEQ}
+${BEETL_CONVERT} -i ${TEST_FILE_SEQ} -o ${TEST_FILE_CYC}
+${BEETL_CONVERT} -i ${TEST_FILE_CYC} -o ${TEST_FILE2_FASTA}
+${BEETL_CONVERT} -i ${TEST_FILE2_FASTA} -o ${TEST_FILE2_SEQ}
+
+diff ${TEST_FILE_SEQ} ${TEST_FILE2_SEQ} > /dev/null 2>&1
+if [ $? != 0 ]
+then
+    echo "Error: ${TEST_FILE_SEQ} and ${TEST_FILE2_SEQ} differ"
+    exit 1
+fi
+
+
+echo $0: Running various configurations of Beetl : `date`
+
+for inputFormat in fastq fasta seq cyc
+do
+  for outputFormat in ASCII RLE Huffman
+  do
+    for algorithm in bcr ext
+    do
+      for intermediateFormat in ASCII RLE multiRLE
+      do
+        for intermediateMedium in disk ram
+        do
+          # Skip some configurations
+          if [[ ( "${algorithm}" == "ext" ) && ( "${intermediateFormat}" == "multiRLE" ) ]]
+          then
+              break
+          fi
+          if [[ ( "${algorithm}" == "ext" ) && ( "${inputFormat}" == "cyc" ) ]]
+          then
+              break
+          fi
+
+          OUTPUT_DIR=${PWD}/${inputFormat}_${outputFormat}_${algorithm}_${intermediateFormat}_${intermediateMedium}
+          rm -rf ${OUTPUT_DIR}
+          mkdir -p ${OUTPUT_DIR}
+          # Removed --input-format=${inputFormat} to check the format autodetection
+          COMMAND="${BEETL_BWT} -i ${TEST_FILE_PREFIX}.${inputFormat} -o ${OUTPUT_DIR}/out --output-format=${outputFormat} --algorithm=${algorithm} --intermediate-format=${intermediateFormat} --intermediate-medium=${intermediateMedium}"
+          echo ${COMMAND}
+          echo ${COMMAND} > ${OUTPUT_DIR}/command
+          ${COMMAND}
+# > ${OUTPUT_DIR}/log.stdout 2> ${OUTPUT_DIR}/log.stderr
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+          # Compare output with first output of same format
+          SAME_OUTPUT_DIR=${PWD}/fastq_${outputFormat}_bcr_ASCII_disk
+          for i in 0 1 2 3 4 5
+          do
+            cmp ${OUTPUT_DIR}/out-B0${i} ${SAME_OUTPUT_DIR}/out-B0${i}
+            if [ $? != 0 ]
+              then
+                echo "Error detected."
+                exit 1
+            fi
+          done
+        done
+      done
+    done
+  done
+done

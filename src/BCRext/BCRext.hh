@@ -1,7 +1,7 @@
 /**
  ** Copyright (c) 2011 Illumina, Inc.
  **
- ** 
+ **
  ** This software is covered by the "Illumina Non-Commercial Use Software
  ** and Source Code License Agreement" and any user of this software or
  ** source file is bound by the terms therein (see accompanying file
@@ -10,7 +10,7 @@
  ** This file is part of the BEETL software package.
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
- ** Lightweight BWT Construction for Very Large String Collections. 
+ ** Lightweight BWT Construction for Very Large String Collections.
  ** Proceedings of CPM 2011, pp.219-231
  **
  **/
@@ -18,27 +18,32 @@
 #ifndef INCLUDED_BCREXT_HH
 #define INCLUDED_BCREXT_HH
 
-#include <string>
 #include "Algorithm.hh"
-using namespace std;
 
-// by Tobias, small class interface to call from beetl executable 
+#include <string>
+
+using std::string;
 
 
+// by Tobias, small class interface to call from beetl executable
 
-
-class BCRext : public Algorithm {
+class BCRext : public Algorithm
+{
     const bool useHuffmanEncoder_;
     const bool useRunlengthEncoder_;
     const bool useAsciiEncoder_;
     const bool useImplicitSort_;
     const bool useSeqFile_;
-    char* inFile_;
-    char* prefix_;
+    char *inFile_;
+    char *prefix_;
 public:
-  BCRext(bool, bool, bool, bool, bool, string, string);
-    ~BCRext() { delete[] inFile_; delete prefix_; }
-    void run(void);
+    BCRext( bool, bool, bool, bool, bool, string, string );
+    ~BCRext()
+    {
+        delete[] inFile_;
+        delete prefix_;
+    }
+    void run( void );
 };
 // end
 

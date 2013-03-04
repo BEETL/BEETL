@@ -1,0 +1,23 @@
+This is just an simple workflow for the new creation of a database for a metagenome classifier. 
+
+1. Download all bacteria, archea and virus genomes from ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/.
+2. Create single sequence files with there reverse complement of all genomes excluding plasmids. For this use the script genomeToSingleSeq. Do NOT change the names of the generated Files!!!
+3. To create the BWTs for all the G_* and G_*_rev files adjust arrayBWT.sh and run the file on the cluster via the cluster call:
+	qsub -b y -t n arrayBWT.sh
+	where n should be something like 1..500 if you have the files G_1 till G_500. 
+	This will create the bwt files for all the genomes. Change the arrayBWT.sh file afterwards to create the BWT files for reverse files (I have no Idea how to do both calls in one go) 
+	As an alternative you can also run makeBWTScew for each of the files single.
+4. Login on a machine which will give you enough Memory to load all sequences in memory and run the MergeBacteria on all genome files. 
+	You will have to call this once for each of the piles created by the bwt. Five times overall
+	For each pile this will create 3 files and one fileCounter.cvs (which doesn't change)
+	The files will be called: yourPrefix-C0*, yourPrefix-B0*, yourPrefix-A0* 
+	C0* -> Contains for each position in the BWT the file number where the char at this position came from.
+	B0* -> Are the BWTs for all files.
+	A0* -> Contains a for each position in the BWT the suffix position in the file where this BWT came from.
+	Files C and B are needed for the countWords algorithm. 
+5. Download the NCBI taxonomy from here. ftp://ftp.ncbi.nih.gov/pub/taxonomy/. You will need the names.dmp, nodes.dmp, merged.dmp and the gi_taxid_nucl.cmp
+	Use the findTaxa script to find taxonomic tree corresponding to the file numbers in the database. You will need the headerfile from the running of "genomeToSingleSeq" and the fileCounterFile from the merging of the bacterial genomes. 
+	This will first give all found GI-Numbers out in std::err. If you want to shorten the searching for the gi numbers in gi_taxid_nucl.dmp grep those gi-numbers beforehand and search for the taxonomy only in the grepped output. 
+	In the end you get for each file number in the database a taxonomic tree with the taxonomic ids. There will be some 0 in the taxonomic tree. This is a taxonomic id which could not be matched to: Superkingdom, Phylum, Order, Class, Family, Genus, Species or Strain. Sometimes there are just missing taxa in the taxonomy. 
+
+Now everything should be ready for running the count words stuff. 

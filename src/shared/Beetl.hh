@@ -1,7 +1,7 @@
 /**
  ** Copyright (c) 2011 Illumina, Inc.
  **
- ** 
+ **
  ** This software is covered by the "Illumina Non-Commercial Use Software
  ** and Source Code License Agreement" and any user of this software or
  ** source file is bound by the terms therein (see accompanying file
@@ -10,29 +10,29 @@
  ** This file is part of the BEETL software package.
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
- ** Lightweight BWT Construction for Very Large String Collections. 
+ ** Lightweight BWT Construction for Very Large String Collections.
  ** Proceedings of CPM 2011, pp.219-231
  **
  **/
 
+#ifndef BEETL_HH
+#define BEETL_HH
+
 #include <string>
 
+using std::string;
 
-#ifndef BEETL_HH
-#define	BEETL_HH
 
 #define COMMAND_BCR_EXT "ext"
 #define COMMAND_BCR "bcr"
 #define COMMAND_COUNTWORDS "words"
-
-using namespace std;
 
 
 //////////////////////////////////////////////////////////////////////////
 
 // global vars
 
-const string bcrModes[] = {("build BCR"),("unBCR"),("search Backward search + Locate SeqID")};
+const string bcrModes[] = {( "build BCR" ),( "unBCR" ),( "search Backward search + Locate SeqID" )};
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -54,7 +54,8 @@ const string bcrExtFileOutPrefixDefault = "BCRext"; // default prefix
 
 // flags for BCR by Giovanna
 
-/*unsigned*/ short int bcrMode; // default value
+/*unsigned*/
+short int bcrMode; // default value
 // 0 -> build BCR [default]
 // 1 -> unBuild BCR
 // 2 -> search BCR
@@ -68,26 +69,32 @@ const string bcrFileOutPrefixDefault = "BCR-B0"; // default prefix
 
 // flags for countWords
 
-/*unsigned*/ short int minimalOccurencesN; // maximal number of occurences
-/*unsigned*/ short int minimalLengthK; // minimal length 
+/*unsigned*/
+short int minimalOccurencesN; // maximal number of occurences
+/*unsigned*/
+short int maxLengthK; // max length
 
-bool ReferenceGenomeInputB; // set A is a reference genome 
+//bool ReferenceGenomeInputB; // set A is a reference genome
+char whichHandler;
 bool compressedInputA; // input A is compressed
 bool compressedInputB; // input B is compressed
 bool compressedBoth; // A & B are compressed
 
-string countWordsInputA; // input set A 
+string countWordsInputA; // input set A
 string countWordsInputB; // input set B
 
-//////////////////////////////////////////////////////////////////////////  
+string mergedCFiles; //fileNumbers of merging (one filenumber for one filePosition)
+string ncbiInformation; //fileNumber To NCBI Information
+bool testDatabase; // flag to indicate that singletons of different lengths in the database should be found, along with the normal metagenome comparison
+//////////////////////////////////////////////////////////////////////////
 
 
 
-void fileIsReadableOrExit (string filename);
+void fileIsReadableOrExit ( string filename );
 
-void print_usage(char *args);
+void print_usage( char *args, const char *command = 0 );
 
-void isArgumentOrExit(int num, int numArgs);
+void isArgumentOrExit( int num, int numArgs );
 
-#endif	/* BEETL_HH */
+#endif /* BEETL_HH */
 

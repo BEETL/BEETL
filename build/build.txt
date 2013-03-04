@@ -1,1 +1,0 @@
-Object files and executables are placed here.

@@ -1,0 +1,5 @@
+diskMaxSpeedPerProcess=45 MB/s
+diskMaxTotalSpeed=120 MB/s
+ramMaxSpeedPerProcess=50 MB/s
+ramMaxTotalSpeed=100 MB/s
+

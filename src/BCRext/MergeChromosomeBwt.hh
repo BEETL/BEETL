@@ -1,7 +1,7 @@
 /**
  ** Copyright (c) 2011 Illumina, Inc.
  **
- ** 
+ **
  ** This software is covered by the "Illumina Non-Commercial Use Software
  ** and Source Code License Agreement" and any user of this software or
  ** source file is bound by the terms therein (see accompanying file
@@ -10,7 +10,7 @@
  ** This file is part of the BEETL software package.
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
- ** Lightweight BWT Construction for Very Large String Collections. 
+ ** Lightweight BWT Construction for Very Large String Collections.
  ** Proceedings of CPM 2011, pp.219-231
  **
  **/
