@@ -168,6 +168,12 @@ G	7	0	7
 
 *** Release notes ***
 
+Version 0.2.0 (19th March 2013)
+
+- Longest Common Prefix computation integrated under --generate-lcp in beetl-bwt
+- New beetl-unbwt command line interface
+
+
 Version 0.1.0 (28th February 2013)
 
 - New command line interface
