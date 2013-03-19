@@ -25,9 +25,10 @@
 #include "TransposeFasta.hh"
 #include "config.h"
 
-#include <iostream>
-#include <fstream>
+#include <algorithm>
 #include <cassert>
+#include <fstream>
+#include <iostream>
 
 using namespace std;
 
@@ -98,7 +99,7 @@ void convert( const BeetlConvertArguments &args )
         else if ( args.argOutputFormat == "cyc" )
         {
             // FASTA -> CYC
-            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( args.argInput.c_str(),"rb" ) ) );
+            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( args.argInput.c_str(), "rb" ) ) );
             TransposeFasta trasp;
             trasp.init( pReader );
             trasp.convert( args.argInput, args.argOutput );
@@ -150,7 +151,7 @@ void convert( const BeetlConvertArguments &args )
         else if ( args.argOutputFormat == "cyc" )
         {
             // FASTQ -> CYC
-            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( args.argInput.c_str(),"rb" ) ) );
+            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( args.argInput.c_str(), "rb" ) ) );
             TransposeFasta trasp;
             trasp.init( pReader );
             trasp.convert( args.argInput, args.argOutput );
@@ -189,7 +190,7 @@ void convert( const BeetlConvertArguments &args )
         else if ( args.argOutputFormat == "cyc" )
         {
             // SEQ -> CYC
-            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( args.argInput.c_str(),"rb" ) ) );
+            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( args.argInput.c_str(), "rb" ) ) );
             TransposeFasta trasp;
             trasp.init( pReader );
             trasp.convert( args.argInput, args.argOutput );
@@ -239,6 +240,9 @@ void convert( const BeetlConvertArguments &args )
             BwtWriterBase *pWriter = new BwtWriterRunLength( args.argOutput );
 
             while ( pReader->readAndSend( *pWriter, 1000000000 ) > 0 ) {}
+
+            delete pReader;
+            delete pWriter;
         }
         else if ( args.argOutputFormat == "fasta" || args.argOutputFormat == "fastq" || args.argOutputFormat == "seq" || args.argOutputFormat == "cyc" )
         {
@@ -256,6 +260,9 @@ void convert( const BeetlConvertArguments &args )
             BwtWriterBase *pWriter = new BwtWriterASCII( args.argOutput );
 
             while ( pReader->readAndSend( *pWriter, 1000000000 ) > 0 ) {}
+
+            delete pReader;
+            delete pWriter;
         }
         else if ( args.argOutputFormat == "fasta" || args.argOutputFormat == "fastq" || args.argOutputFormat == "seq" || args.argOutputFormat == "cyc" )
         {
@@ -282,7 +289,7 @@ int main( const int argc, const char **argv )
     cout << endl;
 
     cout << "Command called:" << endl << "   ";
-    for ( int i=0; i < argc; ++i )
+    for ( int i = 0; i < argc; ++i )
     {
         cout << " " << argv[i];
     }
@@ -331,6 +338,10 @@ int main( const int argc, const char **argv )
     checkFileFormat( args.argOutput, args.argOutputFormat );
 
     //    checkIfAlreadyExistingFile( args.argOutput );
+
+    // Convert args to lower case
+    std::transform( args.argInputFormat.begin(), args.argInputFormat.end(), args.argInputFormat.begin(), ::tolower );
+    std::transform( args.argOutputFormat.begin(), args.argOutputFormat.end(), args.argOutputFormat.begin(), ::tolower );
 
     convert( args );
 

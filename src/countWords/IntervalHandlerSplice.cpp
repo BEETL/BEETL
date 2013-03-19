@@ -34,32 +34,32 @@ void IntervalHandlerSplice::foundInBoth
     bool sharedPath( false );
     LetterCountType maxSignalAOnly( 0 ), maxSignalBOnly( 0 );
 
-    for ( int l( 1 ); l<alphabetSize; l++ )
+    for ( int l( 1 ); l < alphabetSize; l++ )
     {
-        if ( ( countsThisRangeB.count_[l]==0 )
-             &&( countsThisRangeA.count_[l]>maxSignalAOnly ) )
-            maxSignalAOnly=countsThisRangeA.count_[l];
+        if ( ( countsThisRangeB.count_[l] == 0 )
+             && ( countsThisRangeA.count_[l] > maxSignalAOnly ) )
+            maxSignalAOnly = countsThisRangeA.count_[l];
 
-        if ( ( countsThisRangeA.count_[l]==0 )
-             &&( countsThisRangeB.count_[l]>maxSignalBOnly ) )
-            maxSignalBOnly=countsThisRangeB.count_[l];
+        if ( ( countsThisRangeA.count_[l] == 0 )
+             && ( countsThisRangeB.count_[l] > maxSignalBOnly ) )
+            maxSignalBOnly = countsThisRangeB.count_[l];
 
-        sharedPath|=( ( countsThisRangeA.count_[l]>0 )
-                      &&( countsThisRangeB.count_[l]>0 ) );
+        sharedPath |= ( ( countsThisRangeA.count_[l] > 0 )
+                        && ( countsThisRangeB.count_[l] > 0 ) );
         // for a general shared interval, we only care about backward
         // extensions in B (genome) that are common to A (RNA)
-        propagateIntervalA[l]=( countsThisRangeA.count_[l]>=minOcc_ );
-        propagateIntervalB[l]=( propagateIntervalA[l]&&
-                                ( countsThisRangeB.count_[l]>=0 ) );
+        propagateIntervalA[l] = ( countsThisRangeA.count_[l] >= minOcc_ );
+        propagateIntervalB[l] = ( propagateIntervalA[l] &&
+                                  ( countsThisRangeB.count_[l] >= 0 ) );
     } // ~for l
-    if ( ( sharedPath==false )
-         &&( maxSignalAOnly>=minOcc_ )
-         &&( maxSignalBOnly>=minOcc_ ) )
+    if ( ( sharedPath == false )
+         && ( maxSignalAOnly >= minOcc_ )
+         && ( maxSignalBOnly >= minOcc_ ) )
     {
         // At a breakpoint position, we *do* care about the B-only intervals
         // extensions in B (genome) that are common to A (RNA)
-        for ( int l( 1 ); l<alphabetSize; l++ )
-            propagateIntervalB[l]=( countsThisRangeB.count_[l]>=minOcc_ );
+        for ( int l( 1 ); l < alphabetSize; l++ )
+            propagateIntervalB[l] = ( countsThisRangeB.count_[l] >= minOcc_ );
 
 
 #ifdef PROPAGATE_PREFIX
@@ -94,8 +94,8 @@ void IntervalHandlerSplice::foundInBoth
             countsThisRangeB.count_[3],
             countsThisRangeB.count_[4],
             countsThisRangeB.count_[5],
-            ( thisRangeA.pos_&matchMask ),
-            ( thisRangeB.pos_&matchMask ) );
+            ( thisRangeA.pos_ & matchMask ),
+            ( thisRangeB.pos_ & matchMask ) );
 #endif
 
 #ifdef OLD
@@ -103,17 +103,17 @@ void IntervalHandlerSplice::foundInBoth
 #ifdef PROPAGATE_PREFIX
         cout << thisRangeA.word_;
 #endif
-        for ( int l( 0 ); l<alphabetSize; l++ )
-            cout << ( ( l==0 )?" ":":" ) << countsThisRangeA.count_[l];
-        for ( int l( 0 ); l<alphabetSize; l++ )
-            cout << ( ( l==0 )?" ":":" ) << countsThisRangeB.count_[l];
+        for ( int l( 0 ); l < alphabetSize; l++ )
+            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
+        for ( int l( 0 ); l < alphabetSize; l++ )
+            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeB.count_[l];
         cout << endl;
 #endif
     }
 
     // don't bother with Ns
-    propagateIntervalA[whichPile[( int )dontKnowChar]]=false;
-    propagateIntervalB[whichPile[( int )dontKnowChar]]=false;
+    propagateIntervalA[whichPile[( int )dontKnowChar]] = false;
+    propagateIntervalB[whichPile[( int )dontKnowChar]] = false;
 
 } // ~foundInBoth
 
@@ -124,7 +124,7 @@ void IntervalHandlerSplice::foundInAOnly
   const Range &thisRangeA,
   AlphabetFlag &propagateIntervalA )
 {
-    if ( countsThisRangeA.count_[0]>0 )
+    if ( countsThisRangeA.count_[0] > 0 )
     {
 #ifdef PROPAGATE_PREFIX
         printf( "READ %s %llu %llu:%llu:%llu:%llu:%llu:%llu %llu\n",
@@ -157,20 +157,20 @@ void IntervalHandlerSplice::foundInAOnly
         cout << "READ " << thisRangeA.num_;
 #endif
         cout << " " << thisRangeA.pos_;
-        for ( int l( 0 ); l<alphabetSize; l++ )
-            cout << ( ( l==0 )?" ":":" ) << countsThisRangeA.count_[l];
+        for ( int l( 0 ); l < alphabetSize; l++ )
+            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
         cout << endl;
 #endif
     }
     // TBD print out IDs of discovered reads
 
-    for ( int l( 1 ); l<alphabetSize; l++ )
+    for ( int l( 1 ); l < alphabetSize; l++ )
     {
-        propagateIntervalA[l]=( countsThisRangeA.count_[l]>0 );
+        propagateIntervalA[l] = ( countsThisRangeA.count_[l] > 0 );
     } // ~for l
 
     // don't bother with Ns
-    propagateIntervalA[whichPile[( int )dontKnowChar]]=false;
+    propagateIntervalA[whichPile[( int )dontKnowChar]] = false;
 } // ~foundInBoth
 
 void IntervalHandlerSplice::foundInBOnly
@@ -180,7 +180,7 @@ void IntervalHandlerSplice::foundInBOnly
   const Range &thisRangeB,
   AlphabetFlag &propagateIntervalB )
 {
-    if ( countsThisRangeB.count_[0]>0 )
+    if ( countsThisRangeB.count_[0] > 0 )
     {
 #ifdef PROPAGATE_PREFIX
         printf( "INBS %s %llu %llu:%llu:%llu:%llu:%llu:%llu %llu\n",
@@ -213,19 +213,19 @@ void IntervalHandlerSplice::foundInBOnly
         cout << "READ " << thisRangeB.num_;
 #endif
         cout << " " << thisRangeB.pos_;
-        for ( int l( 0 ); l<alphabetSize; l++ )
-            cout << ( ( l==0 )?" ":":" ) << countsThisRangeB.count_[l];
+        for ( int l( 0 ); l < alphabetSize; l++ )
+            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeB.count_[l];
         cout << endl;
 #endif
     }
     // TBD print out IDs of discovered reads
 
-    for ( int l( 1 ); l<alphabetSize; l++ )
+    for ( int l( 1 ); l < alphabetSize; l++ )
     {
-        propagateIntervalB[l]=( countsThisRangeB.count_[l]>0 );
+        propagateIntervalB[l] = ( countsThisRangeB.count_[l] > 0 );
     } // ~for l
 
     // don't bother with Ns
-    propagateIntervalB[whichPile[( int )dontKnowChar]]=false;
+    propagateIntervalB[whichPile[( int )dontKnowChar]] = false;
 } // ~foundInBoth
 

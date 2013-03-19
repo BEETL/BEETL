@@ -76,7 +76,7 @@ bool isNextArgument( const string shortPrefix, const string longPrefix, const in
     {
         if ( argValue )
         {
-            if ( argc <= i+1 )
+            if ( argc <= i + 1 )
             {
                 cerr << "Error: Too few arguments after " << arg << endl;
                 exit( 1 );
@@ -98,6 +98,17 @@ bool isNextArgument( const string shortPrefix, const string longPrefix, const in
     return false;
 }
 
+bool parseNextArgument( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, ToolParameters &toolParams, const unsigned toolParamKey )
+{
+    string argValue;
+    if ( isNextArgument( shortPrefix, longPrefix, argc, argv, i, &argValue ) )
+    {
+        toolParams.set( toolParamKey, argValue );
+        return true;
+    }
+    return false;
+}
+
 /*
 bool string2bool( const string &str )
 {
@@ -113,19 +124,19 @@ bool string2bool( const string &str )
 
 void launchBeetl( const string &params )
 {
-    stringstream path;
+    ostringstream path;
 
     // Use the same path as the current executable if we manage to extract it
     // Note: "/proc/self/exe" only exists on linux, but launching executables is a temporary solution anyway
     char selfPath[1024];
-    ssize_t len = ::readlink( "/proc/self/exe", selfPath, sizeof( selfPath )-1 );
+    ssize_t len = ::readlink( "/proc/self/exe", selfPath, sizeof( selfPath ) - 1 );
     if ( len != -1 )
     {
         selfPath[len] = '\0';
         char *lastSlash = strrchr( selfPath, '/' );
         if ( lastSlash )
         {
-            *( lastSlash+1 ) = 0;
+            *( lastSlash + 1 ) = 0;
             path << selfPath;
         }
     }

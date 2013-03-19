@@ -38,7 +38,7 @@ void DatasetMetadata::init( const string &input, const string &inputFormat )
     }
     else
     {
-        FILE *f = fopen( input.c_str(),"rb" );
+        FILE *f = fopen( input.c_str(), "rb" );
         SeqReaderFile *pReader( SeqReaderFile::getReader( f ) );
         nCycles = pReader->length();
 

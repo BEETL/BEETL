@@ -47,37 +47,37 @@ const char nr( '?' );
 
 static const TranslationTable reverseCharASCII =
 {
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,'$',nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, '$', nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
     nr, /* next is 'A' */
-    'T',nr,'G',nr,nr,nr,'C',nr,nr,nr,nr,nr,nr,'N',nr, /* next is 'P' */
-    nr,nr,nr,nr,'A',nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
+    'T', nr, 'G', nr, nr, nr, 'C', nr, nr, nr, nr, nr, nr, 'N', nr, /* next is 'P' */
+    nr, nr, nr, nr, 'A', nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
     nr, /* next is 'a' */
-    't',nr,'g',nr,nr,nr,'c',nr,nr,nr,nr,nr,nr,'n',nr, /* next is 'p' */
-    nr,nr,nr,nr,'a',nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,
-    nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr,nr
+    't', nr, 'g', nr, nr, nr, 'c', nr, nr, nr, nr, nr, nr, 'n', nr, /* next is 'p' */
+    nr, nr, nr, nr, 'a', nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr,
+    nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr, nr
 };
 
 
 #ifdef XXX
 char reverseComp( const char c )
 {
-    return ( c=='A' )
+    return ( c == 'A' )
            ? 'T'
-           : ( ( c=='T' )
+           : ( ( c == 'T' )
                ? 'A'
-               : ( ( c=='C' )
+               : ( ( c == 'C' )
                    ? 'G'
-                   : ( ( c=='G' ) ? 'C' : '!' ) ) );
+                   : ( ( c == 'G' ) ? 'C' : '!' ) ) );
 } // ~reverseComp;
 #endif
 
@@ -90,7 +90,7 @@ vector<const char *> pointerArray;
 
 
 
-const ulonglong charArraySize=6400000000; // needs to be > 2 x genome size
+const ulonglong charArraySize = 6400000000; // needs to be > 2 x genome size
 
 
 class LessThan
@@ -106,14 +106,14 @@ public:
 
         while ( 1 )
         {
-            if ( *pa!=*pb )
+            if ( *pa != *pb )
             {
-                return ( *pa<*pb );
+                return ( *pa < *pb );
             } // ~if
             else
             {
-                if ( *pa=='$' )
-                    return ( pa<pb );
+                if ( *pa == '$' )
+                    return ( pa < pb );
                 else
                 {
                     pa++;
@@ -131,12 +131,12 @@ private:
 void getFileName( const string &stem, const char code, const int pile,
                   string &fileName )
 {
-    fileName=stem;
-    fileName+='-';
-    fileName+=code;
-    fileName+='0';
-    assert( pile<=9 );
-    fileName+=( char )( 48+pile );
+    fileName = stem;
+    fileName += '-';
+    fileName += code;
+    fileName += '0';
+    assert( pile <= 9 );
+    fileName += ( char )( 48 + pile );
     //  cerr << "Made file name " << fileName << endl;
 }
 
@@ -144,7 +144,7 @@ void getFileName( const string &stem, const char code, const int pile,
 
 int main( int numArgs, char *args [] )
 {
-    if ( numArgs<3 )
+    if ( numArgs < 3 )
     {
         cerr << "syntax: " << args[0]
              << " outputPrefix listOfFiles" << endl;
@@ -152,8 +152,8 @@ int main( int numArgs, char *args [] )
     } // ~if
 
     cerr << "Resizing char array to size " << charArraySize << endl;
-    assert ( sizeof( ulonglong )==8 );
-    assert ( reverseCharASCII[( int )'$']=='$' );
+    assert ( sizeof( ulonglong ) == 8 );
+    assert ( reverseCharASCII[( int )'$'] == '$' );
 
     charArray.resize( charArraySize );
 
@@ -173,19 +173,19 @@ int main( int numArgs, char *args [] )
     cerr << "Reading files, time now: " << timer.timeNow();
     cerr << "Reading files, usage: " << timer << endl;
 
-    for ( int thisFile( 2 ); thisFile<numArgs; thisFile++ )
+    for ( int thisFile( 2 ); thisFile < numArgs; thisFile++ )
     {
-        cerr << "Opening file " << args[thisFile] << " at position " << ( pThisChar-pStartChar ) << endl;
-        *pThisChar++='$';
-        pFile=fopen( args[thisFile],"r" );
-        assert( pFile!=NULL );
+        cerr << "Opening file " << args[thisFile] << " at position " << ( pThisChar - pStartChar ) << endl;
+        *pThisChar++ = '$';
+        pFile = fopen( args[thisFile], "r" );
+        assert( pFile != NULL );
 
-        assert( fgets( pThisChar, 1024, pFile )!=NULL );
+        assert( fgets( pThisChar, 1024, pFile ) != NULL );
         cerr << "Read first line " << pThisChar;
 
-        while ( fgets( pThisChar, 1024, pFile )!=NULL )
+        while ( fgets( pThisChar, 1024, pFile ) != NULL )
         {
-            pThisChar+=strlen( pThisChar )-1;
+            pThisChar += strlen( pThisChar ) - 1;
         }
 
         fclose( pFile );
@@ -195,26 +195,26 @@ int main( int numArgs, char *args [] )
     cerr << "Reversing sequences, time now: " << timer.timeNow();
     cerr << "Reversing sequences, usage: " << timer << endl;
 
-    cerr << "Reversing at position " << ( pThisChar-pStartChar ) << endl;
+    cerr << "Reversing at position " << ( pThisChar - pStartChar ) << endl;
 
-    pCharToReverse=pThisChar;
-    *pThisChar++='$';
+    pCharToReverse = pThisChar;
+    *pThisChar++ = '$';
     int nonStandardChars( 0 );
-    while ( ( --pCharToReverse )!=pStartChar )
+    while ( ( --pCharToReverse ) != pStartChar )
     {
-        *pThisChar=reverseCharASCII[( int )*pCharToReverse];
+        *pThisChar = reverseCharASCII[( int ) * pCharToReverse];
 
-        if ( *pThisChar==nr )
+        if ( *pThisChar == nr )
         {
-            *pCharToReverse='N';
-            *pThisChar='N';
+            *pCharToReverse = 'N';
+            *pThisChar = 'N';
             ++nonStandardChars;
         } // ~if
         pThisChar++;
     } // ~while
 
-    *pThisChar++='$';
-    *pThisChar++='\0';
+    *pThisChar++ = '$';
+    *pThisChar++ = '\0';
 
     cerr << "Read " << nonStandardChars
          << " non-ACGTN chars, converted those to N" << endl;
@@ -222,37 +222,37 @@ int main( int numArgs, char *args [] )
 
     cerr << "Creating pointer array" << endl;
 
-    charArray.resize( pThisChar-pStartChar );
-    assert( ( pThisChar-1 )==&charArray.back() );
+    charArray.resize( pThisChar - pStartChar );
+    assert( ( pThisChar - 1 ) == &charArray.back() );
 
     string fileName;
-    pFile=NULL;
+    pFile = NULL;
 
 
-    for ( int j( 0 ); j<alphabetSize; j++ )
+    for ( int j( 0 ); j < alphabetSize; j++ )
     {
         cerr << "Starting pass " << j << ", time now: " << timer.timeNow();
         cerr << "Starting pass " << j << ", usage: " << timer << endl;
 
-        getFileName( args[1],'B',j,fileName );
+        getFileName( args[1], 'B', j, fileName );
         cerr << "Opening new file " << fileName << endl;
         //    if (pFile!=NULL) fclose(pFile);
-        pFile=fopen( fileName.c_str(),"w" );
-        assert( pFile!=NULL );
+        pFile = fopen( fileName.c_str(), "w" );
+        assert( pFile != NULL );
 
-        getFileName( args[1],'A',j,fileName );
+        getFileName( args[1], 'A', j, fileName );
         cerr << "Opening new file " << fileName << endl;
         //    if (pFile!=NULL) fclose(pFile);
-        pArrayFile=fopen( fileName.c_str(),"w" );
-        assert( pArrayFile!=NULL );
+        pArrayFile = fopen( fileName.c_str(), "w" );
+        assert( pArrayFile != NULL );
 
         pointerArray.clear();
 
-        for ( ulonglong i( 1 ); i<charArray.size(); i++ )
+        for ( ulonglong i( 1 ); i < charArray.size(); i++ )
         {
             //      if ((i%1000000)==0) cout << i << endl;
             //      cerr << i << charArray[i] << endl;
-            if ( whichPile[( int )charArray[i]]==j )
+            if ( whichPile[( int )charArray[i]] == j )
                 pointerArray.push_back( &charArray[i] );
         }
 
@@ -265,7 +265,7 @@ int main( int numArgs, char *args [] )
 
         cerr << "Sorting suffixes" << endl;
 
-        sort( pointerArray.begin(),pointerArray.end(),LessThan() );
+        sort( pointerArray.begin(), pointerArray.end(), LessThan() );
 
         cerr << "Printing suffixes" << endl;
 
@@ -276,13 +276,13 @@ int main( int numArgs, char *args [] )
         //    pFile=NULL;
         ulonglong thisDiff;
 
-        for ( ulonglong i( 0 ); i<pointerArray.size(); i++ )
+        for ( ulonglong i( 0 ); i < pointerArray.size(); i++ )
         {
-            fputc( *( pointerArray[i]-1 ),pFile );
-            thisDiff=( ulonglong )( pointerArray[i]-pStartChar );
-            fwrite( pointerArray[i],sizeof( ulonglong ),1,pArrayFile );
+            fputc( *( pointerArray[i] - 1 ), pFile );
+            thisDiff = ( ulonglong )( pointerArray[i] - pStartChar );
+            fwrite( pointerArray[i], sizeof( ulonglong ), 1, pArrayFile );
 #ifdef DEBUG
-            cerr << i << " " << pointerArray[i] << " " << charArray[pointerArray[i]-1]
+            cerr << i << " " << pointerArray[i] << " " << charArray[pointerArray[i] - 1]
                  << " " << &charArray[pointerArray[i]] << endl;
 #endif
         } // ~for i

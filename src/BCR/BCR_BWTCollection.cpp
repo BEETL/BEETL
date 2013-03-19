@@ -34,8 +34,8 @@ BCR::BCR( int mode, string in, string out,
 {
     // get memory allocated
 
-    inFile_ = new char[in.length()+1];
-    outFile_ = new char[out.length()+1];
+    inFile_ = new char[in.length() + 1];
+    outFile_ = new char[out.length() + 1];
 
     // copy to char * in order to get valid c strings
     in.copy( inFile_, in.length() );

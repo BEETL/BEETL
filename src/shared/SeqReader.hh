@@ -32,12 +32,12 @@ class SeqReaderBase
 public:
     SeqReaderBase();
     virtual ~SeqReaderBase();
-    virtual void readNext( char *seqBuf = NULL )=0;
-    virtual const char *thisSeq( void )=0;
-    virtual const char *thisQual( void )=0;
-    virtual const char *thisName( void )=0;
-    virtual bool allRead( void ) const=0;
-    virtual int length( void ) const=0;
+    virtual void readNext( char *seqBuf = NULL ) = 0;
+    virtual const char *thisSeq( void ) = 0;
+    virtual const char *thisQual( void ) = 0;
+    virtual const char *thisName( void ) = 0;
+    virtual bool allRead( void ) const = 0;
+    virtual int length( void ) const = 0;
 }; // ~class BwtReaderBase
 
 class SeqReaderFile : public SeqReaderBase
@@ -49,7 +49,7 @@ public:
     SeqReaderFile( FILE *pFile );
     virtual ~SeqReaderFile();
 
-    virtual void readNext( char *seqBuf = NULL )=0;
+    virtual void readNext( char *seqBuf = NULL ) = 0;
     virtual const char *thisSeq( void );
     virtual const char *thisQual( void );
     virtual const char *thisName( void );
@@ -57,9 +57,9 @@ public:
     virtual int length( void ) const;
 protected:
     FILE *pFile_;
-    char bufSeq_[1+maxSeqSize];
-    char bufQual_[1+maxSeqSize];
-    char bufName_[1+maxSeqSize];
+    char bufSeq_[1 + maxSeqSize];
+    char bufQual_[1 + maxSeqSize];
+    char bufName_[1 + maxSeqSize];
     bool allRead_;
     int length_;
 }; // ~class BwtReaderBase

@@ -25,15 +25,15 @@
 // is lexicographically less than the rest
 
 #ifdef USE_STANDARD_LEXICOGRAPHIC_ORDER
-static const char alphabet[]="$ACGNTZ";
+static const char alphabet[] = "$ACGNTZ";
 #else
-static const char alphabet[]="$ACGTN";
+static const char alphabet[] = "$ACGTN";
 #endif
 
 //static const int alphabetSize(strlen(alphabet));
 enum
 {
-    alphabetSize=7
+    alphabetSize = 7
 };
 
 // Next is a character that should not be in the alphabet
@@ -56,24 +56,24 @@ const int nv( -1 );
 
 static const int whichPile[] =
 {
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,0, nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, 0, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
     nv, /* next is 'A' */
-    1,nv,2,nv,nv,nv,3,nv,nv,nv,nv,nv,nv,4,nv, /* next is 'P' */
-    nv,nv,nv,nv,5,nv,nv,nv,nv,nv,6,nv,nv,nv,nv,nv, // added Z for Huffman
+    1, nv, 2, nv, nv, nv, 3, nv, nv, nv, nv, nv, nv, 4, nv, /* next is 'P' */
+    nv, nv, nv, nv, 5, nv, nv, nv, nv, nv, 6, nv, nv, nv, nv, nv, // added Z for Huffman
     nv, /* next is 'a' */
-    1,nv,2,nv,nv,nv,3,nv,nv,nv,nv,nv,nv,4,nv, /* next is 'p' */
-    nv,nv,nv,nv,5,nv,nv,nv,nv,nv,6,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv
+    1, nv, 2, nv, nv, nv, 3, nv, nv, nv, nv, nv, nv, 4, nv, /* next is 'p' */
+    nv, nv, nv, nv, 5, nv, nv, nv, nv, nv, 6, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv
 };
 #else
 // encoding is ($,A,C,G,T,N)=(0,1,2,3,4,5)
@@ -81,24 +81,36 @@ static const int whichPile[] =
 
 static const int whichPile[] =
 {
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,0, nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, 0, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
     nv, /* next is 'A' */
-    1,nv,2,nv,nv,nv,3,nv,nv,nv,nv,nv,nv,5,nv, /* next is 'P' */
-    nv,nv,nv,nv,4,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
+    1, nv, 2, nv, nv, nv, 3, nv, nv, nv, nv, nv, nv, 5, nv, /* next is 'P' */
+    nv, nv, nv, nv, 4, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
     nv, /* next is 'a' */
-    1,nv,2,nv,nv,nv,3,nv,nv,nv,nv,nv,nv,5,nv, /* next is 'p' */
-    nv,nv,nv,nv,4,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,
-    nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv,nv
+    1, nv, 2, nv, nv, nv, 3, nv, nv, nv, nv, nv, nv, 5, nv, /* next is 'p' */
+    nv, nv, nv, nv, 4, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
+    nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv
+};
+#endif
+
+#ifdef USE_STANDARD_LEXICOGRAPHIC_ORDER
+static const int whichPileInverse[] =
+{
+    '$', 'A', 'C', 'G', 'N', 'T', 'Z'
+};
+#else
+static const int whichPileInverse[] =
+{
+    '$', 'A', 'C', 'G', 'T', 'N', 'Z'
 };
 #endif
 

@@ -73,7 +73,7 @@ void BackTracker::operator()
 ( int i, string &thisWord, IntervalHandlerParam &intervalHandler_  )
 {
     LetterCount countsThisRangeA, countsThisRangeB;
-    Range thisRangeA,thisRangeB;
+    Range thisRangeA, thisRangeB;
     //  string thisWord;
     bool notAtLastA( true ), notAtLastB( true );
     bool hasChild;
@@ -82,8 +82,8 @@ void BackTracker::operator()
     {
         while ( notAtLastA )
         {
-            notAtLastA=rA_.getRange( thisRangeA );
-            if ( ( notAtLastA==false )||( ( thisRangeA.pos_&matchFlag )!=0 ) ) break;
+            notAtLastA = rA_.getRange( thisRangeA );
+            if ( ( notAtLastA == false ) || ( ( thisRangeA.pos_ & matchFlag ) != 0 ) ) break;
 
 #ifdef DEBUG
             cout << "RangeA: " << i << " " << j << " "
@@ -91,10 +91,10 @@ void BackTracker::operator()
                  << " -- " << currentPosA_ << " < " << thisRangeB.word_ << endl;
 #endif
 
-            skipIfNecessary( thisRangeA,currentPosA_,( *inBwtA_ ),countsSoFarA_ );
+            skipIfNecessary( thisRangeA, currentPosA_, ( *inBwtA_ ), countsSoFarA_ );
             // count children
             countsThisRangeA.clear();
-            inBwtA_->readAndCount( countsThisRangeA,thisRangeA.num_ );
+            inBwtA_->readAndCount( countsThisRangeA, thisRangeA.num_ );
 #ifdef DEBUG
             countsThisRangeA.print();
 #endif
@@ -110,31 +110,31 @@ void BackTracker::operator()
 
 
 #ifdef PROPAGATE_PREFIX
-            hasChild=false;
+            hasChild = false;
 #endif
 
-            for ( int l( 1 ); l<alphabetSize; l++ )
+            for ( int l( 1 ); l < alphabetSize; l++ )
             {
                 //       if (countsThisRangeA.count_[l]>=minOcc)
-                if ( propagateIntervalA_[l]==true )
+                if ( propagateIntervalA_[l] == true )
                 {
 #ifdef PROPAGATE_PREFIX
-                    if ( hasChild==false )
+                    if ( hasChild == false )
                     {
                         // assert(thisWord.size()==thisRangeA.word_.size()+1);
-                        thisWord.replace( 1,thisRangeA.word_.size(),thisRangeA.word_ );
+                        thisWord.replace( 1, thisRangeA.word_.size(), thisRangeA.word_ );
                     } // ~if
-                    thisWord[0]=alphabet[l];
+                    thisWord[0] = alphabet[l];
 #endif
-                    hasChild=true;
+                    hasChild = true;
 
-                    rA_.addRange( l,i,thisWord,
+                    rA_.addRange( l, i, thisWord,
                                   countsSoFarA_.count_[l],
                                   countsThisRangeA.count_[l] );
                 } // ~if
             } // ~for l
 
-            if ( hasChild==false )
+            if ( hasChild == false )
             {
                 //  if no children, print word itself
 #ifdef OLD
@@ -147,16 +147,16 @@ void BackTracker::operator()
                 numSingletonRanges_++;
             } // ~if
 
-            countsSoFarA_+=countsThisRangeA;
-            currentPosA_+=thisRangeA.num_;
+            countsSoFarA_ += countsThisRangeA;
+            currentPosA_ += thisRangeA.num_;
 
             numRanges_++;
         } // ~while notAtLastA
 
         while ( notAtLastB )
         {
-            notAtLastB=rB_.getRange( thisRangeB );
-            if ( ( notAtLastB==false )||( ( thisRangeB.pos_&matchFlag )!=0 ) ) break;
+            notAtLastB = rB_.getRange( thisRangeB );
+            if ( ( notAtLastB == false ) || ( ( thisRangeB.pos_ & matchFlag ) != 0 ) ) break;
 
 #ifdef DEBUG
             cout << "RangeB: " << i << " " << j << " "
@@ -164,10 +164,10 @@ void BackTracker::operator()
                  << " -- " << currentPosB_ << " < " << thisRangeB.word_ << endl;
 #endif
 
-            skipIfNecessary( thisRangeB,currentPosB_,( *inBwtB_ ),countsSoFarB_ );
+            skipIfNecessary( thisRangeB, currentPosB_, ( *inBwtB_ ), countsSoFarB_ );
             // count children
             countsThisRangeB.clear();
-            uint charsRead = inBwtB_->readAndCount( countsThisRangeB,thisRangeB.num_ );
+            uint charsRead = inBwtB_->readAndCount( countsThisRangeB, thisRangeB.num_ );
             assert( charsRead == thisRangeB.num_ );
 #ifdef DEBUG
             countsThisRangeB.print();
@@ -184,50 +184,50 @@ void BackTracker::operator()
 
             // add ranges for any children
 #ifdef PROPAGATE_PREFIX
-            hasChild=false;
+            hasChild = false;
 #endif
-            for ( int l( 1 ); l<alphabetSize; l++ )
+            for ( int l( 1 ); l < alphabetSize; l++ )
             {
                 //       if (countsThisRangeB.count_[l]>=minOcc)
-                if ( propagateIntervalB_[l]==true )
+                if ( propagateIntervalB_[l] == true )
                 {
 #ifdef PROPAGATE_PREFIX
-                    if ( hasChild==false )
+                    if ( hasChild == false )
                     {
                         // assert(thisWord.size()==thisRangeB.word_.size()+1);
-                        thisWord.replace( 1,thisRangeB.word_.size(),thisRangeB.word_ );
-                        hasChild=true;
+                        thisWord.replace( 1, thisRangeB.word_.size(), thisRangeB.word_ );
+                        hasChild = true;
                     } // ~if
-                    thisWord[0]=alphabet[l];
+                    thisWord[0] = alphabet[l];
 #endif
 
-                    rB_.addRange( l,i,thisWord,
+                    rB_.addRange( l, i, thisWord,
                                   countsSoFarB_.count_[l],
                                   countsThisRangeB.count_[l] );
                 } // ~if
             } // ~for l
-            if ( hasChild==false )
+            if ( hasChild == false )
             {
                 //  if no children, print word itself
                 //   cout << "GOLD " << thisRangeB.word_ << " " << thisRangeB.num_ << endl;
                 //  numSingletonRanges_++;
             } // ~if
 
-            countsSoFarB_+=countsThisRangeB;
-            currentPosB_+=thisRangeB.num_;
+            countsSoFarB_ += countsThisRangeB;
+            currentPosB_ += thisRangeB.num_;
 
             //      numRanges_++;
         } // ~while
 
-        if ( notAtLastA==false )
+        if ( notAtLastA == false )
         {
-            assert ( notAtLastB==false );
+            assert ( notAtLastB == false );
             break;
         } // ~if
         else
         {
-            assert( ( thisRangeA.pos_&matchFlag )!=0 );
-            assert( ( thisRangeB.pos_&matchFlag )!=0 );
+            assert( ( thisRangeA.pos_ & matchFlag ) != 0 );
+            assert( ( thisRangeB.pos_ & matchFlag ) != 0 );
 
 #ifdef DEBUG
             cout << "RangeA: " << i << " "
@@ -236,22 +236,22 @@ void BackTracker::operator()
             cout << "RangeB: " << i << " "
                  << thisRangeB.word_ << " " << thisRangeB.pos_ << " " << thisRangeB.num_
                  << " -- " << currentPosB_ << endl;
-            cout << ( thisRangeA.pos_&matchFlag ) << " " << ( thisRangeB.pos_&matchFlag ) << endl;
+            cout << ( thisRangeA.pos_ & matchFlag ) << " " << ( thisRangeB.pos_ & matchFlag ) << endl;
 #endif
 
 
-            skipIfNecessary( thisRangeA,currentPosA_,( *inBwtA_ ),countsSoFarA_ );
+            skipIfNecessary( thisRangeA, currentPosA_, ( *inBwtA_ ), countsSoFarA_ );
             // count children
             countsThisRangeA.clear();
-            inBwtA_->readAndCount( countsThisRangeA,thisRangeA.num_ );
+            inBwtA_->readAndCount( countsThisRangeA, thisRangeA.num_ );
 #ifdef DEBUG
             countsThisRangeA.print();
 #endif
 
-            skipIfNecessary( thisRangeB,currentPosB_,( *inBwtB_ ),countsSoFarB_ );
+            skipIfNecessary( thisRangeB, currentPosB_, ( *inBwtB_ ), countsSoFarB_ );
             // count children
             countsThisRangeB.clear();
-            inBwtB_->readAndCount( countsThisRangeB,thisRangeB.num_ );
+            inBwtB_->readAndCount( countsThisRangeB, thisRangeB.num_ );
 #ifdef DEBUG
             countsThisRangeB.print();
 #endif
@@ -264,46 +264,46 @@ void BackTracker::operator()
 
 
 #ifdef PROPAGATE_PREFIX
-            hasChild=false;
+            hasChild = false;
 #endif
-            for ( int l( 1 ); l<alphabetSize; l++ )
+            for ( int l( 1 ); l < alphabetSize; l++ )
             {
-                if ( ( propagateIntervalA_[l]==true )
-                     ||( propagateIntervalB_[l]==true ) )
+                if ( ( propagateIntervalA_[l] == true )
+                     || ( propagateIntervalB_[l] == true ) )
                 {
 #ifdef PROPAGATE_PREFIX
-                    if ( hasChild==false )
+                    if ( hasChild == false )
                     {
                         // assert(thisWord.size()==thisRangeA.word_.size()+1);
-                        thisWord.replace( 1,thisRangeA.word_.size(),thisRangeA.word_ );
-                        hasChild=true;
+                        thisWord.replace( 1, thisRangeA.word_.size(), thisRangeA.word_ );
+                        hasChild = true;
                     }
-                    thisWord[0]=alphabet[l];
+                    thisWord[0] = alphabet[l];
 #endif
                     //  thisWord+=thisRangeA.word_;
                     LetterCountType thisFlag
-                    ( ( ( propagateIntervalA_[l]==true )
-                        &&( propagateIntervalB_[l]==true ) )?matchFlag:0 );
+                    ( ( ( propagateIntervalA_[l] == true )
+                        && ( propagateIntervalB_[l] == true ) ) ? matchFlag : 0 );
 
 
-                    if ( propagateIntervalA_[l]==true )
-                        rA_.addRange( l,i,thisWord,
+                    if ( propagateIntervalA_[l] == true )
+                        rA_.addRange( l, i, thisWord,
                                       ( countsSoFarA_.count_[l]
-                                        |thisFlag ),
+                                        | thisFlag ),
                                       countsThisRangeA.count_[l] );
                     // if (countsThisRangeB.count_[l]>0)
-                    if ( propagateIntervalB_[l]==true )
-                        rB_.addRange( l,i,thisWord,
+                    if ( propagateIntervalB_[l] == true )
+                        rB_.addRange( l, i, thisWord,
                                       ( countsSoFarB_.count_[l]
-                                        |thisFlag ),
+                                        | thisFlag ),
                                       countsThisRangeB.count_[l] );
                 } // ~if
             } // ~for
 
-            countsSoFarA_+=countsThisRangeA;
-            currentPosA_+=thisRangeA.num_;
-            countsSoFarB_+=countsThisRangeB;
-            currentPosB_+=thisRangeB.num_;
+            countsSoFarA_ += countsThisRangeA;
+            currentPosA_ += thisRangeA.num_;
+            countsSoFarB_ += countsThisRangeB;
+            currentPosB_ += thisRangeB.num_;
 
             numRanges_++;
 

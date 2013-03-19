@@ -77,27 +77,33 @@ my $Version_text =
 
 my $usage =
     "Usage: $programName [options]\n"
-  . "\t-i, --input=PATH             - input file (string of chars)\n"
-  . "\t-l, --lcp=PATH               - input LCP file (string of 32-bit integers)\n"
-  . "\t-o, --output=PATH            - output file\n"
+  . "\t-q, --qualities=PATH           Input quality file (string of chars)\n"
+  . "\t-b, --bwt=PATH                 Input BWT file (ASCII)\n"
+  . "\t-l, --lcp=PATH                 Input LCP file (string of 32-bit integers)\n"
+  . "\t-o, --output=PATH              Output file\n"
 
-  . "\t-c, --cutoff=int32           - LCP cutoff threshold\n"
-  . "\t-r, --replacement=int8       - char used when LCP is above or equal to the cutoff threshold\n"
+  . "\t-c, --cutoff=int32             LCP cutoff threshold. Default=0\n"
+  . "\t-s, --min-stretch-length=int32 Minimum stretch length. Default=5\n"
+  . "\t-r, --replacement=int8         Char used when LCP is above or equal to the cutoff threshold. Default=255\n"
 
-  . "\t--help                       - prints usage guide\n"
-  . "\t--version                    - prints version information\n"
+  . "\t--help                         Prints usage guide\n"
+  . "\t--version                      Prints version information\n"
 
-.<<'EXAMPLES_END';
+.<<'DESCRIPTION_EXAMPLES_END';
 
-EXAMPLES:
-    $programName \\
-      -i BWT/bwt.part1.qual \\
-      -l BWT/bwt.part1.lcp \\
-      -o newBWT/bwt.part1.qual \\
-      -c 10 \\
-      -r 255
+Description:
+    Cuts off qualities from stretches of lcp>=lcpThreshold with constant BWT letter.
+    Also cuts off qualities from stretches broken by a change of BWT letter, as long as the stretch length is longer than minStretchLength.
+    '$' BWT letters don't interrupt stretches.
 
-EXAMPLES_END
+Example:
+    $programName \
+      -q BWT/bwt.part1.qual \
+      -b BWT/bwt.part1 \
+      -l BWT/bwt.part1.lcp \
+      -o newBWT/bwt.part1.qual
+
+DESCRIPTION_EXAMPLES_END
 
 
 
@@ -110,20 +116,22 @@ my $argvStr = join ' ', @ARGV;
 
 $PARAMS{verbose} = 0;
 
-$PARAMS{input}  = undef;
+$PARAMS{qualities} = undef;
 $PARAMS{lcp}    = undef;
 $PARAMS{bwt}    = undef;
 $PARAMS{output} = undef;
-my $cutoff      = undef;
-my $replacement = undef;
+my $cutoff      = 0;
+my $minStretchLength = 5;
+my $replacement = 255;
 
 
 my $result = GetOptions(
-    "input|i=s"             => \$PARAMS{input},
+    "qualities|q=s"         => \$PARAMS{qualities},
     "lcp|l=s"               => \$PARAMS{lcp},
     "bwt|b=s"               => \$PARAMS{bwt},
     "output|o=s"            => \$PARAMS{output},
-    "cutoff|c=i"            => \${cutoff},
+    "lcp-cutoff|c=i"        => \${cutoff},
+    "min-stretch-length|s=i"=> \${minStretchLength},
     "replacement|r=i"       => \${replacement},
 
     "version"               => \$isVersion,
@@ -136,27 +144,15 @@ if ($isVersion)
     print $Version_text;
     exit (0);
 }
+
 # display the help text when no output directory or other required options are given
-if (($result == 0 || !defined($PARAMS{input}) || !defined($PARAMS{lcp}) || !defined($PARAMS{bwt}) || !defined($PARAMS{output}) || !defined(${cutoff}) || !defined(${replacement}) ) && 'nohelp' eq $help)
+if (($result == 0 || !defined($PARAMS{qualities}) || !defined($PARAMS{lcp}) || !defined($PARAMS{bwt}) || !defined($PARAMS{output}) || !defined(${cutoff}) || !defined(${minStretchLength}) || !defined(${replacement}) ) && 'nohelp' eq $help)
 {
     die "$usage";
 }
 
 die ("ERROR: Unrecognized command-line argument(s): @ARGV") if (0 < @ARGV);
 
-
-my $myInt8 = "";
-my $myInt32 = "";
-my $int8Qual = "";
-my $int8BwtLetter = "";
-open INF_QUAL , "<$PARAMS{input}"  or die "Can't open $PARAMS{input}";
-open INF_LCP  , "<$PARAMS{lcp}"    or die "Can't open $PARAMS{lcp}";
-open INF_BWT  , "<$PARAMS{bwt}"    or die "Can't open $PARAMS{bwt}";
-open OUTF_QUAL, ">$PARAMS{output}" or die "Can't open $PARAMS{output} for writing";
-binmode INF_QUAL;
-binmode INF_LCP;
-binmode INF_BWT;
-binmode OUTF_QUAL;
 
 my $packedReplacement = pack('C', $replacement);
 my $stretchLength = 0;
@@ -168,7 +164,28 @@ my $cutoffQualitiesCount = 0;
 my $lcpValue = 0;
 my $lastLcpValueReached = 0;
 
-my $minStretchLength = 5; # should be a command line parameter
+# Those should be command line parameters
+my $outputDiscardedQualities = 1;
+#my $keepQ2 = 1;
+
+
+my $myInt8 = "";
+my $myInt32 = "";
+my $int8Qual = "";
+my $int8BwtLetter = "";
+open INF_QUAL , "<$PARAMS{qualities}" or die "Can't open $PARAMS{qualities}";
+open INF_LCP  , "<$PARAMS{lcp}"    or die "Can't open $PARAMS{lcp}";
+open INF_BWT  , "<$PARAMS{bwt}"    or die "Can't open $PARAMS{bwt}";
+open OUTF_QUAL, ">$PARAMS{output}" or die "Can't open $PARAMS{output} for writing";
+binmode INF_QUAL;
+binmode INF_LCP;
+binmode INF_BWT;
+binmode OUTF_QUAL;
+if ($outputDiscardedQualities) {
+  open OUTF_DISCARDED_QUAL, ">$PARAMS{output}.discarded" or die "Can't open $PARAMS{output}.discarded for writing";
+  open OUTF_DISCARDED_QUAL_LENGTHS, ">$PARAMS{output}.discarded.lengths" or die "Can't open $PARAMS{output}.discarded.lengths for writing";
+}
+
 
 read (INF_LCP, $myInt32, 4); # Skip the first LCP value, as it is meaningless
 
@@ -183,7 +200,7 @@ while (1) {
       $lcpValue = unpack ('L', $myInt32);
     } else {
       # We expect to reach the end of the LCP file exactly 1 iteration before the other files, as we skipped the first value
-      ($lastLcpValueReached == 0) or die "LCP file should be exactly 4 times as long as the main input file";
+      ($lastLcpValueReached == 0) or die "LCP file should be exactly 4 times as long as the main qualities file";
       $lastLcpValueReached = 1;
     }
   }
@@ -192,8 +209,9 @@ while (1) {
 #  my $bwtValue = unpack ('C', $int8BwtLetter);
 
 # lcp_v1: cut off qualities from stretches of lcp>=lcpThreshold with BWT letter constant
-# lcp_v2: same as lcp_v1, but also cut off qualities from stretches broken by a change of BWT letter, as long as the stretch length is is longer than minStretchLength
+# lcp_v2: same as lcp_v1, but also cut off qualities from stretches broken by a change of BWT letter, as long as the stretch length is longer than minStretchLength
 # lcp_v3: lcp_v2 + continue stretches when interrupted by a '$' BWT letter
+# lcp_v4: keep Q2 even if they get cutoff (but they still contribute to stretches)
 
 
   if ($lcpValue >= $cutoff) {
@@ -214,10 +232,18 @@ while (1) {
         # Current stretch broke because BWT letter changed
         if ($stretchLength >= $minStretchLength) {
           for (my $i=0; $i<$stretchLength; $i++) {
-            print OUTF_QUAL $packedReplacement;
+#            if ($keepQ2 && ord(substr($savedQualityStretch,$i,1))==(33+2) ) {
+#              print OUTF_QUAL chr(33+2)
+#            } else {
+              print OUTF_QUAL $packedReplacement;
+#            }
           }
           $successfulStretchCount++;
           $cutoffQualitiesCount += $stretchLength;
+          if ($outputDiscardedQualities) {
+            print OUTF_DISCARDED_QUAL $savedQualityStretch;
+            print OUTF_DISCARDED_QUAL_LENGTHS "${stretchLength}\n";
+          }
         } else {
           # Print all previous qualities
           print OUTF_QUAL $savedQualityStretch;
@@ -247,6 +273,10 @@ while (1) {
         print OUTF_QUAL $int8Qual;
         $brokenStretchCount++;
       }
+      if ($outputDiscardedQualities) {
+        print OUTF_DISCARDED_QUAL $savedQualityStretch;
+        print OUTF_DISCARDED_QUAL_LENGTHS "${stretchLength}\n";
+      }
     }
     else {
       print OUTF_QUAL $savedQualityStretch;
@@ -267,6 +297,10 @@ if ($stretchLength > 0) {
   }
   $successfulStretchCount++;
   $cutoffQualitiesCount += $stretchLength;
+  if ($outputDiscardedQualities) {
+    print OUTF_DISCARDED_QUAL $savedQualityStretch;
+    print OUTF_DISCARDED_QUAL_LENGTHS "${stretchLength}\n";
+  }
 }
 
 
@@ -274,7 +308,11 @@ close INF_QUAL;
 close INF_LCP;
 close INF_BWT;
 close OUTF_QUAL;
+close OUTF_DISCARDED_QUAL if ($outputDiscardedQualities);
+close OUTF_DISCARDED_QUAL_LENGTHS if ($outputDiscardedQualities);
 
+
+# Report
 
 print "brokenStretchCount: $brokenStretchCount\n";
 print "successfulStretchCount: $successfulStretchCount\n";

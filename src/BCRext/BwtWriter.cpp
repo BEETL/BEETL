@@ -34,19 +34,19 @@ using namespace std;
 // BwtWriterBase member function definitions
 //
 
-BwtWriterFile::BwtWriterFile( const string &fileName ) : pFile_( fopen( fileName.c_str(),"w" ) )
+BwtWriterFile::BwtWriterFile( const string &fileName ) : pFile_( fopen( fileName.c_str(), "w" ) )
 {
 #ifdef DEBUG
     cout << "BwtWriterFile opened file " << fileName << " " << pFile_ << endl;
 #endif
-    readWriteCheck( fileName.c_str(),1 );  //    setvbuf( pFile_, NULL, _IOFBF, 262144);
+    readWriteCheck( fileName.c_str(), 1 ); //    setvbuf( pFile_, NULL, _IOFBF, 262144);
 }
 BwtWriterFile::~BwtWriterFile()
 {
 
     fclose( pFile_ );
 #ifdef DEBUG
-    cout << "BwtWriterFile: closed file " <<pFile_ << endl;
+    cout << "BwtWriterFile: closed file " << pFile_ << endl;
 #endif
 
 }
@@ -81,7 +81,7 @@ void BwtWriterASCII::operator()( const char *p, int numChars )
     size_t bytesWritten = fwrite( p, sizeof( char ), numChars, pFile_ );
     if ( bytesWritten != ( size_t )numChars )
     {
-        cerr << "Unable to write "<< numChars
+        cerr << "Unable to write " << numChars
              << " chars. Aborting." << endl;
         exit( EXIT_FAILURE );
     }
@@ -89,7 +89,7 @@ void BwtWriterASCII::operator()( const char *p, int numChars )
 
 void BwtWriterASCII::sendRun( char c, int runLength )
 {
-    for ( int i( 0 ); i<runLength; i++ ) fprintf( pFile_, "%c", c );
+    for ( int i( 0 ); i < runLength; i++ ) fprintf( pFile_, "%c", c );
 }
 
 //
@@ -98,22 +98,22 @@ void BwtWriterASCII::sendRun( char c, int runLength )
 
 BwtWriterRunLength::~BwtWriterRunLength()
 {
-    if ( runLength_!=0 ) encodeRun( lastChar_, runLength_ );
+    if ( runLength_ != 0 ) encodeRun( lastChar_, runLength_ );
 
 
-    if ( pBuf_!=buf_ )
+    if ( pBuf_ != buf_ )
     {
 
-        size_t bytesWritten = fwrite( buf_, sizeof( char ), ( pBuf_-buf_ ), pFile_ );
-        if ( bytesWritten != ( size_t )( pBuf_-buf_ ) )
+        size_t bytesWritten = fwrite( buf_, sizeof( char ), ( pBuf_ - buf_ ), pFile_ );
+        if ( bytesWritten != ( size_t )( pBuf_ - buf_ ) )
         {
-            cerr << "Unable to write "<< ( pBuf_-buf_ )
+            cerr << "Unable to write " << ( pBuf_ - buf_ )
                  << " chars. Aborting." << endl;
             exit( EXIT_FAILURE );
         }
 
 #ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_+=( LetterCountType )( pBuf_-buf_ );
+        bytesWritten_ += ( LetterCountType )( pBuf_ - buf_ );
 #endif
     }
 
@@ -122,7 +122,7 @@ BwtWriterRunLength::~BwtWriterRunLength()
             << "BwtWriterRunLength: received "
             << charsReceived_ << " chars, sent "
             << bytesWritten_ << " bytes, compression "
-            << ( ( double )8*bytesWritten_ )/( charsReceived_ )
+            << ( ( double )8 * bytesWritten_ ) / ( charsReceived_ )
             << " bits per char " << std::endl;
 #endif
 
@@ -135,20 +135,20 @@ void BwtWriterRunLength::operator()( const char *p, int numChars )
     std::cout << "BW RL () - " << *p << " " << numChars << " state: " << lastChar_ << " " << runLength_ << endl;
 #endif
 
-    for ( int i( 0 ); i<numChars; i++ )
+    for ( int i( 0 ); i < numChars; i++ )
     {
-        if ( ( *p )==lastChar_ )
+        if ( ( *p ) == lastChar_ )
         {
             runLength_++;
         }
         else
         {
-            if ( runLength_>0 )
+            if ( runLength_ > 0 )
             {
                 encodeRun( lastChar_, runLength_ );
             } // ~if
-            runLength_=1;
-            lastChar_=*p;
+            runLength_ = 1;
+            lastChar_ = *p;
         } // ~else
         p++;
     } // ~for
@@ -157,21 +157,21 @@ void BwtWriterRunLength::operator()( const char *p, int numChars )
 
 void BwtWriterRunLength::sendChar( char c )
 {
-    *pBuf_=c;
-    if ( ++pBuf_==pBufMax_ )
+    *pBuf_ = c;
+    if ( ++pBuf_ == pBufMax_ )
     {
 #ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_+=ReadBufferSize;
+        bytesWritten_ += ReadBufferSize;
 #endif
 
         size_t bytesWritten = fwrite( buf_, sizeof( char ), ReadBufferSize, pFile_ );
         if ( bytesWritten != ( size_t )ReadBufferSize )
         {
-            cerr << "Unable to write "<< ReadBufferSize
+            cerr << "Unable to write " << ReadBufferSize
                  << " chars. Aborting." << endl;
             exit( EXIT_FAILURE );
         }
-        pBuf_=buf_;
+        pBuf_ = buf_;
     }
 }
 
@@ -182,27 +182,27 @@ void BwtWriterRunLength::encodeRun( char c, unsigned int runLength )
               << std::endl;
 #endif
 #ifdef REPORT_COMPRESSION_RATIO
-    charsReceived_+=runLength;
+    charsReceived_ += runLength;
 #endif
     int charIndex( whichPile[( int )c] );
 
-    if ( charIndex==nv )
+    if ( charIndex == nv )
     {
         cerr << "Char |" << c << "| is not part of the alphabet. Aborting." << endl;
         exit( EXIT_FAILURE );
     }
 
-    uchar outCode( 0xF0|( ( uchar )charIndex ) );
+    uchar outCode( 0xF0 | ( ( uchar )charIndex ) );
     runLength--;
-    const unsigned int numMaxChars( runLength>>4 );
-    for ( unsigned int i( 0 ); i<numMaxChars; i++ )
+    const unsigned int numMaxChars( runLength >> 4 );
+    for ( unsigned int i( 0 ); i < numMaxChars; i++ )
     {
         sendChar( outCode );
     }
-    runLength&=( unsigned int )0xF;
+    runLength &= ( unsigned int )0xF;
 
-    outCode=( ( ( uchar )runLength )<<4 );
-    outCode|=charIndex;
+    outCode = ( ( ( uchar )runLength ) << 4 );
+    outCode |= charIndex;
     //    assert(((unsigned int)outCode)<256);
     //    assert(fwrite( &outCode, sizeof(char), 1, pFile_ )==1);
     sendChar( outCode );
@@ -216,17 +216,17 @@ void BwtWriterRunLength::sendRun( char c, int runLength )
 #ifdef DEBUG
     std::cout << "BW RL sendRun - sending run " << c << " " << runLength << " " << endl;
 #endif
-    if ( runLength!=0 )
+    if ( runLength != 0 )
     {
-        if ( c==lastChar_ )
+        if ( c == lastChar_ )
         {
-            runLength_+=runLength;
+            runLength_ += runLength;
         }
         else
         {
-            if ( runLength_!=0 ) encodeRun( lastChar_,runLength_ );
-            lastChar_=c;
-            runLength_=runLength;
+            if ( runLength_ != 0 ) encodeRun( lastChar_, runLength_ );
+            lastChar_ = c;
+            runLength_ = runLength;
         }
     }
 } // ~sendRun
@@ -239,17 +239,17 @@ void BwtWriterRunLength::sendRun( char c, int runLength )
 #ifdef DEBUG
     std::cout << "BW RL sendRun - sending run " << c << " " << runLength << " " << endl;
 #endif
-    if ( c==lastChar_ )
+    if ( c == lastChar_ )
     {
-        runLength_+=runLength;
+        runLength_ += runLength;
     }
     else
     {
-        if ( runLength_!=0 )
+        if ( runLength_ != 0 )
         {
-            encodeRun( lastChar_,runLength_ );
-            lastChar_=c;
-            runLength_=runLength;
+            encodeRun( lastChar_, runLength_ );
+            lastChar_ = c;
+            runLength_ = runLength;
         }
     }
 } // ~sendRun
@@ -266,7 +266,7 @@ vector< vector<unsigned char> > ramFiles( 1000 ); //TODO: make this '1000' dynam
 
 BwtWriterIncrementalRunLength::BwtWriterIncrementalRunLength( const string &fileName )
     : BwtWriterFile( fileName )
-    , runLength_( 0 ),pBuf_( buf_ ),pBufMax_( buf_+ReadBufferSize ), lastChar_( notInAlphabet )
+    , runLength_( 0 ), pBuf_( buf_ ), pBufMax_( buf_ + ReadBufferSize ), lastChar_( notInAlphabet )
 #ifdef REPORT_COMPRESSION_RATIO
     , charsReceived_( 0 ), bytesWritten_( 0 )
 #endif
@@ -297,9 +297,9 @@ BwtWriterIncrementalRunLength::BwtWriterIncrementalRunLength( const string &file
     extern unsigned int debugCycle;
     extern unsigned int lastDefragCycle;
     if ( lastDefragCycle == 0 )
-        fileNum_ = letterNum-1 + 5*( debugCycle-1 );
+        fileNum_ = letterNum - 1 + 5 * ( debugCycle - 1 );
     else
-        fileNum_ = letterNum-1 + 5*( debugCycle-lastDefragCycle+1 );
+        fileNum_ = letterNum - 1 + 5 * ( debugCycle - lastDefragCycle + 1 );
 
 
     //    cout << "  = file #" << fileNum_ << endl;
@@ -312,29 +312,29 @@ BwtWriterIncrementalRunLength::BwtWriterIncrementalRunLength( const string &file
         }
     */
     //    ramFileLengths.resize( ramFiles.size() );
-    fileNumInReader_ = fileNum_ % ( finalCharCode-1 ); // todo: improve this modulo
+    fileNumInReader_ = fileNum_ % ( finalCharCode - 1 ); // todo: improve this modulo
     filePosInReader_ = 0;
 }
 
 
 BwtWriterIncrementalRunLength::~BwtWriterIncrementalRunLength()
 {
-    if ( runLength_!=0 ) encodeRun( lastChar_, runLength_ );
+    if ( runLength_ != 0 ) encodeRun( lastChar_, runLength_ );
     terminateLastInsertion();
 
-    if ( pBuf_!=buf_ )
+    if ( pBuf_ != buf_ )
     {
 
-        size_t bytesWritten = fwrite( buf_, sizeof( char ), ( pBuf_-buf_ ), pFile_ );
-        if ( bytesWritten != ( size_t )( pBuf_-buf_ ) )
+        size_t bytesWritten = fwrite( buf_, sizeof( char ), ( pBuf_ - buf_ ), pFile_ );
+        if ( bytesWritten != ( size_t )( pBuf_ - buf_ ) )
         {
-            cerr << "Unable to write "<< ( pBuf_-buf_ )
+            cerr << "Unable to write " << ( pBuf_ - buf_ )
                  << " chars. Aborting." << endl;
             exit( -1 );
         }
 
 #ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_+=( LetterCountType )( pBuf_-buf_ );
+        bytesWritten_ += ( LetterCountType )( pBuf_ - buf_ );
 #endif
     }
 
@@ -348,7 +348,7 @@ BwtWriterIncrementalRunLength::~BwtWriterIncrementalRunLength()
             << "BwtWriterIncrementalRunLength: received "
             << charsReceived_ << " chars, sent "
             << bytesWritten_ << " bytes, compression "
-            << ( ( double )8*bytesWritten_ )/( charsReceived_ )
+            << ( ( double )8 * bytesWritten_ ) / ( charsReceived_ )
             << " bits per char " << std::endl;
 #endif
 
@@ -361,20 +361,20 @@ void BwtWriterIncrementalRunLength::operator()( const char *p, int numChars )
     std::cout << "BW RL () - " << *p << " " << numChars << " state: " << lastChar_ << " " << runLength_ << endl;
 #endif
 
-    for ( int i( 0 ); i<numChars; i++ )
+    for ( int i( 0 ); i < numChars; i++ )
     {
-        if ( ( *p )==lastChar_ )
+        if ( ( *p ) == lastChar_ )
         {
             runLength_++;
         }
         else
         {
-            if ( runLength_>0 )
+            if ( runLength_ > 0 )
             {
                 encodeRun( lastChar_, runLength_ );
             } // ~if
-            runLength_=1;
-            lastChar_=*p;
+            runLength_ = 1;
+            lastChar_ = *p;
         } // ~else
         p++;
     } // ~for
@@ -446,15 +446,15 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
     }
 
     // Insertion of a letter that can be added to the run-length-encoded char
-    unsigned char count1 = 1 + ( ramFiles[fnum][fpos-2] >> 4 );
+    unsigned char count1 = 1 + ( ramFiles[fnum][fpos - 2] >> 4 );
     unsigned char count2 = 1 + ( c >> 4 );
-    unsigned char letter1 = ramFiles[fnum][fpos-2] & 0x0F;
+    unsigned char letter1 = ramFiles[fnum][fpos - 2] & 0x0F;
     unsigned char letter2 = c & 0x0F;
-    if ( ( letter1 == letter2 ) && ( count1 + count2 <= 16 ) && ( ( ramFiles[fnum][fpos-1] & ~0x80 ) != ( fileNum_/5 ) ) )
+    if ( ( letter1 == letter2 ) && ( count1 + count2 <= 16 ) && ( ( ramFiles[fnum][fpos - 1] & ~0x80 ) != ( fileNum_ / 5 ) ) )
     {
         // we can combine the 2 items
         if ( LOCAL_DEBUG ) clog << " Insertion of a letter that can be added to the run-length-encoded char" << endl;
-        ramFiles[fnum][fpos-2] = ( ( count1+count2-1 )<<4 ) | letter1;
+        ramFiles[fnum][fpos - 2] = ( ( count1 + count2 - 1 ) << 4 ) | letter1;
         return;
     }
 
@@ -463,12 +463,12 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
     {
         if ( LOCAL_DEBUG ) clog << " Insertion of a letter between 2 letters" << endl;
         //  - where no insertion was already present
-        if ( ramFiles[fnum][fpos-1] == 0 )
+        if ( ramFiles[fnum][fpos - 1] == 0 )
         {
             if ( LOCAL_DEBUG ) clog << "  - where no insertion was already present" << endl;
-            unsigned char replacementMetadata = fileNum_/5;
+            unsigned char replacementMetadata = fileNum_ / 5;
             assert( ( replacementMetadata & 0x80 ) == 0 && "Error: there may be too many cycles for this algorithm, which overwrote the Return bit" );
-            ramFiles[fnum][fpos-1] = replacementMetadata;
+            ramFiles[fnum][fpos - 1] = replacementMetadata;
 
             ramFiles[fileNum_].push_back( c );
             ramFiles[fileNum_].push_back( metadata );
@@ -476,15 +476,15 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
         }
 
         //  - where an insertion was already present, but no return
-        if ( ramFiles[fnum][fpos-1] != 0 && ( ramFiles[fnum][fpos-1] & 0x80 ) == 0 )
+        if ( ramFiles[fnum][fpos - 1] != 0 && ( ramFiles[fnum][fpos - 1] & 0x80 ) == 0 )
         {
             if ( LOCAL_DEBUG ) clog << "  - where an insertion was already present, but no return" << endl;
-            unsigned char replacementMetadata = fileNum_/5;
+            unsigned char replacementMetadata = fileNum_ / 5;
             assert( ( replacementMetadata & 0x80 ) == 0 && "Error: there may be too many cycles for this algorithm, which overwrote the Return bit" );
-            if ( ramFiles[fnum][fpos-1] != replacementMetadata )
+            if ( ramFiles[fnum][fpos - 1] != replacementMetadata )
             {
-                onHoldUntilNextReturn_metadata_ = ramFiles[fnum][fpos-1];
-                ramFiles[fnum][fpos-1] = replacementMetadata;
+                onHoldUntilNextReturn_metadata_ = ramFiles[fnum][fpos - 1];
+                ramFiles[fnum][fpos - 1] = replacementMetadata;
             }
             else
             {
@@ -502,12 +502,12 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
         }
 
         //  - where a return was already present
-        if ( ramFiles[fnum][fpos-1] == 0x80 )
+        if ( ramFiles[fnum][fpos - 1] == 0x80 )
         {
             if ( LOCAL_DEBUG ) clog << "  - where a return was already present" << endl;
-            unsigned char replacementMetadata = fileNum_/5;
+            unsigned char replacementMetadata = fileNum_ / 5;
             assert( ( replacementMetadata & 0x80 ) == 0 && "Error: there may be too many cycles for this algorithm, which overwrote the Return bit" );
-            ramFiles[fnum][fpos-1] = replacementMetadata | 0x80; // the return stays
+            ramFiles[fnum][fpos - 1] = replacementMetadata | 0x80; // the return stays
 
             ramFiles[fileNum_].push_back( c );
             ramFiles[fileNum_].push_back( metadata );
@@ -515,15 +515,15 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
         }
 
         //  - where an insertion+return was already present
-        if ( ( ramFiles[fnum][fpos-1] & ~0x80 ) != 0 && ( ramFiles[fnum][fpos-1] & 0x80 ) != 0 )
+        if ( ( ramFiles[fnum][fpos - 1] & ~0x80 ) != 0 && ( ramFiles[fnum][fpos - 1] & 0x80 ) != 0 )
         {
             if ( LOCAL_DEBUG ) clog << "  - where an insertion+return was already present" << endl;
-            unsigned char replacementMetadata = fileNum_/5;
+            unsigned char replacementMetadata = fileNum_ / 5;
             assert( ( replacementMetadata & 0x80 ) == 0 && "Error: there may be too many cycles for this algorithm, which overwrote the Return bit" );
-            if ( ( ramFiles[fnum][fpos-1] & ~0x80 ) != replacementMetadata )
+            if ( ( ramFiles[fnum][fpos - 1] & ~0x80 ) != replacementMetadata )
             {
-                onHoldUntilNextReturn_metadata_ = ramFiles[fnum][fpos-1] & ~0x80;
-                ramFiles[fnum][fpos-1] = replacementMetadata | 0x80; // the return stays
+                onHoldUntilNextReturn_metadata_ = ramFiles[fnum][fpos - 1] & ~0x80;
+                ramFiles[fnum][fpos - 1] = replacementMetadata | 0x80; // the return stays
             }
             else
             {
@@ -548,17 +548,17 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
     {
         if ( LOCAL_DEBUG ) clog << " Insertion of a letter in the middle of a run-length-encoded char" << endl;
         //  - where no insertion was already present
-        if ( ramFiles[fnum][fpos-1] == 0 )
+        if ( ramFiles[fnum][fpos - 1] == 0 )
         {
             if ( LOCAL_DEBUG ) clog << "  - where no insertion was already present" << endl;
-            unsigned char replacementMetadata = fileNum_/5;
+            unsigned char replacementMetadata = fileNum_ / 5;
             assert( ( replacementMetadata & 0x80 ) == 0 && "Error: there may be too many cycles for this algorithm, which overwrote the Return bit" );
 
             onHoldUntilNextReturn_letter_ = letter1;
             onHoldUntilNextReturn_runLength_ = remainingRunLengthInReader_;
             assert( remainingRunLengthInReader_ < count1 );
-            ramFiles[fnum][fpos-2] = ( ( count1 - remainingRunLengthInReader_ - 1 ) << 4 ) | letter1;
-            ramFiles[fnum][fpos-1] = replacementMetadata;
+            ramFiles[fnum][fpos - 2] = ( ( count1 - remainingRunLengthInReader_ - 1 ) << 4 ) | letter1;
+            ramFiles[fnum][fpos - 1] = replacementMetadata;
 
             ramFiles[fileNum_].push_back( c );
             ramFiles[fileNum_].push_back( metadata );
@@ -566,14 +566,14 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
         }
 
         //  - where an insertion was already present, but no return
-        if ( ramFiles[fnum][fpos-1] != 0 && ( ramFiles[fnum][fpos-1] & 0x80 ) == 0 )
+        if ( ramFiles[fnum][fpos - 1] != 0 && ( ramFiles[fnum][fpos - 1] & 0x80 ) == 0 )
         {
             if ( LOCAL_DEBUG ) clog << "  - where an insertion was already present, but no return" << endl;
-            unsigned char replacementMetadata = fileNum_/5;
+            unsigned char replacementMetadata = fileNum_ / 5;
             assert( ( replacementMetadata & 0x80 ) == 0 && "Error: there may be too many cycles for this algorithm, which overwrote the Return bit" );
 
             //     - if the insertion point is the current newest file
-            if ( ramFiles[fnum][fpos-1] == replacementMetadata )
+            if ( ramFiles[fnum][fpos - 1] == replacementMetadata )
             {
                 if ( LOCAL_DEBUG ) clog << "     - if the insertion point is the current newest file" << endl;
                 assert( ramFiles[fileNum_].back() != 0 ); // we should already have properly inserted the return, with an eventual jump, and we'll recycle those
@@ -586,7 +586,7 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
                 onHoldUntilNextReturn_runLength_ = remainingRunLengthInReader_;
                 ramFiles[fileNum_].pop_back();
 
-                ramFiles[fileNum_].push_back( ( newCount-1 ) << 4 | letter1 );
+                ramFiles[fileNum_].push_back( ( newCount - 1 ) << 4 | letter1 );
                 ramFiles[fileNum_].push_back( 0 );
 
                 ramFiles[fileNum_].push_back( c );
@@ -600,10 +600,10 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
                 if ( LOCAL_DEBUG ) clog << "     - if the insertion point is an older file" << endl;
                 onHoldUntilNextReturn_letter_ = letter1;
                 onHoldUntilNextReturn_runLength_ = remainingRunLengthInReader_;
-                onHoldUntilNextReturn_metadata_ = ramFiles[fnum][fpos-1];
+                onHoldUntilNextReturn_metadata_ = ramFiles[fnum][fpos - 1];
                 assert( remainingRunLengthInReader_ < count1 );
-                ramFiles[fnum][fpos-2] = ( ( count1 - remainingRunLengthInReader_ - 1 ) << 4 ) | letter1;
-                ramFiles[fnum][fpos-1] = replacementMetadata;
+                ramFiles[fnum][fpos - 2] = ( ( count1 - remainingRunLengthInReader_ - 1 ) << 4 ) | letter1;
+                ramFiles[fnum][fpos - 1] = replacementMetadata;
 
                 ramFiles[fileNum_].push_back( c );
                 ramFiles[fileNum_].push_back( metadata );
@@ -612,17 +612,17 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
         }
 
         //  - where a return was already present
-        if ( ramFiles[fnum][fpos-1] == 0x80 )
+        if ( ramFiles[fnum][fpos - 1] == 0x80 )
         {
             if ( LOCAL_DEBUG ) clog << "  - where a return was already present" << endl;
-            unsigned char replacementMetadata = fileNum_/5;
+            unsigned char replacementMetadata = fileNum_ / 5;
             assert( ( replacementMetadata & 0x80 ) == 0 && "Error: there may be too many cycles for this algorithm, which overwrote the Return bit" );
 
             onHoldUntilNextReturn_letter_ = letter1;
             onHoldUntilNextReturn_runLength_ = remainingRunLengthInReader_;
             assert( remainingRunLengthInReader_ < count1 );
-            ramFiles[fnum][fpos-2] = ( ( count1 - remainingRunLengthInReader_ - 1 ) << 4 ) | letter1;
-            ramFiles[fnum][fpos-1] = replacementMetadata | 0x80; // the return stays
+            ramFiles[fnum][fpos - 2] = ( ( count1 - remainingRunLengthInReader_ - 1 ) << 4 ) | letter1;
+            ramFiles[fnum][fpos - 1] = replacementMetadata | 0x80; // the return stays
 
             ramFiles[fileNum_].push_back( c );
             ramFiles[fileNum_].push_back( metadata );
@@ -630,14 +630,14 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
         }
 
         //  - where an insertion+return was already present
-        if ( ( ramFiles[fnum][fpos-1] & ~0x80 ) != 0 && ( ramFiles[fnum][fpos-1] & 0x80 ) != 0 )
+        if ( ( ramFiles[fnum][fpos - 1] & ~0x80 ) != 0 && ( ramFiles[fnum][fpos - 1] & 0x80 ) != 0 )
         {
             if ( LOCAL_DEBUG ) clog << "  - where an insertion+return was already present" << endl;
-            unsigned char replacementMetadata = fileNum_/5;
+            unsigned char replacementMetadata = fileNum_ / 5;
             assert( ( replacementMetadata & 0x80 ) == 0 && "Error: there may be too many cycles for this algorithm, which overwrote the Return bit" );
 
             //     - if the insertion point is the current newest file
-            if ( ( ramFiles[fnum][fpos-1] & ~0x80 ) == replacementMetadata )
+            if ( ( ramFiles[fnum][fpos - 1] & ~0x80 ) == replacementMetadata )
             {
                 if ( LOCAL_DEBUG ) clog << "     - if the insertion point is the current newest file" << endl;
                 assert( ramFiles[fileNum_].back() != 0 ); // we should already have properly inserted the return, with an eventual jump, and we'll recycle those
@@ -650,7 +650,7 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
                 onHoldUntilNextReturn_runLength_ = remainingRunLengthInReader_;
                 ramFiles[fileNum_].pop_back();
 
-                ramFiles[fileNum_].push_back( ( newCount-1 ) << 4 | letter1 );
+                ramFiles[fileNum_].push_back( ( newCount - 1 ) << 4 | letter1 );
                 ramFiles[fileNum_].push_back( 0 );
 
                 ramFiles[fileNum_].push_back( c );
@@ -664,10 +664,10 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
                 if ( LOCAL_DEBUG ) clog << "     - if the insertion point is an older file" << endl;
                 onHoldUntilNextReturn_letter_ = letter1;
                 onHoldUntilNextReturn_runLength_ = remainingRunLengthInReader_;
-                onHoldUntilNextReturn_metadata_ = ramFiles[fnum][fpos-1] & ~0x80;
+                onHoldUntilNextReturn_metadata_ = ramFiles[fnum][fpos - 1] & ~0x80;
                 assert( remainingRunLengthInReader_ < count1 );
-                ramFiles[fnum][fpos-2] = ( ( count1 - remainingRunLengthInReader_ - 1 ) << 4 ) | letter1;
-                ramFiles[fnum][fpos-1] = replacementMetadata | 0x80; // the return stays
+                ramFiles[fnum][fpos - 2] = ( ( count1 - remainingRunLengthInReader_ - 1 ) << 4 ) | letter1;
+                ramFiles[fnum][fpos - 1] = replacementMetadata | 0x80; // the return stays
 
                 ramFiles[fileNum_].push_back( c );
                 ramFiles[fileNum_].push_back( metadata );
@@ -686,30 +686,30 @@ void BwtWriterIncrementalRunLength::encodeRun( char c, uint runLength )
               << std::endl;
 #endif
 #ifdef REPORT_COMPRESSION_RATIO
-    charsReceived_+=runLength;
+    charsReceived_ += runLength;
 #endif
     int charIndex( whichPile[( int )c] );
 
-    if ( charIndex==nv )
+    if ( charIndex == nv )
     {
         cerr << "Char is not part of the alphabet. Aborting." << endl;
         exit( -1 );
     }
 
-    uchar outCode( 0xF0|( ( uchar )charIndex ) );
+    uchar outCode( 0xF0 | ( ( uchar )charIndex ) );
     runLength--;
-    const uint numMaxChars( runLength>>4 );
-    for ( uint i( 0 ); i<numMaxChars; i++ )
+    const uint numMaxChars( runLength >> 4 );
+    for ( uint i( 0 ); i < numMaxChars; i++ )
     {
-        sendChar( outCode,0 );
+        sendChar( outCode, 0 );
     }
-    runLength&=( uint )0xF;
+    runLength &= ( uint )0xF;
 
-    outCode=( ( ( uchar )runLength )<<4 );
-    outCode|=charIndex;
+    outCode = ( ( ( uchar )runLength ) << 4 );
+    outCode |= charIndex;
     //    assert(((uint)outCode)<256);
     //    assert(fwrite( &outCode, sizeof(char), 1, pFile_ )==1);
-    sendChar( outCode,0 );
+    sendChar( outCode, 0 );
 #ifdef DEBUG
     std::cout << "B sending " << ( uint )outCode << " " << pFile_ << std::endl;
 #endif
@@ -721,17 +721,17 @@ void BwtWriterIncrementalRunLength::sendRun( char c, int runLength )
 #ifdef DEBUG
     std::cout << "BW RL sendRun - sending run " << c << " " << runLength << " " << endl;
 #endif
-    if ( runLength!=0 )
+    if ( runLength != 0 )
     {
-        if ( c==lastChar_ )
+        if ( c == lastChar_ )
         {
-            runLength_+=runLength;
+            runLength_ += runLength;
         }
         else
         {
-            if ( runLength_!=0 ) encodeRun( lastChar_,runLength_ );
-            lastChar_=c;
-            runLength_=runLength;
+            if ( runLength_ != 0 ) encodeRun( lastChar_, runLength_ );
+            lastChar_ = c;
+            runLength_ = runLength;
         }
     }
 } // ~sendRun
@@ -745,9 +745,9 @@ void BwtWriterIncrementalRunLength::sendRunOfPreExistingData( char c, int runLen
         return;
     }
 
-    if ( runLength_!=0 && ( fileNumInReader_!=( uint )fileNum || filePosInReader_!=posInRamFile || remainingRunLengthInReader_ != remainingRunLength ) )
+    if ( runLength_ != 0 && ( fileNumInReader_ != ( uint )fileNum || filePosInReader_ != posInRamFile || remainingRunLengthInReader_ != remainingRunLength ) )
     {
-        encodeRun( lastChar_,runLength_ );
+        encodeRun( lastChar_, runLength_ );
         lastChar_  = notInAlphabet;
         runLength_ = 0;
     }
@@ -771,50 +771,50 @@ void BwtWriterIncrementalRunLength::sendRunOfPreExistingData( char c, int runLen
 
 BwtWriterHuffman::~BwtWriterHuffman() // destructor
 {
-    sendRun( lastChar_,runLength_ ); //gets last normal chars from buffer
-    sendRun( notInAlphabet,1 ); // send termination char
+    sendRun( lastChar_, runLength_ ); //gets last normal chars from buffer
+    sendRun( notInAlphabet, 1 ); // send termination char
     BwtWriterHuffman::emptyBuffer();
-    while ( bitsUsed_>0 )
+    while ( bitsUsed_ > 0 )
     {
-        assert( fwrite( &soFar_.ui, sizeof( unsigned int ), 1, pFile_ )==1 );
+        assert( fwrite( &soFar_.ui, sizeof( unsigned int ), 1, pFile_ ) == 1 );
 #ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_+=( LetterCountType ) sizeof( unsigned int );
+        bytesWritten_ += ( LetterCountType ) sizeof( unsigned int );
 #endif
 #ifdef DEBUG
         cout << endl;
-        for ( unsigned int i( 1 ); i!=0; i<<=1 )
-            cout << ( ( soFar_.ui&i )?'1':'0' );
+        for ( unsigned int i( 1 ); i != 0; i <<= 1 )
+            cout << ( ( soFar_.ui & i ) ? '1' : '0' );
         cout << endl;
 #endif
-        bitsUsed_-=32;
+        bitsUsed_ -= 32;
     }
 #ifdef REPORT_COMPRESSION_RATIO
     Logger::out( LOG_FOR_DEBUGGING )
             << "BwtWriterHuffman: received "
             << charsReceived_ << " chars, sent "
             << bytesWritten_ << " bytes, compression "
-            << ( ( double )8*bytesWritten_ )/( charsReceived_ )
+            << ( ( double )8 * bytesWritten_ ) / ( charsReceived_ )
             << " bits per char " << std::endl;
 #endif
 } // ~BwtWriterHuffman()
 
 void BwtWriterHuffman::operator()( const char *p, int numChars )
 {
-    for ( int i( 0 ); i<numChars; i++ )
+    for ( int i( 0 ); i < numChars; i++ )
     {
-        if ( ( *p )==lastChar_ )
+        if ( ( *p ) == lastChar_ )
         {
             runLength_++;
         }
         else
         {
-            if ( runLength_>0 )
+            if ( runLength_ > 0 )
             {
                 sendRun( lastChar_, runLength_ );
             } // ~if
 
-            runLength_=1;
-            lastChar_=*p;
+            runLength_ = 1;
+            lastChar_ = *p;
         } // ~else
         p++;
     } // ~for
@@ -834,7 +834,7 @@ void BwtWriterHuffman::sendToken( unsigned long long code, unsigned int length )
     {
         assert( fwrite( &soFar_.ui, sizeof ( unsigned int ), 1, pFile_ ) == 1 );
 #ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_+=( LetterCountType ) sizeof( unsigned int );
+        bytesWritten_ += ( LetterCountType ) sizeof( unsigned int );
 #endif
 #ifdef DEBUG
         for ( unsigned int i( 1 ); i != 0; i <<= 1 )
@@ -850,7 +850,7 @@ void BwtWriterHuffman::sendToken( unsigned long long code, unsigned int length )
 void BwtWriterHuffman::sendRun( char c, int runLength )
 {
 #ifdef REPORT_COMPRESSION_RATIO
-    charsReceived_+=runLength;
+    charsReceived_ += runLength;
 #endif
     if ( runLength > 0 )
     {
@@ -858,7 +858,7 @@ void BwtWriterHuffman::sendRun( char c, int runLength )
         for ( int i( 0 ); i < runLength; i++ )
         {
 
-            if ( huffmanBufferPos == huffmanWriterBufferSize-1 )
+            if ( huffmanBufferPos == huffmanWriterBufferSize - 1 )
             {
                 symBuf[huffmanBufferPos] = c;
                 processBuffer( huffmanWriterBufferSize );
@@ -885,18 +885,18 @@ void BwtWriterHuffman::processBuffer( int itemsToPrint )
     if ( itemsToPrint > 0 )
     {
         char localLastChar = 0;
-        unsigned int localRunLength=0;
+        unsigned int localRunLength = 0;
 
-        for ( int i( 0 ); i<itemsToPrint; i++ )
+        for ( int i( 0 ); i < itemsToPrint; i++ )
         {
             //  cerr << pFile_ << " accessing char at " << i << endl;
-            if ( symBuf[i]==localLastChar )
+            if ( symBuf[i] == localLastChar )
             {
                 localRunLength++;
             }
             else
             {
-                if ( localRunLength>0 )
+                if ( localRunLength > 0 )
                 {
                     // get number of this char, 0-5
                     int charIndex( whichPile[( int ) localLastChar] );
@@ -923,7 +923,7 @@ void BwtWriterHuffman::processBuffer( int itemsToPrint )
         // process last entry of the buffer
         int charIndex( whichPile[( int ) localLastChar] ); // get number of this char, 0-5
 
-        if ( ( int )localLastChar > 0 && whichPile[( int ) localLastChar]< alphabetSize )
+        if ( ( int )localLastChar > 0 && whichPile[( int ) localLastChar] < alphabetSize )
         {
 
             assert( charIndex != nv ); // crash if not from alphabet
@@ -975,11 +975,11 @@ void BwtWriterHuffman::sendNum( unsigned int runLength )
 
 BwtWriterImplicit::~BwtWriterImplicit()
 {
-    if ( inSAP_==true )
+    if ( inSAP_ == true )
     {
         flushSAP();
     }
-    else if ( lastChar_!=notInAlphabet )
+    else if ( lastChar_ != notInAlphabet )
     {
         pWriter_->sendRun( lastChar_, lastRun_ );
     }
@@ -988,12 +988,12 @@ BwtWriterImplicit::~BwtWriterImplicit()
 
 void BwtWriterImplicit::flushSAP( void )
 {
-    assert( alphabet[firstSAP_]==lastChar_ );
-    if ( countSAP_.count_[firstSAP_]>0 ) pWriter_->sendRun( alphabet[firstSAP_],countSAP_.count_[firstSAP_] );
+    assert( alphabet[firstSAP_] == lastChar_ );
+    if ( countSAP_.count_[firstSAP_] > 0 ) pWriter_->sendRun( alphabet[firstSAP_], countSAP_.count_[firstSAP_] );
 
-    for ( int i( 0 ); i<alphabetSize; i++ )
+    for ( int i( 0 ); i < alphabetSize; i++ )
     {
-        if ( ( i!=firstSAP_ )&&( countSAP_.count_[i]>0 ) ) pWriter_->sendRun( alphabet[i],countSAP_.count_[i] );
+        if ( ( i != firstSAP_ ) && ( countSAP_.count_[i] > 0 ) ) pWriter_->sendRun( alphabet[i], countSAP_.count_[i] );
     }
 }
 
@@ -1001,34 +1001,34 @@ void BwtWriterImplicit::flushSAP( void )
 void BwtWriterImplicit::operator()( const char *p, int numChars )
 {
 
-    for ( int i( 0 ); i<numChars; i++,p++ )
+    for ( int i( 0 ); i < numChars; i++, p++ )
     {
         if ( islower( *p ) )
         {
-            if ( inSAP_==false )
+            if ( inSAP_ == false )
             {
                 countSAP_.clear();
-                assert ( lastChar_!=notInAlphabet );
-                firstSAP_=whichPile[( int )lastChar_];
-                assert( firstSAP_!=nv );
-                countSAP_.count_[firstSAP_]+=lastRun_;
-                inSAP_=true;
+                assert ( lastChar_ != notInAlphabet );
+                firstSAP_ = whichPile[( int )lastChar_];
+                assert( firstSAP_ != nv );
+                countSAP_.count_[firstSAP_] += lastRun_;
+                inSAP_ = true;
             } // ~if
-            countSAP_+=*p;
+            countSAP_ += *p;
         } // ~if
         else
         {
-            if ( inSAP_==true )
+            if ( inSAP_ == true )
             {
                 flushSAP();
-                inSAP_=false;
+                inSAP_ = false;
             }
-            else if ( lastChar_!=notInAlphabet )
+            else if ( lastChar_ != notInAlphabet )
             {
                 pWriter_->sendRun( lastChar_, lastRun_ );
             }
-            lastChar_=*p;
-            lastRun_=1;
+            lastChar_ = *p;
+            lastRun_ = 1;
         }
     }
 }
@@ -1037,30 +1037,30 @@ void BwtWriterImplicit::sendRun( char c, int runLength )
 {
     if ( islower( c ) )
     {
-        if ( inSAP_==false )
+        if ( inSAP_ == false )
         {
             countSAP_.clear();
-            assert ( lastChar_!=notInAlphabet );
-            firstSAP_=whichPile[( int )lastChar_];
-            assert( firstSAP_!=nv );
-            countSAP_.count_[firstSAP_]+=lastRun_;
-            inSAP_=true;
+            assert ( lastChar_ != notInAlphabet );
+            firstSAP_ = whichPile[( int )lastChar_];
+            assert( firstSAP_ != nv );
+            countSAP_.count_[firstSAP_] += lastRun_;
+            inSAP_ = true;
         } // ~if
-        countSAP_.count_[whichPile[( int )c]]+=runLength;
+        countSAP_.count_[whichPile[( int )c]] += runLength;
     }
     else
     {
-        if ( inSAP_==true )
+        if ( inSAP_ == true )
         {
             flushSAP();
-            inSAP_=false;
+            inSAP_ = false;
         }
-        else if ( lastChar_!=notInAlphabet )
+        else if ( lastChar_ != notInAlphabet )
         {
             pWriter_->sendRun( lastChar_, lastRun_ );
         }
-        lastChar_=c;
-        lastRun_=runLength;
+        lastChar_ = c;
+        lastRun_ = runLength;
     }
 
     //  (*pWriter_).sendRun(toupper(c), runLength);
@@ -1071,9 +1071,9 @@ void BwtWriterImplicit::operator()( const char *p, int numChars )
 {
     // could be smarter about this
     char c;
-    for ( int i( 0 ); i<numChars; i++,p++ )
+    for ( int i( 0 ); i < numChars; i++, p++ )
     {
-        c=toupper( *p );
+        c = toupper( *p );
         ( *pWriter_ )( &c, 1 );
     }
 }

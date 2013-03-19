@@ -77,17 +77,17 @@ static const unsigned int ReadBufferSize( 1024 );
 const uint numDoubleCodes( 6 );
 
 // EOT character 'Z'
-const uint numSingleCodes( numDoubleCodes+1 );
+const uint numSingleCodes( numDoubleCodes + 1 );
 
 // maximal size of one token is 8 bit
 const uint maxTokenSize( 8 );
 
 // we will have 256 different tokens
-const uint numTokens( 1<<maxTokenSize );
+const uint numTokens( 1 << maxTokenSize );
 
 // 255 in binary -> 1111 1111
 // used to extract the last 8 bits during processing
-const uint tokenMask( numTokens-1 );
+const uint tokenMask( numTokens - 1 );
 
 // for once a typedef here, otherwise types.hh would have to include config.hh
 // this is a lookup table for fast 8bit mask -> orginal alphabet letter
@@ -110,7 +110,7 @@ static const unsigned long long singleCharCode[numSingleCodes]
 static const uint singleCharLength[numSingleCodes]
 
 //= {5,3,3,3,6,4,8}; // Tobias
-    = {5,3,3,3,7,3,8}; // Tony
+    = {5, 3, 3, 3, 7, 3, 8}; // Tony
 
 // without 'Z', runlength encoding codes
 // hexadecimal codes for each letter used by Huffman encoder
@@ -127,7 +127,7 @@ static const unsigned long long doubleCharCode[numDoubleCodes]
 static const uint doubleCharLength[numDoubleCodes]
 //    $ A C G N T
 // = {8,3,3,4,7,3}; // Tobias
-    = {6,3,3,3,8,4}; // Tony
+    = {6, 3, 3, 3, 8, 4}; // Tony
 
 // position of the notinalphabet char in the baseNames array
 static const uint finalCharCode( 6 );

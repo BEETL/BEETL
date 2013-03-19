@@ -25,35 +25,71 @@
 using std::vector;
 
 
-#if USE_ATTRIBUTE_PACKED == 1
 struct sortElement
 {
-    sortElement() {};
-    sortElement( dataTypedimAlpha z, dataTypeNChar x,dataTypeNSeq y )
+#if BUILD_LCP == 0
+
+    sortElement() {}
+
+    sortElement( dataTypedimAlpha z, dataTypeNChar x, dataTypeNSeq y )
+        : pileN( z )
+        , posN( x )
+        , seqN( y )
+    {}
+
+    dataTypelenSeq getLcpCurN() const
     {
-        pileN = z;
-        posN = x;
-        seqN = y;
-    };
+        return 0;
+    }
+    dataTypelenSeq getLcpSucN() const
+    {
+        return 0;
+    }
+    void setLcpCurN( const dataTypelenSeq val ) { }
+    void setLcpSucN( const dataTypelenSeq val ) { }
+
+#else
+
+    sortElement() : lcpCurN( 0 ), lcpSucN( 0 ) {}
+
+    sortElement( dataTypedimAlpha z, dataTypeNChar x, dataTypeNSeq y, dataTypelenSeq l1 = 0, dataTypelenSeq l2 = 0 )
+        : pileN( z )
+        , posN( x )
+        , seqN( y )
+        , lcpCurN( l1 )
+        , lcpSucN( l2 )
+    {}
+
+    dataTypelenSeq getLcpCurN() const
+    {
+        return lcpCurN;
+    }
+    dataTypelenSeq getLcpSucN() const
+    {
+        return lcpSucN;
+    }
+    void setLcpCurN( const dataTypelenSeq val )
+    {
+        lcpCurN = val;
+    }
+    void setLcpSucN( const dataTypelenSeq val )
+    {
+        lcpSucN = val;
+    }
+
+#endif
     ~sortElement() {};
     dataTypedimAlpha pileN;
     dataTypeNChar posN;
     dataTypeNSeq seqN;
+#if BUILD_LCP == 1
+    dataTypelenSeq lcpCurN;
+    dataTypelenSeq lcpSucN;
+#endif
+
+#if USE_ATTRIBUTE_PACKED == 1
 } __attribute__ ( ( packed ) );
 #else
-struct sortElement
-{
-    sortElement() {};
-    sortElement( dataTypedimAlpha z, dataTypeNChar x,dataTypeNSeq y )
-    {
-        pileN = z;
-        posN = x;
-        seqN = y;
-    };
-    ~sortElement() {};
-    dataTypedimAlpha pileN;
-    dataTypeNChar posN;
-    dataTypeNSeq seqN;
 };
 #endif
 

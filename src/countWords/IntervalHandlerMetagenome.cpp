@@ -52,19 +52,19 @@ void IntervalHandlerMetagenome::getFileNumbersForRange( const int &pileNum, cons
     if ( pileNum == 6 )
         return;
     //go to the position in the File where the fileNumbers for each Bwt positions are indicated
-    fseek( mergeCSet_[pileNum] , ( ( bwtPosition&matchMask ) * sizeof( unsigned short ) ), SEEK_SET );
+    fseek( mergeCSet_[pileNum] , ( ( bwtPosition & matchMask ) * sizeof( unsigned short ) ), SEEK_SET );
     //reserve the space for the fileNumbers. there are as many fileNumbers as the suffix count
-    unsigned short *fileNum = ( unsigned short * ) malloc ( num* ( sizeof( unsigned short ) ) );
+    unsigned short *fileNum = ( unsigned short * ) malloc ( num * ( sizeof( unsigned short ) ) );
     //read out the fileNumbers which are corresponding to this BWT-postion
     fread( fileNum, sizeof( unsigned short ), num, mergeCSet_[pileNum] );
 
     //to test if the suffix is a singleton in each of the different files the found fileNumbers
     //will be added to an vector, only if the fileNumber is not already there
     fileNumbers.push_back( fileNum[0] );
-    for ( unsigned int i( 1 ); i<num; i++ )
+    for ( unsigned int i( 1 ); i < num; i++ )
     {
         bool alreadyAdded( false );
-        for ( unsigned int j( 0 ); j <fileNumbers.size() ; j++ )
+        for ( unsigned int j( 0 ); j < fileNumbers.size() ; j++ )
         {
             //if the fileNumber is already in the vector this means this suffix was found twice in one file and is no singleton
             //late on the size of the fileNumbers and the range number can be tested
@@ -100,14 +100,15 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
     //look if the files have at each point of the taxonomic tree different tax level or if they are the same
     bool sameTaxa( false );
     //  cout << "intervalInSame " << fileNumbers.size() <<endl;
-    for ( int i = taxLevelSize-1  ;  i >= 0 ; i-- )
+    for ( int i = taxLevelSize - 1  ;  i >= 0 ; i-- )
     {
         // to remove outlier, first count all taxas
-        map<int,int> taxaCount;
+        map<int, int> taxaCount;
         //for each taxa for each level count how many where found
         for ( unsigned int j( 0 ); j < fileNumbers.size(); j++ )
         {
             if ( fileNumToTaxIds_[j][i] == -1 )
+            {
                 if ( taxaCount.find( fileNumToTaxIds_[j][i] ) == taxaCount.end() )
                 {
                     taxaCount[fileNumToTaxIds_[fileNumbers[j]][i]] = 1;
@@ -116,12 +117,13 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
                 {
                     taxaCount[fileNumToTaxIds_[fileNumbers[j]][i]] += 1 ;
                 }
+            }
         }
 #ifdef MET_DEBUG
-        cout << i<<endl;
-        for ( map<int,int>::iterator it = taxaCount.begin(); it != taxaCount.end(); it++ )
-            cout << ( *it ).first << " " << ( *it ).second <<endl;
-        cout <<i << " taxa " <<taxaCount.size() <<endl;
+        cout << i << endl;
+        for ( map<int, int>::iterator it = taxaCount.begin(); it != taxaCount.end(); it++ )
+            cout << ( *it ).first << " " << ( *it ).second << endl;
+        cout << i << " taxa " << taxaCount.size() << endl;
 #endif
         taxSame[i] = sameTaxa;
         //if there was only one possible taxa no outliner is possible
@@ -140,7 +142,7 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
         if ( testOutliner )
         {
             vector<int> biggestTaxa;
-            for ( map<int,int>::iterator it = taxaCount.begin() ; it != taxaCount.end(); it++ )
+            for ( map<int, int>::iterator it = taxaCount.begin() ; it != taxaCount.end(); it++ )
             {
                 //if there are two taxa, where one has 9 files and the other has 1. than the first one has more than 90% of the results, the second one less than 10%
                 //if there are
@@ -162,15 +164,15 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
             else
             {
                 sharedTaxIds[i] = 0;
-                taxSame[i]= false;
+                taxSame[i] = false;
             }
         }
     }
     // if there was only one file it has to have a common taxa in all taxLevels
     // only the lowest taxlevel needs to be set because only that will be printed
-    if ( fileNumbers.size()==1 )
+    if ( fileNumbers.size() == 1 )
     {
-        for ( unsigned int i( taxLevelSize-1 ); i > 0; i-- )
+        for ( unsigned int i( taxLevelSize - 1 ); i > 0; i-- )
         {
             if ( fileNumToTaxIds_[fileNumbers[0]][i] != -1 )
             {
@@ -181,15 +183,15 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
         }
     }
 #ifdef MET_DEBUG
-    for ( unsigned int i( 0 ); i< fileNumbers.size(); i++ )
+    for ( unsigned int i( 0 ); i < fileNumbers.size(); i++ )
         cerr << fileNumbers[i] << " " ;
-    cerr <<endl;
+    cerr << endl;
     for ( unsigned int i( 0 ); i < taxSame.size() ; i++ )
         cerr << sharedTaxIds[i] << " " ;
-    cerr <<endl;
-    for ( unsigned int i( 0 ); i<taxSame.size(); i++ )
-        cerr <<taxSame[i] << " " ;
-    cerr <<endl;
+    cerr << endl;
+    for ( unsigned int i( 0 ); i < taxSame.size(); i++ )
+        cerr << taxSame[i] << " " ;
+    cerr << endl;
 #endif
     return taxSame;
 }
@@ -213,7 +215,7 @@ void IntervalHandlerMetagenome::foundInBoth
     //print the taxonomic information because the different propagation between C and G could be a breakpoint between taxas
     bool differentProp( false );
     bool endOfRead( false );
-    for ( int l ( 1 ); l<alphabetSize; l++ )
+    for ( int l ( 1 ); l < alphabetSize; l++ )
     {
         //if word is a singleton in the reference files don't propagate anymore
         if ( countsThisRangeB.count_[l] > 0 )
@@ -232,21 +234,21 @@ void IntervalHandlerMetagenome::foundInBoth
         }
     }
     //if at least one read reached the end print the taxonomic information
-    if ( countsThisRangeA.count_[0] >=minOcc_ )
-        endOfRead =true;
+    if ( countsThisRangeA.count_[0] >= minOcc_ )
+        endOfRead = true;
     //flag indicating if information about the databse should be given
     if ( testDB_ )
     {
         //if the database should be tested propagate hte intervalls in B as long as they can be propagated
         //this should have been done anyway with the normal propagation, this is just to make sure
-        for ( int l( 1 ); l <alphabetSize; l++ )
+        for ( int l( 1 ); l < alphabetSize; l++ )
         {
             propagateIntervalB[l] = countsThisRangeB.count_[l] > 0;
         }
     }
 
     //don't bother about the Ns
-    propagateIntervalB[whichPile[( int )dontKnowChar]] =false;
+    propagateIntervalB[whichPile[( int )dontKnowChar]] = false;
     propagateIntervalA[whichPile[( int ) dontKnowChar]] = false;
     //testing if the word is in the reads and in certain genomes
     //only look the fileNumbers up if the word can't be propagatet anymore.
@@ -262,7 +264,7 @@ void IntervalHandlerMetagenome::foundInBoth
         //only print information about a certain singleton lengths
         //this is mostly to sorten the output of the database information as well as reduce running time
         //the numbers are completely randomly chosen
-        if ( thisRangeB.word_.length()== 35
+        if ( thisRangeB.word_.length() == 35
              || thisRangeB.word_.length() == 50
              || thisRangeB.word_.length() == 100
              || thisRangeB.word_.length() == 150
@@ -272,20 +274,20 @@ void IntervalHandlerMetagenome::foundInBoth
             // get the unique file numbers where this Range can be found
             getFileNumbersForRange( pileNum, thisRangeB.pos_, thisRangeB.num_, fileNumbers );
             // test if word is singleton in the files
-            cout << "file numbers size " << fileNumbers.size() << " range " << thisRangeB.num_ <<endl;
+            cout << "file numbers size " << fileNumbers.size() << " range " << thisRangeB.num_ << endl;
             if ( fileNumbers.size() <= thisRangeB.num_ )
             {
                 //if the word is a singleton in the files, look if there is a shared taxonomic Id on the different taxonomic levels
                 vector<bool> sameTaxa = intervalInSameTaxa( sharedTaxa, fileNumbers );
                 //go through the taxonomic levels starting with the lowest (either strain or species)
-                for ( unsigned int i( taxLevelSize-1 ); i > 1; i-- )
+                for ( unsigned int i( taxLevelSize - 1 ); i > 1; i-- )
                 {
                     //look for each taxonomic level if there is a shared taxa and print the minimal information about this leven
                     //break if a shared information was found.
                     if ( sameTaxa[i] && sharedTaxa[i] != 0 )
                     {
                         //taxaCountPerWordLength[thisRangeB.word_.length()][sharedTaxa[i]] += 1;
-                        cout << "BWord" << thisRangeB.word_.length() <<"|" << sharedTaxa[i] <<"|";
+                        cout << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
                         break;
                     } //~same taxa
                 }// ~ for loop for the tax levels
@@ -325,10 +327,10 @@ void IntervalHandlerMetagenome::foundInBoth
                 countsThisRangeB.count_[3],
                 countsThisRangeB.count_[4],
                 countsThisRangeB.count_[5],
-                ( thisRangeB.pos_&matchMask ) );
-            for ( unsigned int f( 0 ) ; f <fileNumbers.size(); f++ )
-                cout << fileNumbers[f] <<":";
-            cout <<endl;
+                ( thisRangeB.pos_ & matchMask ) );
+            for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
+                cout << fileNumbers[f] << ":";
+            cout << endl;
         }
 
 
@@ -342,12 +344,12 @@ void IntervalHandlerMetagenome::foundInBoth
             int smallestTaxLevel = ( thisRangeB.word_.length() > 50 ) ? 0 : 1;
             //if there are shared taxonomic ids between the files where this suffic can be found
             //print the information about the deepest tax level
-            for ( int i( taxLevelSize-1 ) ; i >= smallestTaxLevel; i-- )
+            for ( int i( taxLevelSize - 1 ) ; i >= smallestTaxLevel; i-- )
             {
                 if ( sameTaxa[i] && sharedTaxa[i] != 0 )
                 {
-                    cout << "MTAXA " << i <<  " " << sharedTaxa[i]<< " " << thisRangeB.word_ ;
-                    cout << " " << ( thisRangeB.pos_&matchMask ) << " " ;
+                    cout << "MTAXA " << i <<  " " << sharedTaxa[i] << " " << thisRangeB.word_ ;
+                    cout << " " << ( thisRangeB.pos_ & matchMask ) << " " ;
                     printf( "%llu:%llu:%llu:%llu:%llu:%llu %llu:%llu:%llu:%llu:%llu:%llu ",
                             countsThisRangeA.count_[0],
                             countsThisRangeA.count_[1],
@@ -362,9 +364,9 @@ void IntervalHandlerMetagenome::foundInBoth
                             countsThisRangeB.count_[4],
                             countsThisRangeB.count_[5]
                           );
-                    for ( unsigned int f( 0 ) ; f <fileNumbers.size(); f++ )
-                        cout << fileNumbers[f] <<":";
-                    cout <<endl;
+                    for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
+                        cout << fileNumbers[f] << ":";
+                    cout << endl;
                     break;
                 }//~if shared taxa
             }//~for loop for the taxonomic levels
@@ -383,18 +385,18 @@ void IntervalHandlerMetagenome::foundInBOnly
     if ( testDB_ )
     {
         //propagate as long as possible
-        for ( int l( 1 ); l<alphabetSize; l++ )
+        for ( int l( 1 ); l < alphabetSize; l++ )
         {
-            propagateIntervalB[l] = countsThisRangeB.count_[l] >0;
-            if ( pileNum ==0 )
-                cerr << countsThisRangeB.count_[l] <<" " ;
+            propagateIntervalB[l] = countsThisRangeB.count_[l] > 0;
+            if ( pileNum == 0 )
+                cerr << countsThisRangeB.count_[l] << " " ;
         }
         if ( pileNum == 0 )
             cerr << endl;
         //don't bother about the Ns they are creating to many false positives
-        propagateIntervalB[whichPile[( int )dontKnowChar]] =false;
+        propagateIntervalB[whichPile[( int )dontKnowChar]] = false;
         //only print information about a certain word length to keep the output smaller
-        if ( thisRangeB.word_.length()== 35
+        if ( thisRangeB.word_.length() == 35
              || thisRangeB.word_.length() == 50
              || thisRangeB.word_.length() == 100
              || thisRangeB.word_.length() == 150
@@ -419,34 +421,34 @@ void IntervalHandlerMetagenome::foundInBOnly
                     sameTaxa = intervalInSameTaxa( sharedTaxa, fileNumbers );
                     //if there is some shared taxonomic information, print the information about the lowest taxonomic level
                     //in which taxonomic information can be found
-                    for ( unsigned int i( taxLevelSize-1 ); i > 1; i-- )
+                    for ( unsigned int i( taxLevelSize - 1 ); i > 1; i-- )
                     {
                         if ( sameTaxa[i] && sharedTaxa[i] != 0 )
                         {
                             // print the smalles possible information to keep the output small
-                            cout << "BWord" << thisRangeB.word_.length() <<"|" << sharedTaxa[i]<<"|";
+                            cout << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
                             break;
                         }
                     }
 #ifdef OLD
                     //printing all this created an output bigger than 500GB
-                    for ( unsigned int i( 5 ) ; i !=0; i-- )
+                    for ( unsigned int i( 5 ) ; i != 0; i-- )
                     {
                         if ( sameTaxa[i] )
                         {
                             cout << "BTAXA " << taxLevel[i] <<  " " << sharedTaxa[i] << " " << thisRangeB.word_ << " " ;
-                            cout << ( thisRangeB.pos_&matchMask ) << " " << thisRangeB.num_<< endl;
+                            cout << ( thisRangeB.pos_ & matchMask ) << " " << thisRangeB.num_ << endl;
                         }
                     }
-                    if ( sameTaxa[taxLevelSize-1] )
+                    if ( sameTaxa[taxLevelSize - 1] )
                     {
                         speciesFound = true;
 
                         printf(
                             "BSPECIES %s %llu %d %llu:%llu:%llu:%llu:%llu:%llu ",
                             thisRangeB.word_.c_str(),
-                            thisRangeB.pos_&matchMask,
-                            sharedTaxa[taxLevelSize-1],
+                            thisRangeB.pos_ & matchMask,
+                            sharedTaxa[taxLevelSize - 1],
                             countsThisRangeB.count_[0],
                             countsThisRangeB.count_[1],
                             countsThisRangeB.count_[2],
@@ -454,16 +456,16 @@ void IntervalHandlerMetagenome::foundInBOnly
                             countsThisRangeB.count_[4],
                             countsThisRangeB.count_[5]
                         );
-                        for ( unsigned int j( 0 ) ; j<fileNumbers.size() ; j++ )
+                        for ( unsigned int j( 0 ) ; j < fileNumbers.size() ; j++ )
                             cout << fileNumbers[j] << ":" ;
-                        cout <<endl;
+                        cout << endl;
                     }
-                    if ( fileNumbers.size() ==1 )
+                    if ( fileNumbers.size() == 1 )
                     {
                         printf(
                             "BSINGLE %s %llu %llu:%llu:%llu:%llu:%llu:%llu ",
                             thisRangeB.word_.c_str(),
-                            thisRangeB.pos_&matchMask,
+                            thisRangeB.pos_ & matchMask,
                             countsThisRangeB.count_[0],
                             countsThisRangeB.count_[1],
                             countsThisRangeB.count_[2],
@@ -471,9 +473,9 @@ void IntervalHandlerMetagenome::foundInBOnly
                             countsThisRangeB.count_[4],
                             countsThisRangeB.count_[5]
                         );
-                        for ( unsigned int j( 0 ) ; j<fileNumbers.size() ; j++ )
+                        for ( unsigned int j( 0 ) ; j < fileNumbers.size() ; j++ )
                             cout << fileNumbers[j] << ":" ;
-                        cout <<endl;
+                        cout << endl;
                     }
 #endif
                 }//~test on singletons
@@ -483,7 +485,7 @@ void IntervalHandlerMetagenome::foundInBOnly
     //if the database should not be tested don't propagate ranges only found there
     else
     {
-        for ( unsigned int l ( 1 ); l<alphabetSize; l++ )
+        for ( unsigned int l ( 1 ); l < alphabetSize; l++ )
         {
             propagateIntervalB[l] = false;
         }
@@ -505,7 +507,7 @@ void IntervalHandlerMetagenome::foundInAOnly
     //should probably always propagate A if higher than minOcc
 
     //at the moment propagte es long as possible
-    for ( int l( 0 ); l< alphabetSize; l++ )
+    for ( int l( 0 ); l < alphabetSize; l++ )
         propagateIntervalA[l] = false;
 }
 

@@ -15,8 +15,8 @@
  **
  **/
 
-#ifndef BEETL_BWT_PARAMETERS_HH
-#define BEETL_BWT_PARAMETERS_HH
+#ifndef BEETL_UNBWT_PARAMETERS_HH
+#define BEETL_UNBWT_PARAMETERS_HH
 
 #include "ToolParameters.hh"
 
@@ -24,7 +24,7 @@
 
 
 // options: input format
-
+/*
 enum InputFormat
 {
     INPUT_FORMAT_FASTA,
@@ -61,23 +61,6 @@ static const string outputFormatLabels[] =
     "ASCII",
     "RLE",
     "Huffman",
-    "" // end marker
-};
-
-
-// options: algorithm
-
-enum AlgorithmOption
-{
-    ALGORITHM_BCR,
-    ALGORITHM_EXT,
-    ALGORITHM_COUNT
-};
-
-static const string algorithmOptionLabels[] =
-{
-    "bcr",
-    "ext",
     "" // end marker
 };
 
@@ -172,51 +155,18 @@ static const string permuteQualitiesLabels[] =
     "" // end marker
 };
 
+*/
 
-// options: generate LCP on/off
+// options: process qualities off/on
 
-enum GenerateLcp
+enum ProcessQualities
 {
-    GENERATE_LCP_OFF,
-    GENERATE_LCP_ON,
-    GENERATE_LCP_COUNT,
+    PROCESS_QUALITIES_OFF,
+    PROCESS_QUALITIES_ON,
+    PROCESS_QUALITIES_COUNT,
 };
 
-static const string generateLcpLabels[] =
-{
-    "off",
-    "on",
-    "" // end marker
-};
-
-
-// options: single cycle on/off
-
-enum SingleCycle
-{
-    SINGLE_CYCLE_ON,
-    SINGLE_CYCLE_OFF,
-    SINGLE_CYCLE_COUNT,
-};
-
-static const string singleCycleLabels[] =
-{
-    "single cycle on",
-    "single cycle off",
-    "" // end marker
-};
-
-
-// options: concatenate output off/on
-
-enum ConcatenateOutput
-{
-    CONCATENATE_OUTPUT_OFF,
-    CONCATENATE_OUTPUT_ON,
-    CONCATENATE_OUTPUT_COUNT,
-};
-
-static const string concatenateOutputLabels[] =
+static const string processQualitiesLabels[] =
 {
     "off",
     "on",
@@ -224,109 +174,107 @@ static const string concatenateOutputLabels[] =
 };
 
 
-// options: sap ordering off/on
+// options: decode direction off/on
 
-enum SapOrdering
+enum DecodeDirection
 {
-    SAP_ORDERING_OFF,
-    SAP_ORDERING_ON,
-    SAP_ORDERING_COUNT,
+    DECODE_DIRECTION_BACKWARD,
+    DECODE_DIRECTION_FORWARD,
+    DECODE_DIRECTION_COUNT,
 };
 
-static const string sapOrderingLabels[] =
+static const string decodeDirectionLabels[] =
+{
+    "backward",
+    "forward",
+    "" // end marker
+};
+
+
+// options: use vector off/on
+
+enum UseVector
+{
+    USE_VECTOR_OFF,
+    USE_VECTOR_ON,
+    USE_VECTOR_COUNT,
+};
+
+static const string useVectorLabels[] =
 {
     "off",
     "on",
     "" // end marker
 };
 
-
-// options: generate endPosFile off/on
-
-enum GenerateEndPosFile
-{
-    GENERATE_ENDPOSFILE_OFF,
-    GENERATE_ENDPOSFILE_ON,
-    GENERATE_ENDPOSFILE_COUNT,
-};
-
-static const string generateEndPosFileLabels[] =
-{
-    "off",
-    "on",
-    "" // end marker
-};
 
 
 // Option container
 
-enum BwtOptions
+enum UnbwtOptions
 {
-    BWT_OPTION_INPUT_FORMAT,
-    BWT_OPTION_OUTPUT_FORMAT,
-    BWT_OPTION_ALGORITHM,
-    BWT_OPTION_INTERMEDIATE_FORMAT,
-    BWT_OPTION_INTERMEDIATE_STORAGE_MEDIUM,
-    BWT_OPTION_PARALLEL_PREFETCH,
-    BWT_OPTION_PARALLEL_PROCESSING,
-    BWT_OPTION_PERMUTE_QUALITIES,
-    BWT_OPTION_GENERATE_LCP,
-    BWT_OPTION_SINGLE_CYCLE,
-    BWT_OPTION_CONCATENATE_OUTPUT,
-    BWT_OPTION_SAP_ORDERING,
-    BWT_OPTION_GENERATE_ENDPOSFILE,
-    BWT_OPTION_COUNT // end marker
+    /*
+        OPTION_INPUT_FORMAT,
+        OPTION_OUTPUT_FORMAT,
+        OPTION_ALGORITHM,
+        OPTION_INTERMEDIATE_FORMAT,
+        OPTION_INTERMEDIATE_STORAGE_MEDIUM,
+        OPTION_PARALLEL_PREFETCH,
+        OPTION_PARALLEL_PROCESSING,
+    */
+    UNBWT_OPTION_PROCESS_QUALITIES,
+    UNBWT_OPTION_DECODE_DIRECTION,
+    UNBWT_OPTION_USE_VECTOR,
+    UNBWT_OPTION_COUNT // end marker
 };
 
-static const string bwtOptionNames[] =
+static const string unbwtOptionNames[] =
 {
-    "input format",
-    "output format",
-    "algorithm",
-    "intermediate format",
-    "intermediate storage medium",
-    "parallel prefetch",
-    "parallel processing",
-    "permute qualities",
-    "generate LCP",
-    "single cycle",
-    "concatenate output",
-    "SAP ordering",
-    "generate endPosFile",
+    /*
+        "input format",
+        "output format",
+        "algorithm",
+        "intermediate format",
+        "intermediate storage medium",
+        "parallel prefetch",
+        "parallel processing",
+    */
+    "process qualities",
+    "decode direction",
+    "use vector",
     "" // end marker
 };
 
-static const string *bwtOptionPossibleValues[] =
+static const string *unbwtOptionPossibleValues[] =
 {
-    inputFormatLabels,
-    outputFormatLabels,
-    algorithmOptionLabels,
-    intermediateFormatLabels,
-    intermediateStorageMediumLabels,
-    parallelPrefetchLabels,
-    parallelProcessingLabels,
-    permuteQualitiesLabels,
-    generateLcpLabels,
-    singleCycleLabels,
-    concatenateOutputLabels,
-    sapOrderingLabels,
-    generateEndPosFileLabels,
+    /*
+        inputFormatLabels,
+        outputFormatLabels,
+        algorithmOptionLabels,
+        intermediateFormatLabels,
+        intermediateStorageMediumLabels,
+        parallelPrefetchLabels,
+        parallelProcessingLabels,
+    */
+    processQualitiesLabels,
+    decodeDirectionLabels,
+    useVectorLabels,
     NULL // end marker
 };
 
 
-class BwtParameters : public ToolParameters
+class UnbwtParameters : public ToolParameters
 {
     virtual const string **getOptionPossibleValues() const
     {
-        return bwtOptionPossibleValues;
+        return unbwtOptionPossibleValues;
     }
 public:
     virtual const string getOptionName( const unsigned i ) const
     {
-        return bwtOptionNames[i];
+        return unbwtOptionNames[i];
     }
-    //    virtual const string getOptionPossibleValue( const unsigned i, const unsigned j ) const { return bwtOptionPossibleValues[i][j]; }
+    //    virtual const string getOptionPossibleValue( const unsigned i, const unsigned j ) const { return unbwtOptionPossibleValues[i][j]; }
 };
 
-#endif //ifndef BEETL_BWT_PARAMETERS_HH
+#endif //ifndef BEETL_UNBWT_PARAMETERS_HH

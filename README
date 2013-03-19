@@ -86,7 +86,10 @@ ${outputPrefix}-B05
 
 -------------------------------------------------------------
 Parameters in Tools.h
-BUILD_SA:		if it is set to 1, it computes the GSA (seqID, position) and the SA (position of the concatenated sequences without a further end-marker).
+deletePartialLCP:	if it is set to 1, it deletes the LCP-segments files and keeps the entire LCP, otherwise renames them.
+deleteCycFile:		if it is set to 1, it deletes the cycs files.
+BUILD_SA:			if it is set to 1, it computes the GSA (seqID, position) and the SA (position of the concatenated sequences without a further end-marker).
+BUILD_LCP 			if it is set to 1, it also computes the LCP
 decodeBackward:		if it is set to 1, it computes the inverse BWT in backward direction, otherwise in forward direction.
 BackByVector:		if it is set to 1, it uses the sampling of the BWT segments for inverse BWT. More memory, less time.
 
@@ -199,4 +202,3 @@ Lilian Janin, Illumina UK
 Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
 Lightweight BWT Construction for Very Large String Collections. 
 Proceedings of CPM 2011, pp.219-231
-

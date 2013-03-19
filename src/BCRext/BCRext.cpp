@@ -103,8 +103,8 @@ BCRext::BCRext( bool huffman, bool runlength,
 {
 
     // get memory allocated
-    prefix_ = new char[prefix.length()+1];
-    inFile_ = new char[inFile.length()+1];
+    prefix_ = new char[prefix.length() + 1];
+    inFile_ = new char[inFile.length() + 1];
 
     // copt to char * in order to get valid c strings
     inFile.copy( inFile_, inFile.length() );
@@ -135,8 +135,8 @@ void BCRext::run( void )
     const string fileStemTemp( "tmp" );
 
 
-    string tmpIn=fileStem;
-    string tmpOut=fileStemTemp;
+    string tmpIn = fileStem;
+    string tmpOut = fileStemTemp;
     string tmpSwap;
     string fileName;
 
@@ -166,7 +166,7 @@ void BCRext::run( void )
     // extra byte accounts for a fact that inserted BWT characters
     // are appended to the buffer after the interspersed characters so as to
     // make a single write to file
-    bwtBuf.resize( bwtBufferSize+1 );
+    bwtBuf.resize( bwtBufferSize + 1 );
 
     if (    whichPile[( int ) '$'] != 0 ||
             whichPile[( int ) 'A'] != 1 ||
@@ -201,7 +201,7 @@ void BCRext::run( void )
     SequenceNumberType seqNum( 0 );
 
 
-    const LetterCountType sameAsPrevFlag( ( ( LetterCountType )1 )<<( ( 8*sizeof( LetterCountType ) )-1 ) );
+    const LetterCountType sameAsPrevFlag( ( ( LetterCountType )1 ) << ( ( 8 * sizeof( LetterCountType ) ) - 1 ) );
     const LetterCountType sameAsPrevMask( ~sameAsPrevFlag );
 
     //  cout << sameAsPrevFlag << " "<< sameAsPrevMask << " "<< (sameAsPrevMask&sameAsPrevFlag) << " " << (((LetterCountType)1)<<63) << endl;
@@ -217,54 +217,54 @@ void BCRext::run( void )
     Logger::out( LOG_SHOW_IF_VERBOSE ) << prefix << "Will read sequences from file " << inFile_ << endl;
 
     // read first sequence to determine read size
-    SeqReaderFile *seqReader( SeqReaderFile::getReader( fopen( inFile_,"rb" ) ) );
+    SeqReaderFile *seqReader( SeqReaderFile::getReader( fopen( inFile_, "rb" ) ) );
     const char *seqBuf = seqReader->thisSeq();
 
-    const int seqSize( strlen( seqBuf )-1 ); // -1 compensates for \n at end
+    const int seqSize( strlen( seqBuf ) - 1 ); // -1 compensates for \n at end
     Logger::out( LOG_SHOW_IF_VERBOSE ) << prefix << "Assuming all sequences are of length " << seqSize << endl;
     //  inFile.seekg(0,ios::beg);
     //  rewind(inSeq);
 
-    if ( ( seqSize%2 )==1 ) // if odd
+    if ( ( seqSize % 2 ) == 1 ) // if odd
     {
         //    cout << "ODD" << endl;
-        tmpIn=fileStem;
-        tmpOut=fileStemTemp;
+        tmpIn = fileStem;
+        tmpOut = fileStemTemp;
     } // ~if
     else
     {
         //    cout << "EVEN" << endl;
-        tmpIn=fileStemTemp;
-        tmpOut=fileStem;
+        tmpIn = fileStemTemp;
+        tmpOut = fileStem;
     } // ~else
 
-    getFileName( fileStem,'B',0,fileName );
-    readWriteCheck( fileName.c_str(),true );
-    outDollarBwt=fopen( fileName.c_str(),"w" );
+    getFileName( fileStem, 'B', 0, fileName );
+    readWriteCheck( fileName.c_str(), true );
+    outDollarBwt = fopen( fileName.c_str(), "w" );
 
 
-    for ( int j( 1 ); j<alphabetSize; j++ )
+    for ( int j( 1 ); j < alphabetSize; j++ )
     {
 
-        getFileName( tmpIn,'S',j,fileName );
-        readWriteCheck( fileName.c_str(),true );
-        outSeq[j]= fopen( fileName.c_str(), "w" );
+        getFileName( tmpIn, 'S', j, fileName );
+        readWriteCheck( fileName.c_str(), true );
+        outSeq[j] = fopen( fileName.c_str(), "w" );
 
 
-        getFileName( tmpIn,'P',j,fileName );
-        readWriteCheck( fileName.c_str(),true );
-        outPtr[j]= fopen( fileName.c_str(), "w" );
+        getFileName( tmpIn, 'P', j, fileName );
+        readWriteCheck( fileName.c_str(), true );
+        outPtr[j] = fopen( fileName.c_str(), "w" );
 
 
 #ifdef TRACK_SEQUENCE_NUMBER
-        getFileName( tmpIn,'N',j,fileName );
-        readWriteCheck( fileName.c_str(),true );
-        outNum[j]= fopen( fileName.c_str(), "w" );
+        getFileName( tmpIn, 'N', j, fileName );
+        readWriteCheck( fileName.c_str(), true );
+        outNum[j] = fopen( fileName.c_str(), "w" );
 #endif
 
-        getFileName( tmpIn,'B',j,fileName );
+        getFileName( tmpIn, 'B', j, fileName );
 
-        if ( useImplicitSort_||useAsciiEncoder_ )
+        if ( useImplicitSort_ || useAsciiEncoder_ )
             outBwt[j] = new BwtWriterASCII( fileName.c_str() );
         else if ( useHuffmanEncoder_ )
             outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
@@ -296,9 +296,9 @@ void BCRext::run( void )
     // - work out BWT corresponding to 0-suffixes and 1-suffixes
     // TBD check for invalid chars, do qual masking
 
-    ReadBuffer readBuffer( seqSize,-1,-1,-1 );
+    ReadBuffer readBuffer( seqSize, -1, -1, -1 );
 
-    if ( readBuffer.blockSize_<=seqSize+1 )
+    if ( readBuffer.blockSize_ <= seqSize + 1 )
     {
         cerr << "ReadBuffer blocksize is too small (" << readBuffer.blockSize_ << "). Aborting." << endl;
         exit( EXIT_FAILURE );
@@ -308,12 +308,12 @@ void BCRext::run( void )
     strcpy( readBuffer.seqBufBase_, seqBuf );
     do
     {
-        thisPile=whichPile[( int )readBuffer.seqBufBase_[seqSize-1]];
+        thisPile = whichPile[( int )readBuffer.seqBufBase_[seqSize - 1]];
 
         // zero is terminator so should not be present
         if ( thisPile < 0 )
         {
-            cerr << "Pile must not be < 0. Aborting. At char |"<<readBuffer.seqBufBase_[seqSize-1]<<"|" << endl;
+            cerr << "Pile must not be < 0. Aborting. At char |" << readBuffer.seqBufBase_[seqSize - 1] << "|" << endl;
             exit( EXIT_FAILURE );
         }
 
@@ -343,37 +343,37 @@ void BCRext::run( void )
 
 #ifdef TRACK_SEQUENCE_NUMBER
         assert( fwrite( &seqNum, sizeof( SequenceNumberType ),
-                        1, outNum[thisPile] )==1 );
+                        1, outNum[thisPile] ) == 1 );
         //    seqNum++;
 #endif
 
         // create BWT corresponding to 1-suffixes
 
-        if ( whichPile[( int )readBuffer.seqBufBase_[seqSize-2]]<0 ||
-             whichPile[( int )readBuffer.seqBufBase_[seqSize-2]]>alphabetSize  )
+        if ( whichPile[( int )readBuffer.seqBufBase_[seqSize - 2]] < 0 ||
+             whichPile[( int )readBuffer.seqBufBase_[seqSize - 2]] > alphabetSize  )
         {
             cerr << "Trying to write non alphabet character to pile. Aborting." << endl;
             exit( EXIT_FAILURE );
         }
 
-        countedThisIter[thisPile].count_[whichPile[( int )readBuffer.seqBufBase_[seqSize-2]]]++;
+        countedThisIter[thisPile].count_[whichPile[( int )readBuffer.seqBufBase_[seqSize - 2]]]++;
         //    assert(fwrite( readBuffer.seqBufBase_+seqSize-2, sizeof(char), 1, outBwt[thisPile] )==1);
 
-        seqPtr=*( addedSoFar.count_+thisPile );
+        seqPtr = *( addedSoFar.count_ + thisPile );
 
-        if ( useImplicitSort_&&( addedSoFar.count_[thisPile]!=0 ) )
+        if ( useImplicitSort_ && ( addedSoFar.count_[thisPile] != 0 ) )
         {
             //      cout << thisPile << " " << addedSoFar.count_[thisPile] << " 1\n";
-            seqPtr|=sameAsPrevFlag; // TBD replace if clause with sum
+            seqPtr |= sameAsPrevFlag; // TBD replace if clause with sum
             //      *(readBuffer.seqBufBase_+seqSize-2)+=32;//tolower(*(readBuffer.seqBufBase_+seqSize-2));
-            *( readBuffer.seqBufBase_+seqSize-2 )=tolower( *( readBuffer.seqBufBase_+seqSize-2 ) );
+            *( readBuffer.seqBufBase_ + seqSize - 2 ) = tolower( *( readBuffer.seqBufBase_ + seqSize - 2 ) );
         }
 
-        ( *outBwt[thisPile] )( readBuffer.seqBufBase_+seqSize-2, 1 );
+        ( *outBwt[thisPile] )( readBuffer.seqBufBase_ + seqSize - 2, 1 );
 
 
         if ( fwrite( &seqPtr, sizeof( LetterCountType ),
-                     1, outPtr[thisPile] )!=1 )
+                     1, outPtr[thisPile] ) != 1 )
         {
             cerr << "Could not write to pointer pile. Aborting." << endl;
             exit( EXIT_FAILURE );
@@ -388,7 +388,7 @@ void BCRext::run( void )
     fclose ( outDollarBwt );
 
     Logger::out( LOG_SHOW_IF_VERBOSE ) << prefix << "Read " << seqNum << " sequences" << endl;
-    for ( int i( 1 ); i<alphabetSize; i++ )
+    for ( int i( 1 ); i < alphabetSize; i++ )
     {
         fclose( outSeq[i] );
         fclose( outPtr[i] );
@@ -402,14 +402,13 @@ void BCRext::run( void )
 
     LetterCount lastSAPInterval;
     LetterCountType thisSAPInterval;
-    bool thisSAPValue;
 
     //  ReadBuffer buffer(seqSize);
 
     // Main loop
-    for ( int i( 2 ); i<=seqSize; i++ )
+    for ( int i( 2 ); i <= seqSize; i++ )
     {
-        thisSAPInterval=0;
+        thisSAPInterval = 0;
         lastSAPInterval.clear();
 
         cout << "Starting iteration " << i << ", time now: " << timer.timeNow();
@@ -421,35 +420,35 @@ void BCRext::run( void )
             // prep the output files
 
             getFileName( tmpOut, 'S', j, fileName );
-            readWriteCheck( fileName.c_str(),true );
+            readWriteCheck( fileName.c_str(), true );
             outSeq[j] = fopen( fileName.c_str(), "w" );
 
             getFileName( tmpOut, 'P', j, fileName );
-            readWriteCheck( fileName.c_str(),true );
+            readWriteCheck( fileName.c_str(), true );
             outPtr[j] = fopen( fileName.c_str(), "w" );
 
 #ifdef TRACK_SEQUENCE_NUMBER
-            getFileName( tmpOut,'N',j,fileName );
-            readWriteCheck( fileName.c_str(),true );
-            outNum[j]= fopen( fileName.c_str(), "w" );
+            getFileName( tmpOut, 'N', j, fileName );
+            readWriteCheck( fileName.c_str(), true );
+            outNum[j] = fopen( fileName.c_str(), "w" );
 #endif
 
-            getFileName( tmpOut,'B',j,fileName );
+            getFileName( tmpOut, 'B', j, fileName );
 
 
 
 
-            if ( ( useImplicitSort_&&( i!=seqSize ) )||useAsciiEncoder_ )
+            if ( ( useImplicitSort_ && ( i != seqSize ) ) || useAsciiEncoder_ )
                 outBwt[j] = new BwtWriterASCII( fileName.c_str() );
             else if ( useHuffmanEncoder_ )
                 outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
             else if ( useRunlengthEncoder_ )
                 outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
 
-            if ( useImplicitSort_&&( i==seqSize ) )
+            if ( useImplicitSort_ && ( i == seqSize ) )
             {
                 BwtWriterBase *p( new BwtWriterImplicit( outBwt[j] ) );
-                outBwt[j]=p; // ... and the deception is complete!!!
+                outBwt[j] = p; // ... and the deception is complete!!!
             } // ~if
 
 
@@ -463,9 +462,9 @@ void BCRext::run( void )
             //  setvbuf( outBwt[j], NULL, _IOFBF, 65536);
 
             // prep the input files
-            getFileName( tmpIn,'B',j,fileName );
+            getFileName( tmpIn, 'B', j, fileName );
             // select the proper input module
-            if ( useImplicitSort_||useAsciiEncoder_ )
+            if ( useImplicitSort_ || useAsciiEncoder_ )
             {
                 inBwt[j] = new BwtReaderASCII( fileName.c_str() );
                 inBwt2[j] = new BwtReaderASCII( fileName.c_str() );
@@ -511,36 +510,36 @@ void BCRext::run( void )
         int fdSeq, fdNum, fdPtr;
 
 #ifndef TRACK_SEQUENCE_NUMBER
-        fdNum=0;
+        fdNum = 0;
 #endif
 
         // don't do j=0; $ sign done already
-        for ( int j( 1 ); j<alphabetSize; j++ )
+        for ( int j( 1 ); j < alphabetSize; j++ )
         {
             // read each input file in turn
 
-            getFileName( tmpIn,'S',j,fileName );
-            readWriteCheck( fileName.c_str(),false );
-            fdSeq=open( fileName.c_str(),O_RDONLY,0 );
+            getFileName( tmpIn, 'S', j, fileName );
+            readWriteCheck( fileName.c_str(), false );
+            fdSeq = open( fileName.c_str(), O_RDONLY, 0 );
 
-            getFileName( tmpIn,'P',j,fileName );
-            readWriteCheck( fileName.c_str(),false );
-            fdPtr=open( fileName.c_str(),O_RDONLY,0 );
+            getFileName( tmpIn, 'P', j, fileName );
+            readWriteCheck( fileName.c_str(), false );
+            fdPtr = open( fileName.c_str(), O_RDONLY, 0 );
 
 
 #ifdef TRACK_SEQUENCE_NUMBER
-            getFileName( tmpIn,'N',j,fileName );
-            readWriteCheck( fileName.c_str(),false );
-            fdNum=open( fileName.c_str(),O_RDONLY,0 );
+            getFileName( tmpIn, 'N', j, fileName );
+            readWriteCheck( fileName.c_str(), false );
+            fdNum = open( fileName.c_str(), O_RDONLY, 0 );
 
 #ifdef USE_POSIX_FILE_OPTIMIZATIONS
-            assert( posix_fadvise( fdNum,0,0,POSIX_FADV_SEQUENTIAL|POSIX_FADV_NOREUSE|POSIX_FADV_WILLNEED )!=-1 );
+            assert( posix_fadvise( fdNum, 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_NOREUSE | POSIX_FADV_WILLNEED ) != -1 );
 #endif
 #endif
 
 #ifdef USE_POSIX_FILE_OPTIMIZATIONS
-            assert( posix_fadvise( fdSeq,0,0,POSIX_FADV_SEQUENTIAL|POSIX_FADV_NOREUSE|POSIX_FADV_WILLNEED )!=-1 );
-            assert( posix_fadvise( fdPtr,0,0,POSIX_FADV_SEQUENTIAL|POSIX_FADV_NOREUSE|POSIX_FADV_WILLNEED )!=-1 );
+            assert( posix_fadvise( fdSeq, 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_NOREUSE | POSIX_FADV_WILLNEED ) != -1 );
+            assert( posix_fadvise( fdPtr, 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_NOREUSE | POSIX_FADV_WILLNEED ) != -1 );
 #endif
 
 #ifdef USE_PREFIX_ONLY
@@ -551,16 +550,15 @@ void BCRext::run( void )
 
             while ( buffer.getNext( seqNum, seqPtr ) )
             {
-                if ( ( seqPtr&sameAsPrevFlag )==0 )
+                bool thisSAPValue = ( ( seqPtr & sameAsPrevFlag ) != 0 );
+                if ( thisSAPValue )
                 {
-                    thisSAPInterval++;
-                    thisSAPValue=false;
-                } // ~if
+                    seqPtr &= sameAsPrevMask;
+                }
                 else
                 {
-                    seqPtr&=sameAsPrevMask;
-                    thisSAPValue=true;
-                } // ~else
+                    thisSAPInterval++;
+                }
 
                 thisPile = buffer[seqSize - i];
 
@@ -583,15 +581,14 @@ void BCRext::run( void )
 
 
 #ifdef DEBUG
-                cout << ( ( thisSAPValue )?'1':'0' ) << " " << thisSAPInterval << " " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
+                cout << ( ( thisSAPValue ) ? '1' : '0' ) << " " << thisSAPInterval << " " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
                 cout << "Read in " << seqPtr << " " << seqNum << " " << thisPile << " " << lastPile << endl;
-                for ( int ZZ( 0 ); ZZ<seqSize; ZZ++ )
+                for ( int ZZ( 0 ); ZZ < seqSize; ZZ++ )
                 {
-                    cout << "ZZ " <<ZZ <<endl;
-                    cout << alphabet[buffer[ZZ]] <<endl;
+                    cout << "ZZ " << ZZ << endl;
+                    cout << alphabet[buffer[ZZ]] << endl;
                 }
                 cout << endl;
-
 #endif
 
                 // *** work out position in new pile ***
@@ -604,11 +601,11 @@ void BCRext::run( void )
 #endif
 
                 // posInPile=0;
-                posInPile=dollars.count_[thisPile];
+                posInPile = dollars.count_[thisPile];
                 //   cout << posInPile << " " << thisPile << " " << lastPile << endl;
-                for ( int k( 1 ); k<lastPile; k++ )
+                for ( int k( 1 ); k < lastPile; k++ )
                 {
-                    posInPile+=alreadyInPile[k].count_[thisPile];
+                    posInPile += alreadyInPile[k].count_[thisPile];
                     //   cout << posInPile << endl;
                 } // ~for k
 
@@ -619,7 +616,7 @@ void BCRext::run( void )
 
                 // count all chars prior to seqPtr in lastPile
                 // read seqPtr too, but don't add to countedThisIter
-                charsToGrab=seqPtr-addedSoFar.count_[lastPile];//+1;
+                charsToGrab = seqPtr - addedSoFar.count_[lastPile]; //+1;
 #ifdef DEBUG
                 cout << "charsToGrab " << charsToGrab << endl;
 #endif
@@ -636,19 +633,19 @@ void BCRext::run( void )
 
                 if ( readCountChars != charsToGrab )
                 {
-                    cerr << "BWT readAndCount returned only "<< readCountChars
+                    cerr << "BWT readAndCount returned only " << readCountChars
                          << " chars. Expected " << charsToGrab
                          << " chars. Aborting." << endl;
                     exit( EXIT_FAILURE );
                 }
 
-                inBwt[lastPile]->readAndCount( newCharsThisIter[lastPile],1 );
+                inBwt[lastPile]->readAndCount( newCharsThisIter[lastPile], 1 );
 
 
-                addedSoFar.count_[lastPile]=seqPtr+1;
+                addedSoFar.count_[lastPile] = seqPtr + 1;
 
 
-                posInPile+=countedThisIter[lastPile].count_[thisPile];
+                posInPile += countedThisIter[lastPile].count_[thisPile];
 
 
 
@@ -661,44 +658,44 @@ void BCRext::run( void )
 
                 // read and output bytes up to insertion point
 
-                charsToGrab=posInPile-prevCharsOutputThisIter.count_[thisPile];
+                charsToGrab = posInPile - prevCharsOutputThisIter.count_[thisPile];
 
                 unsigned int readSendChars = inBwt2[thisPile]->readAndSend
                                              ( *outBwt[thisPile], charsToGrab );
 
                 if ( readSendChars != charsToGrab )
                 {
-                    cerr << "BWT readAndSend returned only "<< readSendChars
+                    cerr << "BWT readAndSend returned only " << readSendChars
                          << " chars. Expected " << charsToGrab
                          << " chars. Aborting." << endl;
                     exit( EXIT_FAILURE );
                 }
 
                 // bwtBuf[0]=(seqSize-i-1>=0)?baseNames[buffer[seqSize-i-1]]:'$';
-                bwtBuf[0]=( seqSize-i-1>=0 )?alphabet[buffer[seqSize-i-1]]:alphabet[0];
+                bwtBuf[0] = ( seqSize - i - 1 >= 0 ) ? alphabet[buffer[seqSize - i - 1]] : alphabet[0];
                 // if (thisSAPValue==true) bwtBuf[0]+=32;//=tolower(bwtBuf[0]);
 
 
 
-                prevCharsOutputThisIter.count_[thisPile]=posInPile;
+                prevCharsOutputThisIter.count_[thisPile] = posInPile;
 
                 // pointer into new pile must be offset by number of new entries added
                 // seqPtr+=newCharsAddedThisIter.count_[thisPile];
-                seqPtr=posInPile+newCharsAddedThisIter.count_[thisPile];
+                seqPtr = posInPile + newCharsAddedThisIter.count_[thisPile];
 
                 if ( useImplicitSort_ )
                 {
-                    if ( lastSAPInterval.count_[thisPile]==thisSAPInterval )
+                    if ( lastSAPInterval.count_[thisPile] == thisSAPInterval )
                     {
-                        bwtBuf[0]=tolower( bwtBuf[0] );
+                        bwtBuf[0] = tolower( bwtBuf[0] );
                         //     bwtBuf[0]+=32;
-                        seqPtr|=sameAsPrevFlag;
+                        seqPtr |= sameAsPrevFlag;
                         //   cout << thisSAPInterval << endl;
                     }
                     else
                     {
                         //   cout << thisSAPInterval << " " << lastSAPInterval.count_[thisPile] << endl;
-                        lastSAPInterval.count_[thisPile]=thisSAPInterval;
+                        lastSAPInterval.count_[thisPile] = thisSAPInterval;
                     }
                 }
 
@@ -730,7 +727,7 @@ void BCRext::run( void )
 
 #ifdef TRACK_SEQUENCE_NUMBER
                 assert( fwrite( &seqNum, sizeof( SequenceNumberType ),
-                                1, outNum[thisPile] )==1 );
+                                1, outNum[thisPile] ) == 1 );
 #endif
 
             } // ~while
@@ -746,20 +743,20 @@ void BCRext::run( void )
 
         if ( Logger::isActive( LOG_SHOW_IF_VERBOSE ) )
             Logger::out( LOG_SHOW_IF_VERBOSE ) << "All new characters inserted, usage: " << timer << endl;
-        for ( int j( 1 ); j<alphabetSize; j++ )
+        for ( int j( 1 ); j < alphabetSize; j++ )
         {
 
             while ( inBwt[j]->readAndCount
-                    ( countedThisIter[j],ReadBufferSize )==ReadBufferSize );
+                    ( countedThisIter[j], ReadBufferSize ) == ReadBufferSize );
 
         } // ~for j
 
         Logger::out( LOG_SHOW_IF_VERBOSE ) << "finishing off BWT strings" << endl;
-        for ( int j( 1 ); j<alphabetSize; j++ )
+        for ( int j( 1 ); j < alphabetSize; j++ )
         {
 
             while ( inBwt2[j]->readAndSend( *outBwt[j], ReadBufferSize )
-                    ==ReadBufferSize );
+                    == ReadBufferSize );
 
         } // ~for
 
@@ -770,9 +767,9 @@ void BCRext::run( void )
         newCharsThisIter.print();
 #endif
 
-        alreadyInPile+=newCharsThisIter;
+        alreadyInPile += newCharsThisIter;
 
-        for ( int j( 1 ); j<alphabetSize; j++ )
+        for ( int j( 1 ); j < alphabetSize; j++ )
         {
             fclose( outSeq[j] );
             fclose( outPtr[j] );
@@ -784,9 +781,9 @@ void BCRext::run( void )
             delete ( inBwt2[j] );
         } // ~for j
 
-        tmpSwap=tmpIn;
-        tmpIn=tmpOut;
-        tmpOut=tmpSwap;
+        tmpSwap = tmpIn;
+        tmpIn = tmpOut;
+        tmpOut = tmpSwap;
 
         if ( Logger::isActive( LOG_SHOW_IF_VERBOSE ) )
             Logger::out( LOG_SHOW_IF_VERBOSE ) << "finished iteration " << i  << ", usage: " << timer << endl;
@@ -796,12 +793,12 @@ void BCRext::run( void )
 
 #ifdef REMOVE_TEMPORARY_FILES
     string fileTypes( "SPB" );
-    for ( int j( 1 ); j<alphabetSize; j++ )
+    for ( int j( 1 ); j < alphabetSize; j++ )
     {
-        for ( unsigned int i( 0 ); i<fileTypes.size(); i++ )
+        for ( unsigned int i( 0 ); i < fileTypes.size(); i++ )
         {
-            getFileName( tmpOut,fileTypes[i],j,fileName );
-            if ( remove( fileName.c_str() )!=0 )
+            getFileName( tmpOut, fileTypes[i], j, fileName );
+            if ( remove( fileName.c_str() ) != 0 )
             {
                 cerr << "Warning: failed to clean up temporary file " << fileName
                      << endl;
@@ -814,7 +811,7 @@ void BCRext::run( void )
     } // ~for j
 #endif
 
-    Logger::out( LOG_ALWAYS_SHOW ) << "Final output files are named "<< tmpIn << "-Bxx and similar" << endl;
+    Logger::out( LOG_ALWAYS_SHOW ) << "Final output files are named " << tmpIn << "-Bxx and similar" << endl;
 }
 
 

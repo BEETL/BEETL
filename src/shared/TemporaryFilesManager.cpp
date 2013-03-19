@@ -34,12 +34,12 @@ void TemporaryFilesManager::cleanupAllFiles()
 {
     Logger::out( LOG_SHOW_IF_VERBOSE ) << "Removing " << filenames_.size() << " temporary files" << endl;
 
-    for ( int i=0; i<filenames_.size(); ++i )
+    for ( unsigned int i = 0; i < filenames_.size(); ++i )
     {
         const string &filename = filenames_[i];
         // cout << "Removing temporary file " << filename << endl;
 
-        if ( remove( filename.c_str() )!=0 )
+        if ( remove( filename.c_str() ) != 0 )
             cerr << "TemporaryFilesManager: Error deleting file " << filename << endl;
     }
 }

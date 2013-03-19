@@ -15,6 +15,8 @@
  **
  **/
 
+#include "parameters/ToolParameters.hh"
+
 #include <string>
 
 using std::string;
@@ -48,4 +50,5 @@ bool endsWith( const string &s, const string &suffix );
 string detectFileFormat( const string &inputFilename );
 void checkFileFormat( const string &inputFilename, const string &fileFormat );
 bool isNextArgument( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, string *argValue = 0 );
+bool parseNextArgument( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, ToolParameters &, const unsigned toolParamKey );
 void launchBeetl( const string &params );

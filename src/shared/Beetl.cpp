@@ -44,10 +44,10 @@ int main( int numArgs, char **args )
         exit( EXIT_SUCCESS );
     }
 
-    if ( strcmp( args[1],COMMAND_BCR ) == 0 )
+    if ( strcmp( args[1], COMMAND_BCR ) == 0 )
     {
 
-        bcrMode=0; // explicitly set default mode to zero (ie build BWT from sequence)
+        bcrMode = 0; // explicitly set default mode to zero (ie build BWT from sequence)
         CompressionFormatType bcrCompression( compressionASCII );
         // start at 2, 0 is the executable, 1 the command name parsed above
         for ( int i = 2; i < numArgs; i++ )
@@ -85,12 +85,12 @@ int main( int numArgs, char **args )
                              << endl;
                         break;
                     case 'a':
-                        bcrCompression=compressionASCII;;
+                        bcrCompression = compressionASCII;;
                         cout << "-> writing ASCII encoded output"
                              << endl;
                         break;
                     case 'h':
-                        bcrCompression=compressionHuffman;
+                        bcrCompression = compressionHuffman;
                         cout << "Huffman encoding not yet supported, sorry."
                              << endl;
                         exit( EXIT_FAILURE );
@@ -98,19 +98,19 @@ int main( int numArgs, char **args )
                         //        << endl;
                         break;
                     case 'r':
-                        bcrCompression=compressionRunLength;
+                        bcrCompression = compressionRunLength;
                         cout << "-> writing runlength encoded output"
                              << endl;
                         break;
                     case 't':
-                        bcrCompression=compressionIncrementalRunLength;
+                        bcrCompression = compressionIncrementalRunLength;
                         cout << "-> writing incremental runlength encoded output"
                              << endl;
                         break;
                     default:
                         cout << "!! unknown flag \""
                              << args[i][1] << "\"" << endl;
-                        print_usage( args[0],COMMAND_BCR );
+                        print_usage( args[0], COMMAND_BCR );
                         exit( EXIT_FAILURE );
                 }
             }
@@ -121,10 +121,10 @@ int main( int numArgs, char **args )
 
             if ( bcrFileOut.length() == 0 )
             {
-                bcrFileOut=bcrFileOutPrefixDefault;
+                bcrFileOut = bcrFileOutPrefixDefault;
             }
 
-            if ( bcrMode!=1 )
+            if ( bcrMode != 1 )
             {
                 fileIsReadableOrExit( bcrFileIn.c_str() );
             }
@@ -152,7 +152,7 @@ int main( int numArgs, char **args )
         else
         {
             // something wrong happened
-            print_usage( args[0],COMMAND_BCR );
+            print_usage( args[0], COMMAND_BCR );
             exit( EXIT_FAILURE );
         }
 
@@ -162,10 +162,10 @@ int main( int numArgs, char **args )
 
 
         // set defaults for BCRext mode
-        bcrExtAsciiOutput=false; // use normal ASCII alphabet as output
-        bcrExtHuffmanOutput=false; // use huffman encoding as compression
-        bcrExtRunlengthOutput=true; // use RunLength encoding [default]
-        bcrExtImplicitSort=false; // do implicit sort of input sequences
+        bcrExtAsciiOutput = false; // use normal ASCII alphabet as output
+        bcrExtHuffmanOutput = false; // use huffman encoding as compression
+        bcrExtRunlengthOutput = true; // use RunLength encoding [default]
+        bcrExtImplicitSort = false; // do implicit sort of input sequences
 
 
         for ( int i = 2; i < numArgs; i++ )
@@ -174,7 +174,7 @@ int main( int numArgs, char **args )
             {
 
                 string thisArg( ( string )args[i] );
-                if ( thisArg=="-i" )
+                if ( thisArg == "-i" )
                 {
                     // next param should be the filename, checking now
                     isArgumentOrExit( i + 1, numArgs );
@@ -182,20 +182,20 @@ int main( int numArgs, char **args )
                     bcrExtFileIn = args[i + 1]; // this should be the name
                     cout << "-> input file is " << bcrExtFileIn << endl;
                 }
-                else if ( thisArg=="-p" )
+                else if ( thisArg == "-p" )
                 {
                     isArgumentOrExit( i + 1, numArgs );
                     bcrExtFileOutPrefix = args[i + 1];
                     cout << "-> output prefix set to "
                          << bcrExtFileOutPrefix << endl;
                 }
-                else if ( thisArg=="-s" )
+                else if ( thisArg == "-s" )
                 {
                     cout << "-> using SeqFile input"
                          << endl;
                     bcrExtUseSeq = true;
                 }
-                else if ( thisArg=="-a" )
+                else if ( thisArg == "-a" )
                 {
                     bcrExtAsciiOutput = true;
                     bcrExtRunlengthOutput = false;
@@ -203,7 +203,7 @@ int main( int numArgs, char **args )
                     cout << "-> writing ASCII encoded output"
                          << endl;
                 }
-                else if ( thisArg=="-h" )
+                else if ( thisArg == "-h" )
                 {
                     bcrExtAsciiOutput = false;
                     bcrExtRunlengthOutput = false;
@@ -211,7 +211,7 @@ int main( int numArgs, char **args )
                     cout << "-> writing huffman encoded output"
                          << endl;
                 }
-                else if ( thisArg=="-r" )
+                else if ( thisArg == "-r" )
                 {
                     bcrExtAsciiOutput = false;
                     bcrExtRunlengthOutput = true;
@@ -219,9 +219,9 @@ int main( int numArgs, char **args )
                     cout << "-> writing runlength encoded output"
                          << endl;
                 }
-                else if ( thisArg=="-sap" )
+                else if ( thisArg == "-sap" )
                 {
-                    bcrExtImplicitSort=true;
+                    bcrExtImplicitSort = true;
                     cout << "-> perform implicit sort of input sequences"
                          << endl;
                 }
@@ -229,7 +229,7 @@ int main( int numArgs, char **args )
                 {
                     cout << "!! unknown flag \""
                          << args[i][1] << "\"" << endl;
-                    print_usage( args[0],COMMAND_BCR_EXT );
+                    print_usage( args[0], COMMAND_BCR_EXT );
                     exit( EXIT_FAILURE );
                 }
             } // ~if begins with -
@@ -237,8 +237,8 @@ int main( int numArgs, char **args )
 
         //   cout << bcrExtImplicitSort << bcrExtHuffmanOutput << bcrExtRunlengthOutput << endl;
 
-        if ( ( bcrExtImplicitSort==true )&&
-             ( ( bcrExtHuffmanOutput==true )||( bcrExtRunlengthOutput==true ) ) )
+        if ( ( bcrExtImplicitSort == true ) &&
+             ( ( bcrExtHuffmanOutput == true ) || ( bcrExtRunlengthOutput == true ) ) )
         {
             cout << "-> Note: -sap mode needs ASCII intermediate files," << endl
                  << "-> will revert to requested compression type for final output" << endl;
@@ -247,7 +247,7 @@ int main( int numArgs, char **args )
 
         if ( bcrExtFileIn.empty() )
         {
-            print_usage( args[0],COMMAND_BCR_EXT );
+            print_usage( args[0], COMMAND_BCR_EXT );
             exit( EXIT_FAILURE );
         }
 
@@ -272,9 +272,9 @@ int main( int numArgs, char **args )
             //(bcrExtUseSeq && isValidReadFile(bcrExtFileIn.c_str()))) )
         {
 
-            if ( bcrExtFileOutPrefix.length()==0 )
+            if ( bcrExtFileOutPrefix.length() == 0 )
             {
-                bcrExtFileOutPrefix=bcrExtFileOutPrefixDefault;
+                bcrExtFileOutPrefix = bcrExtFileOutPrefixDefault;
             }
 
             // created new tool object
@@ -298,7 +298,7 @@ int main( int numArgs, char **args )
         else
         {
             // something wrong happened
-            print_usage( args[0],COMMAND_BCR_EXT );
+            print_usage( args[0], COMMAND_BCR_EXT );
             exit( EXIT_FAILURE );
         }
 
@@ -325,11 +325,11 @@ int main( int numArgs, char **args )
                         whichHandler = 's';
                         break;
                     case 'm' :
-                        cout <<"-> metagenomic mode set " <<endl;
+                        cout << "-> metagenomic mode set " << endl;
                         whichHandler = 'm';
                         break;
                     case 'a':
-                        while ( args[++i][0]!='-' )
+                        while ( args[++i][0] != '-' )
                         {
                             //cout << args[i] << " fred " << endl;
                             fileIsReadableOrExit( args[i] );
@@ -351,7 +351,7 @@ int main( int numArgs, char **args )
                         break;
 #endif//OLD
                     case 'b':
-                        while ( ( ++i )!=numArgs )
+                        while ( ( ++i ) != numArgs )
                         {
                             if ( strcmp( args[i], "-c" ) == 0 )
                             {
@@ -367,12 +367,12 @@ int main( int numArgs, char **args )
                         //        i--;
                         break;
                     case 'c' :
-                        if ( whichHandler!='m' )
+                        if ( whichHandler != 'm' )
                         {
-                            cerr << "Merged set C not needed Here!"<<endl;
+                            cerr << "Merged set C not needed Here!" << endl;
                             break;
                         }
-                        while ( ( ++i )!=numArgs )
+                        while ( ( ++i ) != numArgs )
                         {
                             if ( args[i][0] == '-' )
                             {
@@ -399,31 +399,31 @@ int main( int numArgs, char **args )
                     case 't':
                         if ( whichHandler != 'm' )
                         {
-                            cerr << "The taxonomic file is not needed without the -m option." <<endl;
+                            cerr << "The taxonomic file is not needed without the -m option." << endl;
                             break;
                         }
-                        cout << "-> Got taxonomic information " << args[i+1] <<endl ;
-                        ncbiTax = args[i+1];
+                        cout << "-> Got taxonomic information " << args[i + 1] << endl ;
+                        ncbiTax = args[i + 1];
                         i++;
                         break;
                     case 'd':
                         if ( whichHandler != 'm' )
                         {
-                            cerr<< "Option -d is not available without merged input. " <<endl;
+                            cerr << "Option -d is not available without merged input. " << endl;
                             break;
                         }
-                        cout << "Will test database " <<endl;
+                        cout << "Will test database " << endl;
                         testDatabase = true;
                         break;
                     case 'w':
-                        minWord = atoi( args[i+1] );
+                        minWord = atoi( args[i + 1] );
                         cout << "-> minimum word length w in metagenomic mode set to \""
                              << minWord
                              << "\""
                              << endl;
                         break;
                     case 'p':
-                        prefix  = args[i+1];
+                        prefix  = args[i + 1];
                         break;
                     case 'k':
                         isArgumentOrExit( i + 1, numArgs );
@@ -472,20 +472,20 @@ int main( int numArgs, char **args )
                     default:
                         cout << "!! unknown flag \"" << args[i][1]
                              << "\"" << endl;
-                        print_usage( args[0],COMMAND_COUNTWORDS );
+                        print_usage( args[0], COMMAND_COUNTWORDS );
                         exit( EXIT_FAILURE );
                 }
             }
 
         // check for required arguments
-        if ( ( maxLengthK>0 ) && ( minimalOccurencesN>0 ) &&
-             ( filesA.size()>0 ) && ( filesA.size()==filesB.size() ) )
+        if ( ( maxLengthK > 0 ) && ( minimalOccurencesN > 0 ) &&
+             ( filesA.size() > 0 ) && ( filesA.size() == filesB.size() ) )
         {
 
             // create new tool object
             Algorithm *pcountWords = new CountWords( compressedBoth, compressedInputA,
                     compressedInputB, whichHandler, minimalOccurencesN,
-                    maxLengthK, filesA, filesB, filesC, ncbiTax,testDatabase, minWord, prefix );
+                    maxLengthK, filesA, filesB, filesC, ncbiTax, testDatabase, minWord, prefix );
 
             // run the "main" method
             pcountWords->run();
@@ -499,7 +499,7 @@ int main( int numArgs, char **args )
         else
         {
             // oops
-            print_usage( args[0],COMMAND_COUNTWORDS );
+            print_usage( args[0], COMMAND_COUNTWORDS );
             exit( EXIT_FAILURE );
         }
 
@@ -556,14 +556,14 @@ void print_usage( char *args, const char *command )
              << endl
              << endl;
 
-    if ( command == 0 || command == COMMAND_BCR_EXT )
+    if ( command == 0 || string( command ) == COMMAND_BCR_EXT )
         cerr << "-> BCRext - command \"" << COMMAND_BCR_EXT << "\"" << endl
              << "========================================================" << endl
              << "improved version of the original algorithm" << endl
              << "uses significantly less RAM (a.k.a. none) but depends heavily on I/O" << endl
              << endl
              << "Usage: " << args << " "
-             << COMMAND_BCR_EXT <<" -i <read file> -p <output file prefix> [-h -r -a] [-s] [-sap]" << endl
+             << COMMAND_BCR_EXT << " -i <read file> -p <output file prefix> [-h -r -a] [-s] [-sap]" << endl
              << endl
              << "-i <file>:\tinput file in fasta format" << endl
              << "-s:\t\tuse .seq input files instead of fasta (each line one sequence)" << endl
@@ -575,14 +575,14 @@ void print_usage( char *args, const char *command )
              << endl
              << endl;
 
-    if ( command == 0 || command == COMMAND_BCR )
+    if ( command == 0 || string( command ) == COMMAND_BCR )
         cerr << "-> BCR - command \"" << COMMAND_BCR << "\"" << endl
              << "========================================================" << endl
              << "original algorithm to construct the BWT of a set of reads" << endl
              << "needs approximately 14GB of RAM for 1 billion reads" << endl
              << endl
              << "Usage: " << args << " "
-             << COMMAND_BCR <<" -i <fasta or seq read file> -o <output file> [-r -t -a] -m <[0,1,2]>" << endl
+             << COMMAND_BCR << " -i <fasta or seq read file> -o <output file> [-r -t -a] -m <[0,1,2]>" << endl
              << endl
              << "-i <file>:\tinput set of reads [if mode = 1 set the prefix of the BWT files, normally BCR-B0]" << endl
              << "-o <file>:\toutput file" << endl
@@ -595,20 +595,20 @@ void print_usage( char *args, const char *command )
              << endl
              << endl;
 
-    if ( command == 0 || command == COMMAND_COUNTWORDS )
+    if ( command == 0 || string( command ) == COMMAND_COUNTWORDS )
         cerr << "-> countWords - command \"" << COMMAND_COUNTWORDS << "\"" << endl
              << "========================================================" << endl
              << "find all words of length at least k that occur" << endl
              << "at least n times in string set A and never in string set B" << endl
              << endl
              << "Usage: " << args << " "
-             << COMMAND_COUNTWORDS <<" [-A -B -C] [-s -r -m] -k <n> -n <n> -p <file_prefix> -a <set A> -b <set B> "
+             << COMMAND_COUNTWORDS << " [-A -B -C] [-s -r -m] -k <n> -n <n> -p <file_prefix> -a <set A> -b <set B> "
              << "[-c <C part of set B> -t file -d -o databaseTestOut ]" << endl
              << endl
              << "-A:\t\tassume BWT files for set A are in compressed format" << endl
              << "-B:\t\tassume BWT files for set B are in compressed format" << endl
              << "-C:\t\tassume BWT files for sets A and B are in compressed format" << endl
-             << "-s:\t\tassume set B are reads of a reference" <<endl
+             << "-s:\t\tassume set B are reads of a reference" << endl
              << "-r:\t\tassume set B is a reference genome" << endl
              << "-m:\t\tassume set B are merged reference genomes" << endl
              << "-k <n>:\t\tmaximal length" << endl
@@ -616,10 +616,10 @@ void print_usage( char *args, const char *command )
              << "-p <prefix>:\tprefix out output files" << endl
              << "-a <file>:\tinput set A" << endl
              << "-b <file>:\tinput set B" << endl
-             << "-c <file>:\tC output of merging, only needed in -m Mode" <<endl
-             << "-t file:\ttaxonomy information for the merged input, only needed in -m Mode" <<endl
-             << "-w n\t\tminimal length k-mer" <<endl
-             << "-d:\t\tflag to test the minimal needed word length for the different taxa in the databse. Only available with -m" <<endl
+             << "-c <file>:\tC output of merging, only needed in -m Mode" << endl
+             << "-t file:\ttaxonomy information for the merged input, only needed in -m Mode" << endl
+             << "-w n\t\tminimal length k-mer" << endl
+             << "-d:\t\tflag to test the minimal needed word length for the different taxa in the databse. Only available with -m" << endl
              << endl
              << endl;
 

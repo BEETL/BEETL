@@ -33,7 +33,7 @@ using namespace std;
 
 int main( int numArgs, const char *args[] )
 {
-    if ( numArgs<3 )
+    if ( numArgs < 3 )
     {
         cerr << "Usage: " << args[0] << " indexBinSize <BWT files to index>" << endl;
         exit( EXIT_FAILURE );
@@ -41,20 +41,20 @@ int main( int numArgs, const char *args[] )
     string indexFileName;
     FILE *pFile;
     int indexBinSize( atoi( args[1] ) );
-    assert( indexBinSize>0 );
+    assert( indexBinSize > 0 );
 
-    for ( int i( 2 ); i<numArgs; i++ )
+    for ( int i( 2 ); i < numArgs; i++ )
     {
         BwtReaderRunLengthIndex reader( args[i] );
-        indexFileName=( string )args[i];
-        indexFileName+=".idx";
+        indexFileName = ( string )args[i];
+        indexFileName += ".idx";
         cerr << "Will build index " << indexFileName << " from " << args[i]
              << endl;
-        pFile=fopen( indexFileName.c_str(),"w" );
-        if ( pFile==NULL )
+        pFile = fopen( indexFileName.c_str(), "w" );
+        if ( pFile == NULL )
         {
-            cerr<< "Problem opening file " << indexFileName <<" for writing"
-                << endl;
+            cerr << "Problem opening file " << indexFileName << " for writing"
+                 << endl;
             exit( EXIT_FAILURE );
         }
         reader.buildIndex( pFile, indexBinSize );
@@ -72,9 +72,9 @@ int main( int numArgs, const char *args[] )
 //
 
 BwtReaderBase::BwtReaderBase( const string &fileName ) :
-    pFile_( fopen( fileName.c_str(),"r" ) )
+    pFile_( fopen( fileName.c_str(), "r" ) )
 {
-    if ( pFile_==NULL )
+    if ( pFile_ == NULL )
     {
         cerr << "!! BwtReaderBase: failed to open file " << fileName << endl;
         exit( EXIT_FAILURE );
@@ -114,7 +114,7 @@ unsigned int BwtReaderBase::readAndSend( BwtWriterBase &writer )
 void BwtReaderASCII::rewindFile( void )
 {
     rewind( pFile_ );
-    currentPos_=0;
+    currentPos_ = 0;
 } // ~rewindFile
 
 LetterCountType BwtReaderASCII::tellg( void ) const
@@ -130,14 +130,14 @@ unsigned int BwtReaderASCII::readAndCount( LetterCount &c, const LetterCountType
     std::cout << "BR ASCII readAndCount " << numChars << " chars " << endl;
 #endif
     LetterCountType charsLeft( numChars ), charsToRead, charsRead;
-    while ( charsLeft>0 )
+    while ( charsLeft > 0 )
     {
-        charsToRead=( ( charsLeft>ReadBufferSize )?ReadBufferSize:charsLeft );
-        charsRead=fread( buf_, sizeof( char ), charsToRead, pFile_ );
+        charsToRead = ( ( charsLeft > ReadBufferSize ) ? ReadBufferSize : charsLeft );
+        charsRead = fread( buf_, sizeof( char ), charsToRead, pFile_ );
 #ifdef DEBUG
         std::cout << "Reading " << charsRead << " chars ";
 #endif
-        for ( LetterCountType i( 0 ); i<charsRead; i++ )
+        for ( LetterCountType i( 0 ); i < charsRead; i++ )
         {
 #ifdef DEBUG
             std::cout << buf_[i];
@@ -147,15 +147,15 @@ unsigned int BwtReaderASCII::readAndCount( LetterCount &c, const LetterCountType
 #ifdef DEBUG
         std::cout << std::endl;
 #endif
-        charsLeft-=charsRead;
-        if ( charsRead<charsToRead )
+        charsLeft -= charsRead;
+        if ( charsRead < charsToRead )
         {
             // did not get everything asked for! return num of chars actually found
-            currentPos_+=( numChars-charsLeft );
-            return ( numChars-charsLeft );
+            currentPos_ += ( numChars - charsLeft );
+            return ( numChars - charsLeft );
         } // ~if
     } // ~while
-    currentPos_+=numChars;
+    currentPos_ += numChars;
     return numChars;
 } // ~int BwtReaderASCII::readAndCount( LetterCount& c, const int numChars )
 
@@ -169,22 +169,22 @@ unsigned int BwtReaderASCII::readAndSend( BwtWriterBase &writer, const int numCh
     // read readbufferzise bytes, if there are less bytes
     // ordered only fetch the last missing bytes
     unsigned int readNextPass =
-        ( ( numChars-totalRead )<ReadBufferSize )?( numChars-totalRead ):ReadBufferSize;
+        ( ( numChars - totalRead ) < ReadBufferSize ) ? ( numChars - totalRead ) : ReadBufferSize;
 
     // std::cout << "Reading " << numChars << " chars " << endl;
 
 
-    while ( totalRead<( unsigned int )numChars )
+    while ( totalRead < ( unsigned int )numChars )
     {
         unsigned int numRead = 0;
 
         // try to read buffersize byte from file
         numRead = fread( buf_, sizeof ( uchar ), readNextPass, pFile_ );
-        totalRead+= numRead;
+        totalRead += numRead;
         if ( numRead == 0 ) break;
 
         readNextPass =
-            ( ( numChars-totalRead )<ReadBufferSize )?( numChars-totalRead ):ReadBufferSize;
+            ( ( numChars - totalRead ) < ReadBufferSize ) ? ( numChars - totalRead ) : ReadBufferSize;
         //std::cout << "next pass " << numRead << " chars " << endl;
 
         //    writer( buf_, numRead );
@@ -213,7 +213,7 @@ unsigned int BwtReaderASCII::readAndSend( BwtWriterBase &writer, const int numCh
     }
 #ifdef XXX
     writer.sendRun( lastChar_, runLength_ ); // send out last run
-    runLength_=0; // next call to his function will then again start a new run
+    runLength_ = 0; // next call to his function will then again start a new run
 #endif
     return totalRead;
 
@@ -236,16 +236,16 @@ int BwtReaderASCII::operator()( char *p, int numChars )
 
 BwtReaderRunLength::BwtReaderRunLength( const string &fileName ):
     BwtReaderBase( fileName ), runLength_( 0 ),
-    pBuf_( buf_+ReadBufferSize ),pBufMax_( buf_+ReadBufferSize ),
+    pBuf_( buf_ + ReadBufferSize ), pBufMax_( buf_ + ReadBufferSize ),
     lastChar_( notInAlphabet ),
     finished_( false )
 {
     unsigned int j;
-    for ( unsigned int i( 0 ); i<256; i++ )
+    for ( unsigned int i( 0 ); i < 256; i++ )
     {
-        lengths_[i]=1+( i>>4 );
-        j=( i&0xF );
-        codes_[i]=( j<alphabetSize )?alphabet[j]:notInAlphabet;
+        lengths_[i] = 1 + ( i >> 4 );
+        j = ( i & 0xF );
+        codes_[i] = ( j < alphabetSize ) ? alphabet[j] : notInAlphabet;
     } // ~for i
 } // ~ctor
 
@@ -253,12 +253,12 @@ void BwtReaderRunLength::rewindFile( void )
 {
     // rewind file and set all vars as per constructor
     rewind( pFile_ );
-    runLength_=0;
-    pBuf_=buf_+ReadBufferSize;
-    pBufMax_=buf_+ReadBufferSize;
-    lastChar_=notInAlphabet;
-    currentPos_=0;
-    finished_=false;
+    runLength_ = 0;
+    pBuf_ = buf_ + ReadBufferSize;
+    pBufMax_ = buf_ + ReadBufferSize;
+    lastChar_ = notInAlphabet;
+    currentPos_ = 0;
+    finished_ = false;
 } // ~rewindFile
 
 LetterCountType BwtReaderRunLength::tellg( void ) const
@@ -273,23 +273,23 @@ unsigned int BwtReaderRunLength::readAndCount( LetterCount &c, const LetterCount
     std::cout << "BR RL readAndCount " << numChars << " chars " << endl;
 #endif
     LetterCountType charsLeft( numChars );
-    while ( charsLeft>runLength_ )
+    while ( charsLeft > runLength_ )
     {
         // Below is not great design, at first call of this function it accesses an
         // out-of-range array element. Fortunately it always adds zero to it! :)
-        c.count_[whichPile[lastChar_]]+=runLength_;
-        charsLeft-=runLength_;
-        if ( getRun()==false )
+        c.count_[whichPile[lastChar_]] += runLength_;
+        charsLeft -= runLength_;
+        if ( getRun() == false )
         {
-            currentPos_+=( numChars-charsLeft );
-            return ( numChars-charsLeft );
+            currentPos_ += ( numChars - charsLeft );
+            return ( numChars - charsLeft );
             // assert(1==0);
         } // ~if
     } // ~while
 
-    c.count_[whichPile[lastChar_]]+=charsLeft;
-    runLength_-=charsLeft;
-    currentPos_+=numChars;
+    c.count_[whichPile[lastChar_]] += charsLeft;
+    runLength_ -= charsLeft;
+    currentPos_ += numChars;
     return numChars;
 } // ~BwtReaderRunLength::readAndCount( LetterCount& c, const int numChars )
 
@@ -299,24 +299,24 @@ unsigned int BwtReaderRunLength::readAndSend( BwtWriterBase &writer, const int n
     std::cout << "BR RL readAndSend " << numChars << " chars " << endl;
 #endif
     unsigned int charsLeft( numChars );
-    while ( charsLeft>runLength_ )
+    while ( charsLeft > runLength_ )
     {
         //      int fred(whichPile[lastChar_]);
         writer.sendRun( lastChar_, runLength_ );
         //      c.count_[whichPile[lastChar_]]+=runLength_;
-        charsLeft-=runLength_;
-        if ( getRun()==false )
+        charsLeft -= runLength_;
+        if ( getRun() == false )
         {
-            currentPos_+=( numChars-charsLeft );
-            return ( numChars-charsLeft );
+            currentPos_ += ( numChars - charsLeft );
+            return ( numChars - charsLeft );
             // assert(1==0);
         } // ~if
     } // ~while
 
     writer.sendRun( lastChar_, charsLeft );
     //    c.count_[whichPile[lastChar_]]+=charsLeft;
-    runLength_-=charsLeft;
-    currentPos_+=numChars;
+    runLength_ -= charsLeft;
+    currentPos_ += numChars;
     return numChars;
 } //~BwtReaderRunLength::readAndSend(BwtWriterBase& writer, const int numChars)
 
@@ -328,7 +328,7 @@ int BwtReaderRunLength::operator()( char *p, int numChars )
 #endif
     unsigned int charsLeft( numChars );
     //    return fread( p, sizeof(char), numChars, pFile_ );
-    while ( charsLeft>runLength_ )
+    while ( charsLeft > runLength_ )
     {
 #ifdef DEBUG
         std::cout << "BR RL () :  setting " << lastChar_ << " "
@@ -336,18 +336,18 @@ int BwtReaderRunLength::operator()( char *p, int numChars )
 #endif
 
         memset( p, lastChar_, runLength_ );
-        p+=runLength_;
+        p += runLength_;
 
-        charsLeft-=runLength_;
-        if ( getRun()==false )
+        charsLeft -= runLength_;
+        if ( getRun() == false )
         {
             // runLength_=0;
 #ifdef DEBUG
-            std::cout << "B read " << numChars-charsLeft << " out of "
+            std::cout << "B read " << numChars - charsLeft << " out of "
                       << numChars << std::endl;
 #endif
-            currentPos_+=( numChars-charsLeft );
-            return ( numChars-charsLeft );
+            currentPos_ += ( numChars - charsLeft );
+            return ( numChars - charsLeft );
         } // ~if
     } // ~while
 #ifdef DEBUG
@@ -363,35 +363,35 @@ int BwtReaderRunLength::operator()( char *p, int numChars )
 
     memset( p, lastChar_, charsLeft );
 
-    runLength_-=charsLeft;
+    runLength_ -= charsLeft;
 #ifdef DEBUG
     std::cout << "B delivered " << numChars << " " << charsLeft << " "
               << pFile_ << std::endl;
 #endif
-    currentPos_+=numChars;
+    currentPos_ += numChars;
     return numChars;
 } // ~operator()
 
 bool BwtReaderRunLength::getRun( void )
 {
-    if ( pBuf_==pBufMax_ )
+    if ( pBuf_ == pBufMax_ )
     {
         if ( finished_ ) return false;
         else
         {
             unsigned int numRead( fread( buf_, sizeof( uchar ),
                                          ReadBufferSize, pFile_ ) );
-            if ( numRead==0 ) return false;
-            else if ( numRead<ReadBufferSize )
+            if ( numRead == 0 ) return false;
+            else if ( numRead < ReadBufferSize )
             {
-                finished_=true;
-                pBufMax_=buf_+numRead;
+                finished_ = true;
+                pBufMax_ = buf_ + numRead;
             }
-            pBuf_=buf_;
+            pBuf_ = buf_;
         } // ~else
     } // ~if
-    runLength_=lengths_[*pBuf_];
-    lastChar_=codes_[*pBuf_];
+    runLength_ = lengths_[*pBuf_];
+    lastChar_ = codes_[*pBuf_];
 #ifdef DEBUG
     cout << "Got run: " << runLength_ << " of " << lastChar_ << endl;
 #endif
@@ -423,45 +423,45 @@ BwtReaderHuffman::BwtReaderHuffman( const string &fileName ):
     fseek( pFile_, 0, SEEK_END );
     long fileSize( ftell( pFile_ ) );
     // kill everything if file size is not a multiple of 4byte (~32 bit)
-    assert( ( fileSize%sizeof( unsigned int ) )==0 ); // read with == 4 byte
-    numInts_=fileSize/sizeof( unsigned int ); // how many ints to read from file
+    assert( ( fileSize % sizeof( unsigned int ) ) == 0 ); // read with == 4 byte
+    numInts_ = fileSize / sizeof( unsigned int ); // how many ints to read from file
     //cerr << fileName << ": " << fileSize << " bytes/"<< numInts_ << " blocks" << endl;
     fseek( pFile_, 0, SEEK_SET );
     //init arrays
 
-    for ( int i=0; i<huffmanBufferSize; i++ )
+    for ( int i = 0; i < huffmanBufferSize; i++ )
     {
-        symBuf[i]=0;
-        runBuf[i]=0;
+        symBuf[i] = 0;
+        runBuf[i] = 0;
     }
-    soFar_.ull=0;
-    toAdd_.ull=0;
+    soFar_.ull = 0;
+    toAdd_.ull = 0;
 
     // init the token lookup table, does not need to be cleared when the file
     // is rewind since its more or less static
     // TODO: hardcode the token table? stays the same for each program call
 
     unsigned int codeMask;
-    for ( unsigned int i( 0 ); i<numTokens; i++ )
+    for ( unsigned int i( 0 ); i < numTokens; i++ )
     {
-        tokenTable_[i]=0xFF;
-        for ( unsigned int j( 0 ); j<numSingleCodes; j++ )
+        tokenTable_[i] = 0xFF;
+        for ( unsigned int j( 0 ); j < numSingleCodes; j++ )
         {
-            codeMask=( 1<<singleCharLength[j] )-1; // (*2^3==) -1
-            if ( ( i&codeMask )==singleCharCode[j] )
+            codeMask = ( 1 << singleCharLength[j] ) - 1; // (*2^3==) -1
+            if ( ( i & codeMask ) == singleCharCode[j] )
             {
-                assert ( tokenTable_[i]==0xFF );
-                tokenTable_[i]=( j<<1 );
+                assert ( tokenTable_[i] == 0xFF );
+                tokenTable_[i] = ( j << 1 );
                 //   cerr << "TT @ " << i << " is "<< itoa(tokenTable_[i],2) << endl;
             }
         } // ~for j
-        for ( unsigned int j( 0 ); j<numDoubleCodes; j++ )
+        for ( unsigned int j( 0 ); j < numDoubleCodes; j++ )
         {
-            codeMask=( 1<<doubleCharLength[j] )-1;
-            if ( ( i&codeMask )==doubleCharCode[j] )
+            codeMask = ( 1 << doubleCharLength[j] ) - 1;
+            if ( ( i & codeMask ) == doubleCharCode[j] )
             {
-                assert ( tokenTable_[i]==0xFF );
-                tokenTable_[i]=( ( j<<1 )|0x1 );
+                assert ( tokenTable_[i] == 0xFF );
+                tokenTable_[i] = ( ( j << 1 ) | 0x1 );
                 //  cerr << "TT @ " << i << " is "<< itoa(tokenTable_[i],2) << endl;
 
             }
@@ -476,23 +476,23 @@ void BwtReaderHuffman::rewindFile( void )
 {
     // rewind file and set all vars as per constructor
     rewind( pFile_ );
-    runLength_=0;
-    lastChar_=notInAlphabet;
-    currentPos_=0;
-    finished_=false;
-    bitsUsed_=0;
-    soFar_.ull=0;
-    numSymbols_=0;
-    queueCounter_=0;
-    maxSymbols_=0;
-    intCounter_=0;
+    runLength_ = 0;
+    lastChar_ = notInAlphabet;
+    currentPos_ = 0;
+    finished_ = false;
+    bitsUsed_ = 0;
+    soFar_.ull = 0;
+    numSymbols_ = 0;
+    queueCounter_ = 0;
+    maxSymbols_ = 0;
+    intCounter_ = 0;
     firstRun_ = true; // fixes 3 Bit huffman error (BTL-17)
     nearlyFinished_ = false;
 
-    for ( int i=0; i<huffmanBufferSize; i++ )
+    for ( int i = 0; i < huffmanBufferSize; i++ )
     {
-        symBuf[i]=0;
-        runBuf[i]=0;
+        symBuf[i] = 0;
+        runBuf[i] = 0;
     }
 } // ~rewindFile
 
@@ -505,22 +505,22 @@ unsigned int BwtReaderHuffman::readAndCount( LetterCount &c, const LetterCountTy
 {
 
     LetterCountType charsLeft( numChars );
-    while ( charsLeft>runLength_ )
+    while ( charsLeft > runLength_ )
     {
         // Below is not great design, at first call of this function it accesses an
         // out-of-range array element. Fortunately it always adds zero to it! :)
-        c.count_[whichPile[lastChar_]]+=runLength_;
-        charsLeft-=runLength_;
-        if ( getRun()==false )
+        c.count_[whichPile[lastChar_]] += runLength_;
+        charsLeft -= runLength_;
+        if ( getRun() == false )
         {
-            currentPos_+=( numChars-charsLeft );
-            return ( numChars-charsLeft );
+            currentPos_ += ( numChars - charsLeft );
+            return ( numChars - charsLeft );
         } // ~if
     } // ~while
 
-    c.count_[whichPile[lastChar_]]+=charsLeft;
-    runLength_-=charsLeft;
-    currentPos_+=numChars;
+    c.count_[whichPile[lastChar_]] += charsLeft;
+    runLength_ -= charsLeft;
+    currentPos_ += numChars;
     return numChars;
 } // ~BwtReaderHuffman::readAndCount( LetterCount& c, const int numChars )
 
@@ -532,28 +532,28 @@ unsigned int BwtReaderHuffman::readAndSend( BwtWriterBase &writer, const int num
     }
 
     unsigned int charsLeft( numChars );
-    while ( charsLeft>runLength_ )
+    while ( charsLeft > runLength_ )
     {
 
         writer.sendRun( lastChar_, runLength_ );
-        charsLeft-=runLength_;
+        charsLeft -= runLength_;
 
-        if ( getRun()==false )
+        if ( getRun() == false )
         {
-            currentPos_+=( numChars-charsLeft );
-            return ( numChars-charsLeft );
+            currentPos_ += ( numChars - charsLeft );
+            return ( numChars - charsLeft );
         } // ~if
     } // ~while
     writer.sendRun( lastChar_, charsLeft );
-    runLength_-=charsLeft;
-    currentPos_+=numChars;
+    runLength_ -= charsLeft;
+    currentPos_ += numChars;
     return numChars;
 } //~BwtReaderHuffman::readAndSend(BwtWriterBase& writer, const int numChars)
 
 
 bool BwtReaderHuffman::getRun( void )
 {
-    numSymbols_=-1; // needed for loops
+    numSymbols_ = -1; // needed for loops
 
     // no more data available AND or buffer is also empty -> finished here
     if ( finished_ && ( queueCounter_ > maxSymbols_ ) ) return false;
@@ -583,7 +583,7 @@ bool BwtReaderHuffman::getRun( void )
 
         if ( firstRun_ ) // first call, have to fill the integer buffer
         {
-            toAdd_.ull=0; // init
+            toAdd_.ull = 0; // init
             elementsRead = fread( &toAdd_.ui, sizeof ( unsigned int ), 1, pFile_ );
 
             if ( elementsRead == 1 )
@@ -593,7 +593,7 @@ bool BwtReaderHuffman::getRun( void )
                 bitsUsed_ += 32; // we have succesfully read 32 bit
                 intCounter_++; // and we have used one int for that
             }
-            firstRun_=false;
+            firstRun_ = false;
         }
 
         while ( bitsUsed_ > 32 ) // as long as we have some more bits than 1 int uses

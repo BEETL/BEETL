@@ -32,7 +32,7 @@ using std::string;
 
 // global vars
 
-const string bcrModes[] = {( "build BCR" ),( "unBCR" ),( "search Backward search + Locate SeqID" )};
+const string bcrModes[] = {( "build BCR" ), ( "unBCR" ), ( "search Backward search + Locate SeqID" )};
 
 //////////////////////////////////////////////////////////////////////////
 

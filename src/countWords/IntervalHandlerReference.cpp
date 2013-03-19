@@ -33,66 +33,66 @@ void IntervalHandlerReference::foundInBoth
     bool significantNonRef( false );
     //  LetterCountType maxSignalAOnly(0), maxSignalBOnly(0);
 
-    if ( thisRangeB.num_>1 )
+    if ( thisRangeB.num_ > 1 )
     {
         // if k-mer is not unique in B (reference),
         // propagate all B and all A that matches B
-        for ( int l( 1 ); l<alphabetSize; l++ )
+        for ( int l( 1 ); l < alphabetSize; l++ )
         {
-            if ( countsThisRangeB.count_[l]>0 )
+            if ( countsThisRangeB.count_[l] > 0 )
             {
-                propagateIntervalB[l]=true;
-                if ( countsThisRangeA.count_[l]>0 )
-                    propagateIntervalA[l]=true;
+                propagateIntervalB[l] = true;
+                if ( countsThisRangeA.count_[l] > 0 )
+                    propagateIntervalA[l] = true;
                 else
-                    propagateIntervalA[l]=false;
+                    propagateIntervalA[l] = false;
             } // ~if
             else
             {
-                propagateIntervalA[l]=false;
-                propagateIntervalB[l]=false;
+                propagateIntervalA[l] = false;
+                propagateIntervalB[l] = false;
             } // ~else
         } // ~for
     } // ~if
     else
     {
-        if ( thisRangeB.num_!=1 )
+        if ( thisRangeB.num_ != 1 )
         {
             cerr << "thisRandB is no 1. Aborting." << endl;
         }
-        for ( int l( 1 ); l<alphabetSize; l++ )
+        for ( int l( 1 ); l < alphabetSize; l++ )
         {
-            if ( countsThisRangeB.count_[l]>0 )
+            if ( countsThisRangeB.count_[l] > 0 )
             {
-                propagateIntervalB[l]=true;
-                if ( countsThisRangeA.count_[l]>0 )
-                    propagateIntervalA[l]=true;
+                propagateIntervalB[l] = true;
+                if ( countsThisRangeA.count_[l] > 0 )
+                    propagateIntervalA[l] = true;
                 else
-                    propagateIntervalA[l]=false;
+                    propagateIntervalA[l] = false;
             } // ~if
             else
             {
-                propagateIntervalB[l]=false;
-                if ( countsThisRangeA.count_[l]>minOcc_ )
+                propagateIntervalB[l] = false;
+                if ( countsThisRangeA.count_[l] > minOcc_ )
                 {
-                    propagateIntervalA[l]=true;
-                    significantNonRef=true;
+                    propagateIntervalA[l] = true;
+                    significantNonRef = true;
                 }
                 else
-                    propagateIntervalA[l]=false;
+                    propagateIntervalA[l] = false;
             } // ~else
         } // ~for
 
 
     } // ~else
 
-    if ( significantNonRef==true )
+    if ( significantNonRef == true )
     {
 #ifdef PROPAGATE_PREFIX
         printf(
             "BKPT %s %llu %llu:%llu:%llu:%llu:%llu:%llu %llu:%llu:%llu:%llu:%llu:%llu\n",
             thisRangeB.word_.c_str(),
-            thisRangeB.pos_&matchMask,
+            thisRangeB.pos_ & matchMask,
             countsThisRangeA.count_[0],
             countsThisRangeA.count_[1],
             countsThisRangeA.count_[2],
@@ -126,28 +126,28 @@ void IntervalHandlerReference::foundInBoth
 #endif
 
 #ifdef OLD
-        cout << "BKPT " << ( thisRangeB.num_&matchMask );
+        cout << "BKPT " << ( thisRangeB.num_ & matchMask );
         cout << " " << thisRangeB.pos_;
-        for ( int l( 0 ); l<alphabetSize; l++ )
-            cout << ( ( l==0 )?" ":":" ) << countsThisRangeA.count_[l];
-        for ( int l( 0 ); l<alphabetSize; l++ )
-            cout << ( ( l==0 )?" ":":" ) << countsThisRangeB.count_[l];
+        for ( int l( 0 ); l < alphabetSize; l++ )
+            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
+        for ( int l( 0 ); l < alphabetSize; l++ )
+            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeB.count_[l];
         cout << endl;
 #endif
     }
 
     // don't bother with Ns
-    propagateIntervalA[whichPile[( int )dontKnowChar]]=false;
-    propagateIntervalB[whichPile[( int )dontKnowChar]]=false;
+    propagateIntervalA[whichPile[( int )dontKnowChar]] = false;
+    propagateIntervalB[whichPile[( int )dontKnowChar]] = false;
 
 } // ~foundInBoth
 
 #ifdef OLD
 {
-    for ( int l( 1 ); l<alphabetSize; l++ )
+    for ( int l( 1 ); l < alphabetSize; l++ )
     {
-        propagateIntervalA[l]=( countsThisRangeA.count_[l]>=minOcc_ );
-        propagateIntervalB[l]=( countsThisRangeB.count_[l]>0 );
+        propagateIntervalA[l] = ( countsThisRangeA.count_[l] >= minOcc_ );
+        propagateIntervalB[l] = ( countsThisRangeB.count_[l] > 0 );
     } // ~for l
 } // ~foundInBoth
 #endif
@@ -164,53 +164,53 @@ void IntervalHandlerReference::foundInAOnly
 
     bool significantPath( false );
 
-    for ( int l( 1 ); l<alphabetSize; l++ )
+    for ( int l( 1 ); l < alphabetSize; l++ )
     {
-        if ( countsThisRangeA.count_[l]>=minOcc_ )
+        if ( countsThisRangeA.count_[l] >= minOcc_ )
         {
-            significantPath=true;
-            propagateIntervalA[l]=true;
+            significantPath = true;
+            propagateIntervalA[l] = true;
         } // ~if
         else
         {
-            propagateIntervalA[l]=false;
+            propagateIntervalA[l] = false;
         } // ~else
 
     } // ~for l
 
-    if ( significantPath==false )
+    if ( significantPath == false )
     {
         cout << "READ ";
 #ifdef PROPAGATE_PREFIX
         cout << thisRangeA.word_;
 #endif
         cout << " " << thisRangeA.pos_;
-        for ( int l( 0 ); l<alphabetSize; l++ )
-            cout << ( ( l==0 )?" ":":" ) << countsThisRangeA.count_[l];
+        for ( int l( 0 ); l < alphabetSize; l++ )
+            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
         cout << endl;
     }
 
 
 #ifdef OLD
     // For now this is same as for Splice - continue until all reads found
-    if ( countsThisRangeA.count_[0]>0 )
+    if ( countsThisRangeA.count_[0] > 0 )
     {
         cout << "READ " << thisRangeA.word_;
         cout << " " << thisRangeA.pos_;
-        for ( int l( 0 ); l<alphabetSize; l++ )
-            cout << ( ( l==0 )?" ":":" ) << countsThisRangeA.count_[l];
+        for ( int l( 0 ); l < alphabetSize; l++ )
+            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
         cout << endl;
     }
     // TBD print out IDs of discovered reads
 
-    for ( int l( 1 ); l<alphabetSize; l++ )
+    for ( int l( 1 ); l < alphabetSize; l++ )
     {
-        propagateIntervalA[l]=( countsThisRangeA.count_[l]>0 );
+        propagateIntervalA[l] = ( countsThisRangeA.count_[l] > 0 );
     } // ~for l
 #endif
 
     // don't bother with Ns
-    propagateIntervalA[whichPile[( int )dontKnowChar]]=false;
+    propagateIntervalA[whichPile[( int )dontKnowChar]] = false;
 } // ~foundInBoth
 
 void IntervalHandlerReference::foundInBOnly

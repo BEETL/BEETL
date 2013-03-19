@@ -57,16 +57,16 @@ SeqReaderFile *SeqReaderFile::getReader( FILE *pFile )
 {
     int i( fgetc( pFile ) );
     char c( ( char )i ); // TBD check for error condition
-    ungetc( i,pFile );
-    if ( c=='>' )
+    ungetc( i, pFile );
+    if ( c == '>' )
     {
         return new SeqReaderFasta( pFile );
     }
-    else if ( c=='@' )
+    else if ( c == '@' )
     {
         return new SeqReaderFastq( pFile );
     }
-    else if ( whichPile[i]!=nv )
+    else if ( whichPile[i] != nv )
     {
         return new SeqReaderRaw( pFile );
     }
@@ -109,14 +109,14 @@ SeqReaderRaw::SeqReaderRaw( FILE *pFile ) : SeqReaderFile( pFile )
 {
     Logger::out( LOG_SHOW_IF_VERY_VERBOSE ) << "Creating SeqReaderRaw" << endl;
     readNext();
-    if ( allRead()==true )
+    if ( allRead() == true )
     {
         Logger::error() << "No sequences in file!" << endl;
         exit( EXIT_FAILURE );
     }
     else
     {
-        length_=strlen( bufSeq_ )-1;
+        length_ = strlen( bufSeq_ ) - 1;
         Logger::out( LOG_SHOW_IF_VERY_VERBOSE ) << "Deducing read length of " << length_ << endl;
     }
 }
@@ -127,16 +127,16 @@ SeqReaderRaw::~SeqReaderRaw() {}
 void SeqReaderRaw::readNext( char *seqBuf )
 {
     //  cout << "readNext" << endl;
-    if ( allRead_==true )
+    if ( allRead_ == true )
     {
         Logger::error() << "Tried to read an empty sequence stream" << endl;
         exit( EXIT_FAILURE );
     }
-    else if ( fgets( seqBuf?:bufSeq_, maxSeqSize, pFile_ )==NULL )
+    else if ( fgets( seqBuf ? : bufSeq_, maxSeqSize, pFile_ ) == NULL )
     {
-        allRead_=true;
+        allRead_ = true;
     }
-    else if ( ( length_!=-1 )&&( ( ( int )strlen( seqBuf?:bufSeq_ ) )!=length_+1 ) )
+    else if ( ( length_ != -1 ) && ( ( ( int )strlen( seqBuf ? : bufSeq_ ) ) != length_ + 1 ) )
     {
         Logger::error() << "Length of current sequence does not match length of first" << endl;
         exit( EXIT_FAILURE );
@@ -153,14 +153,14 @@ SeqReaderFasta::SeqReaderFasta( FILE *pFile ) : SeqReaderFile( pFile )
 {
     Logger::out( LOG_SHOW_IF_VERY_VERBOSE ) << "Creating SeqReaderFasta" << endl;
     readNext();
-    if ( allRead()==true )
+    if ( allRead() == true )
     {
         Logger::error() << "No sequences in file!" << endl;
         exit( EXIT_FAILURE );
     }
     else
     {
-        length_=strlen( bufSeq_ )-1;
+        length_ = strlen( bufSeq_ ) - 1;
         Logger::out( LOG_SHOW_IF_VERY_VERBOSE ) << "Deducing read length of " << length_ << endl;
     }
 }
@@ -170,28 +170,28 @@ SeqReaderFasta::~SeqReaderFasta() {}
 
 void SeqReaderFasta::readNext( char *seqBuf )
 {
-    if ( allRead_==true )
+    if ( allRead_ == true )
     {
         Logger::error() << "Tried to read an empty sequence stream" << endl;
         exit( EXIT_FAILURE );
     }
-    else if ( fgets( bufName_, maxSeqSize, pFile_ )==NULL )
+    else if ( fgets( bufName_, maxSeqSize, pFile_ ) == NULL )
     {
-        allRead_=true;
+        allRead_ = true;
     }
     else
     {
-        if ( bufName_[0]!='>' )
+        if ( bufName_[0] != '>' )
         {
             Logger::error() << "Expected FASTA header, got " << bufName_ << endl;
             exit( EXIT_FAILURE );
         }
-        if ( fgets( seqBuf?:bufSeq_, maxSeqSize, pFile_ )==NULL )
+        if ( fgets( seqBuf ? : bufSeq_, maxSeqSize, pFile_ ) == NULL )
         {
             Logger::error() << "read FASTA header with no entry, incomplete file?" << endl;
             exit( EXIT_FAILURE );
         }
-        else if ( ( length_!=-1 )&&( ( ( int )strlen( seqBuf?:bufSeq_ ) )!=length_+1 ) )
+        else if ( ( length_ != -1 ) && ( ( ( int )strlen( seqBuf ? : bufSeq_ ) ) != length_ + 1 ) )
             //else if (strlen(seqBuf?:bufSeq_)!=length_)
         {
             Logger::out( LOG_SHOW_IF_VERY_VERBOSE ) << "Length of current sequence does not match length of first" << endl;
@@ -213,14 +213,14 @@ SeqReaderFastq::SeqReaderFastq( FILE *pFile ) : SeqReaderFile( pFile )
 {
     Logger::out( LOG_SHOW_IF_VERY_VERBOSE ) << "Creating SeqReaderFastq" << endl;
     readNext();
-    if ( allRead()==true )
+    if ( allRead() == true )
     {
         Logger::error() << "No sequences in file!" << endl;
         exit( EXIT_FAILURE );
     }
     else
     {
-        length_=strlen( bufSeq_ )-1;
+        length_ = strlen( bufSeq_ ) - 1;
         Logger::out( LOG_SHOW_IF_VERY_VERBOSE ) << "Deducing read length of " << length_ << endl;
     }
 }
@@ -230,46 +230,46 @@ SeqReaderFastq::~SeqReaderFastq() {}
 
 void SeqReaderFastq::readNext( char *seqBuf )
 {
-    if ( allRead_==true )
+    if ( allRead_ == true )
     {
         Logger::error() << "Tried to read an empty sequence stream" << endl;
         exit( EXIT_FAILURE );
     }
-    else if ( fgets( bufName_, maxSeqSize, pFile_ )==NULL )
+    else if ( fgets( bufName_, maxSeqSize, pFile_ ) == NULL )
     {
-        allRead_=true;
+        allRead_ = true;
     }
     else
     {
-        if ( bufName_[0]!='@' )
+        if ( bufName_[0] != '@' )
         {
             Logger::error() << "Expected FASTQ header, got " << bufName_ << endl;
             exit( EXIT_FAILURE );
         }
-        if ( fgets( seqBuf?:bufSeq_, maxSeqSize, pFile_ )==NULL )
+        if ( fgets( seqBuf ? : bufSeq_, maxSeqSize, pFile_ ) == NULL )
         {
             Logger::error() << "read FASTA header with no entry, incomplete file?" << endl;
             exit( EXIT_FAILURE );
         }
         else
         {
-            if ( ( length_!=-1 )&&( ( ( int )strlen( seqBuf?:bufSeq_ ) )!=length_+1 ) )
+            if ( ( length_ != -1 ) && ( ( ( int )strlen( seqBuf ? : bufSeq_ ) ) != length_ + 1 ) )
                 //else if (strlen(seqBuf?:bufSeq_)!=length_)
             {
                 Logger::error() << "Length of current sequence does not match length of first" << endl;
                 exit( EXIT_FAILURE );
             }
-            else if ( fgets( bufQual_, maxSeqSize, pFile_ )==NULL )
+            else if ( fgets( bufQual_, maxSeqSize, pFile_ ) == NULL )
             {
                 Logger::error() << "Could not read FASTQ quality spacer, incomplete file?" << endl;
                 exit( EXIT_FAILURE );
             }
-            else if ( bufQual_[0]!='+' )
+            else if ( bufQual_[0] != '+' )
             {
                 Logger::error() << "Expected FASTQ quality spacer, got " << bufQual_ << endl;
                 exit( EXIT_FAILURE );
             }
-            else if ( fgets( bufQual_, maxSeqSize, pFile_ )==NULL )
+            else if ( fgets( bufQual_, maxSeqSize, pFile_ ) == NULL )
             {
                 Logger::error() << "Could not read FASTQ quality string, incomplete file?" << endl;
                 exit( EXIT_FAILURE );

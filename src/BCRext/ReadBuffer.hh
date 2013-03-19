@@ -46,7 +46,7 @@ struct ReadBufferBase
                   << blockSize_ << " bytes per block" << std::endl;
 #endif
         seqBufBase_ = new char[ blockSize_ ];
-        seqBuf_=seqBufBase_;
+        seqBuf_ = seqBufBase_;
     }
     virtual ~ReadBufferBase()
     {
@@ -68,15 +68,15 @@ struct ReadBufferBase
         size_t bytesWritten = fwrite( seqBuf_, sizeof( char ), readSize, pFile );
         if ( bytesWritten != ( size_t )readSize )
         {
-            std::cerr << "Unable to write "<< ReadBufferSize
+            std::cerr << "Unable to write " << ReadBufferSize
                       << " chars. Aborting." << std::endl;
             exit( -1 );
         }
     }
 
 
-    virtual int operator[]( const int i )=0;
-    virtual void convertFromASCII( void )=0;
+    virtual int operator[]( const int i ) = 0;
+    virtual void convertFromASCII( void ) = 0;
 
 
     int thisEntry_;
@@ -109,7 +109,7 @@ struct ReadBufferBase
 struct ReadBufferASCII : public ReadBufferBase
 {
     ReadBufferASCII( int seqSize, int fdSeq, int fdNum, int fdPtr ) :
-        ReadBufferBase( 1+seqSize,fdSeq,fdNum,fdPtr )
+        ReadBufferBase( 1 + seqSize, fdSeq, fdNum, fdPtr )
     {
 #ifdef DEBUG
         std::cout << "Creating ASCII read buffer: " << seqSize << " symbols per read"
@@ -127,7 +127,7 @@ struct ReadBufferASCII : public ReadBufferBase
 struct ReadBuffer4Bits : public ReadBufferBase
 {
     ReadBuffer4Bits( int seqSize, int fdSeq, int fdNum, int fdPtr ) :
-        ReadBufferBase( convertBasesToBytes( seqSize ),fdSeq,fdNum,fdPtr ),
+        ReadBufferBase( convertBasesToBytes( seqSize ), fdSeq, fdNum, fdPtr ),
         seqSize_( seqSize )
     {
 #ifdef DEBUG
@@ -137,9 +137,9 @@ struct ReadBuffer4Bits : public ReadBufferBase
     } // ~ctor
     virtual int operator[]( const int i )
     {
-        char idx( seqBuf_[i>>1] );
-        if ( ( i%2 )!=0 ) idx>>=4;
-        idx&=( char )0xF;
+        char idx( seqBuf_[i >> 1] );
+        if ( ( i % 2 ) != 0 ) idx >>= 4;
+        idx &= ( char )0xF;
 #ifdef DEBUG
         std::cout << i << " " << ( int )idx << std::endl;
 #endif
@@ -151,20 +151,20 @@ struct ReadBuffer4Bits : public ReadBufferBase
 #ifdef DEBUG
         std::cout << seqBuf_;
 #endif
-        for ( int i( 0 ),j( 0 ); i<seqSize_; i++ )
+        for ( int i( 0 ), j( 0 ); i < seqSize_; i++ )
         {
 #ifdef DEBUG
             std::cout << seqBuf_[i];
 #endif
-            code=( char )whichPile[( int )seqBuf_[i]];
-            if ( ( i%2 )==0 )
-                seqBuf_[j]=code;
+            code = ( char )whichPile[( int )seqBuf_[i]];
+            if ( ( i % 2 ) == 0 )
+                seqBuf_[j] = code;
             else
             {
-                code<<=4;
-                seqBuf_[j++]|=code;
+                code <<= 4;
+                seqBuf_[j++] |= code;
 #ifdef DEBUG
-                std::cout << std::endl << ( int )seqBuf_[j-1] << std::endl;
+                std::cout << std::endl << ( int )seqBuf_[j - 1] << std::endl;
 #endif
 
             } // ~else
@@ -175,7 +175,7 @@ struct ReadBuffer4Bits : public ReadBufferBase
 
     int convertBasesToBytes( int numBases ) const
     {
-        return ( ( numBases>>1 )+( 1*( ( numBases&0x1 )!=0 ) ) );
+        return ( ( numBases >> 1 ) + ( 1 * ( ( numBases & 0x1 ) != 0 ) ) );
     } // ~convertBasesToBytes( int numBases ) const
 
     const int seqSize_;
@@ -185,7 +185,7 @@ struct ReadBufferPrefix: public ReadBuffer4Bits
 {
     ReadBufferPrefix
     ( int seqSize, int cycleNum, int fdSeq, int fdNum, int fdPtr ) :
-        ReadBuffer4Bits( getPrefixBases( seqSize, cycleNum ),fdSeq,fdNum,fdPtr ),
+        ReadBuffer4Bits( getPrefixBases( seqSize, cycleNum ), fdSeq, fdNum, fdPtr ),
         cycleNum_( cycleNum )
     {
 #ifdef DEBUG
@@ -196,17 +196,17 @@ struct ReadBufferPrefix: public ReadBuffer4Bits
 
     int getPrefixBases( int seqSize, int cycleNum )
     {
-        return ( seqSize-cycleNum+2 );
+        return ( seqSize - cycleNum + 2 );
     }
 
     virtual void sendTo( FILE *pFile )
     {
 #ifdef DEBUG
-        std::cout << "Outputting " << convertBasesToBytes( getPrefixBases( seqSize_,cycleNum_+1 ) ) << " bytes" << std::endl;
+        std::cout << "Outputting " << convertBasesToBytes( getPrefixBases( seqSize_, cycleNum_ + 1 ) ) << " bytes" << std::endl;
 #endif
 
         ReadBufferBase::sendTo
-        ( pFile, convertBasesToBytes( seqSize_-1 ) );
+        ( pFile, convertBasesToBytes( seqSize_ - 1 ) );
     } // ~sendTo
 
 

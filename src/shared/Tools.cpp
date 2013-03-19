@@ -28,13 +28,13 @@ double Tools::startTime;
 
 void Tools::StartTimer()
 {
-    static const double in_seconds = 1.0/static_cast<double>( CLOCKS_PER_SEC );
+    static const double in_seconds = 1.0 / static_cast<double>( CLOCKS_PER_SEC );
     startTime = clock() * in_seconds;
 }
 
 double Tools::GetTime()
 {
-    static const double in_seconds = 1.0/static_cast<double>( CLOCKS_PER_SEC );
+    static const double in_seconds = 1.0 / static_cast<double>( CLOCKS_PER_SEC );
     double curTime = clock() * in_seconds;
     return curTime - startTime;
 }
@@ -49,7 +49,7 @@ uchar *Tools::GetRandomString( unsigned min, unsigned max, unsigned &alphabetSiz
     for ( unsigned i = 0; i < len; i++ )
         temp[i] = 97 + rand() % alphabetSize;
     temp[len] = 0u ;
-    temp[len+1] = '\0';
+    temp[len + 1] = '\0';
     return temp;
 }
 
@@ -126,7 +126,7 @@ unsigned Tools::CeilLog2( ulong i )
 uchar *Tools::GetFileContents( char *filename, ulong maxSize )
 {
     std::ifstream::pos_type posSize;
-    std::ifstream file ( ( char * )filename, std::ios::in|std::ios::binary|std::ios::ate );
+    std::ifstream file ( ( char * )filename, std::ios::in | std::ios::binary | std::ios::ate );
     if ( file.is_open() )
     {
         posSize = file.tellg();
@@ -147,12 +147,12 @@ uchar *Tools::GetFileContents( char *filename, ulong maxSize )
 void getFileName( const string &stem, const char code, const int pile,
                   string &fileName )
 {
-    fileName=stem;
-    fileName+='-';
-    fileName+=code;
-    fileName+='0';
-    assert( pile<=9 );
-    fileName+=( char )( 48+pile );
+    fileName = stem;
+    fileName += '-';
+    fileName += code;
+    fileName += '0';
+    assert( pile <= 9 );
+    fileName += ( char )( 48 + pile );
     //  cerr << "Made file name " << fileName << endl;
 }
 

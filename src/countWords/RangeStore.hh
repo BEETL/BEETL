@@ -26,8 +26,8 @@
 
 
 typedef unsigned short NumberFrag;
-const int bitsPerFrag( ( 8*sizeof( NumberFrag ) )-1 );
-const NumberFrag needAnotherFrag( 1<<bitsPerFrag );
+const int bitsPerFrag( ( 8 * sizeof( NumberFrag ) ) - 1 );
+const NumberFrag needAnotherFrag( 1 << bitsPerFrag );
 const NumberFrag fragMask( ( unsigned short ) ~needAnotherFrag );
 const LetterCountType letterCountMask( ( LetterCountType )fragMask );
 const int fragBufSize( 8 );
@@ -60,11 +60,11 @@ struct AllRanges: public vector<vector<vector<Range> > >
 struct RangeStore
 {
     virtual ~RangeStore() {}
-    virtual void swap( void )=0;
-    virtual void setPortion( int pileNum, int portionNum )=0;
-    virtual bool getRange( Range &thisRange )=0;
+    virtual void swap( void ) = 0;
+    virtual void setPortion( int pileNum, int portionNum ) = 0;
+    virtual bool getRange( Range &thisRange ) = 0;
     virtual void addRange( int pileNum, int portionNum, const string &seq,
-                           LetterCountType pos, LetterCountType num )=0;
+                           LetterCountType pos, LetterCountType num ) = 0;
 
 
 }; // ~struct RangeStore
@@ -90,7 +90,7 @@ struct RangeStoreRAM : public RangeStore
     virtual void clear( void );
 
     AllRanges r1, r2;
-    AllRanges *pThis,*pNext,*pTemp;
+    AllRanges *pThis, *pNext, *pTemp;
     vector<Range>::iterator i_;
     vector<Range>::iterator end_;
 
@@ -127,8 +127,8 @@ struct RangeState
 
 struct RangeStoreExternal : public RangeStore
 {
-    RangeStoreExternal( const string fileStemIn="countA",
-                        const string fileStemOut="countB" );
+    RangeStoreExternal( const string fileStemIn = "countA",
+                        const string fileStemOut = "countB" );
 
     virtual ~RangeStoreExternal();
 

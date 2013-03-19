@@ -41,20 +41,20 @@ struct IntervalHandlerBase
     ( const int pileNum,
       const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
       const Range &thisRangeA, const Range &thisRangeB,
-      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB )=0;
+      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB ) = 0;
 
     virtual void foundInAOnly
     ( const int pileNum,
       const LetterCount &countsSoFarA,
       const LetterCount &countsThisRangeA,
       const Range &thisRangeA,
-      AlphabetFlag &propagateIntervalA )=0;
+      AlphabetFlag &propagateIntervalA ) = 0;
 
     virtual void foundInBOnly
     ( const int pileNum,
       const LetterCount &countsSoFarB,
       const LetterCount &countsThisRangeB,
       const Range &thisRangeB,
-      AlphabetFlag &propagateIntervalB )=0;
+      AlphabetFlag &propagateIntervalB ) = 0;
 };
 #endif

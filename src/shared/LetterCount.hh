@@ -36,31 +36,31 @@ struct LetterCount
     } // ~ctor
     void clear( void )
     {
-        for ( int i( 0 ); i<alphabetSize; i++ ) count_[i]=0;
+        for ( int i( 0 ); i < alphabetSize; i++ ) count_[i] = 0;
     } // ~clear
 
     void print( void )
     {
-        for ( int i( 0 ); i<alphabetSize; i++ )
+        for ( int i( 0 ); i < alphabetSize; i++ )
             std::cout << " " << alphabet[i] << ":" << count_[i];
         std::cout << std::endl;
     } // ~print
 
     void operator+=( char c )
     {
-        assert( whichPile[( int )c]<alphabetSize );
+        assert( whichPile[( int )c] < alphabetSize );
         count_[whichPile[( int )c]]++;
     }
 
     void operator+=( const LetterCount &rhs )
     {
-        for ( int i( 0 ); i<alphabetSize; i++ ) count_[i]+=rhs.count_[i];
+        for ( int i( 0 ); i < alphabetSize; i++ ) count_[i] += rhs.count_[i];
     } // ~clear
 
     void operator-=( const LetterCount &rhs )
     {
         // on your own head be it if you make an unsigned quantity negative...
-        for ( int i( 0 ); i<alphabetSize; i++ ) count_[i]-=rhs.count_[i];
+        for ( int i( 0 ); i < alphabetSize; i++ ) count_[i] -= rhs.count_[i];
     } // ~clear
 
     //  LetterCountData count_;
@@ -76,12 +76,12 @@ struct LetterCountEachPile : public vector<LetterCount>
     }  // ~ctor
     void clear( void )
     {
-        for ( int i( 0 ); i<alphabetSize; i++ ) ( *this )[i].clear();
+        for ( int i( 0 ); i < alphabetSize; i++ ) ( *this )[i].clear();
     } // ~clear
 
     void print( void )
     {
-        for ( int i( 0 ); i<alphabetSize; i++ )
+        for ( int i( 0 ); i < alphabetSize; i++ )
         {
             std::cout << alphabet[i] << " pile";
             ( *this )[i].print();
@@ -90,7 +90,7 @@ struct LetterCountEachPile : public vector<LetterCount>
 
     void operator+=( const LetterCountEachPile &rhs )
     {
-        for ( int i( 0 ); i<alphabetSize; i++ ) ( *this )[i]+=rhs[i];
+        for ( int i( 0 ); i < alphabetSize; i++ ) ( *this )[i] += rhs[i];
     } // ~clear
 
 

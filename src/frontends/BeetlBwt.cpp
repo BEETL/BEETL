@@ -93,8 +93,8 @@ struct ResourceEstimate
 
     bool operator==( const ResourceEstimate &rhs )
     {
-        return ramRssMBytes==rhs.ramRssMBytes
-               && ramVszMBytes==rhs.ramVszMBytes
+        return ramRssMBytes == rhs.ramRssMBytes
+               && ramVszMBytes == rhs.ramVszMBytes
                && timeSeconds == rhs.timeSeconds;
     }
 
@@ -113,9 +113,9 @@ struct ResourceEstimate
 std::ostream &operator<<( std::ostream &os, const BwtParameters &obj )
 {
     os << "{";
-    for ( int i=0; i<obj.size(); ++i )
+    for ( unsigned int i = 0; i < obj.size(); ++i )
         if ( obj[i] != MULTIPLE_OPTIONS )
-            os << optionNames[i] << "=" << optionPossibleValues[i][obj[i]] << ", ";
+            os << obj.getOptionName( i ) << "=" << obj.getOptionPossibleValue( i, obj[i] ) << ", ";
         else
             os << "*, ";
 
@@ -135,7 +135,7 @@ std::ostream &operator<<( std::ostream &os, const ResourceEstimate &obj )
         // we don't show the seconds if we show the hours (and we round to the closest minutes)
         if ( time > 3600 )
         {
-            time = ( ( time+30 )/60 )*60;
+            time = ( ( time + 30 ) / 60 ) * 60;
         }
 
         int hours = ( time / 60 ) / 60;
@@ -173,9 +173,9 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues );
 void recursiveFillOptionValuesAndRunEstimate( BwtParameters &paramValues )
 {
     int depth = paramValues.size();
-    if ( optionNames[depth] != "" )
+    if ( paramValues.getOptionName( depth ) != "" )
     {
-        for ( int i = 0; optionPossibleValues[depth][i] != ""; ++i )
+        for ( int i = 0; paramValues.getOptionPossibleValue( depth, i ) != ""; ++i )
         {
             paramValues.push_back( i );
             recursiveFillOptionValuesAndRunEstimate( paramValues );
@@ -203,7 +203,7 @@ bool sortEstimatesByTime( const BwtParamsAndEstimate &lhs, const BwtParamsAndEst
     }
 }
 
-void filterEstimates( const vector< pair< string, string > > &filters )
+void filterEstimates( const vector< pair< string, string > > &filters, BwtParameters &paramValues )
 {
     for ( vector< pair< string, string > >::const_iterator filter = filters.begin(); filter != filters.end(); ++filter )
     {
@@ -212,14 +212,14 @@ void filterEstimates( const vector< pair< string, string > > &filters )
 
         // Identify resource num
         int resourceNum = 0;
-        for ( resourceNum = 0; optionNames[resourceNum] != ""; ++resourceNum )
+        for ( resourceNum = 0; paramValues.getOptionName( resourceNum ) != ""; ++resourceNum )
         {
-            if ( strcasecmp( filter->first.c_str(), optionNames[resourceNum].c_str() ) == 0 )
+            if ( strcasecmp( filter->first.c_str(), paramValues.getOptionName( resourceNum ).c_str() ) == 0 )
             {
                 break;
             }
         }
-        if ( optionNames[resourceNum] == "" )
+        if ( paramValues.getOptionName( resourceNum ) == "" )
         {
             cerr << "Error: Impossible to identify resource " << filter->first << endl;
             exit( 1 );
@@ -227,22 +227,22 @@ void filterEstimates( const vector< pair< string, string > > &filters )
 
         // Identify resource value
         int resourceValue = 0;
-        for ( resourceValue = 0; optionPossibleValues[resourceNum][resourceValue] != ""; ++resourceValue )
+        for ( resourceValue = 0; paramValues.getOptionPossibleValue( resourceNum, resourceValue ) != ""; ++resourceValue )
         {
-            if ( strcasecmp( filter->second.c_str(), optionPossibleValues[resourceNum][resourceValue].c_str() ) == 0 )
+            if ( strcasecmp( filter->second.c_str(), paramValues.getOptionPossibleValue( resourceNum, resourceValue ).c_str() ) == 0 )
             {
                 break;
             }
         }
-        if ( optionPossibleValues[resourceNum][resourceValue] == "" )
+        if ( paramValues.getOptionPossibleValue( resourceNum, resourceValue ) == "" )
         {
             cerr << "Error: Impossible to identify resource value " << filter->second << endl;
             exit( 1 );
         }
 
         // Do the filtering
-        // cout << " identified filter: " << optionNames[resourceNum] << " = " << optionPossibleValues[resourceNum][resourceValue] << endl;
-        for ( int i=0; i<allEstimates.size(); ++i )
+        // cout << " identified filter: " << paramValues.getOptionName(resourceNum) << " = " << paramValues.getOptionPossibleValue(resourceNum,resourceValue) << endl;
+        for ( unsigned int i = 0; i < allEstimates.size(); ++i )
         {
             bool keep = ( allEstimates[i].first[resourceNum] == resourceValue );
             if ( keep )
@@ -260,27 +260,27 @@ void calculateResourceRequirements( const vector< pair< string, string > > &filt
     recursiveFillOptionValuesAndRunEstimate( paramValues );
 
     // Filter out estimates based on specified inputs
-    filterEstimates( filters );
+    filterEstimates( filters, paramValues );
 
     // Sort by estimated processing time
     sort( allEstimates.begin(), allEstimates.end(), sortEstimatesByTime );
 
     // Merge identical estimates
     vector< BwtParamsAndEstimate > mergedEstimates;
-    for ( int i=1; i<allEstimates.size(); ++i )
+    for ( unsigned int i = 1; i < allEstimates.size(); ++i )
     {
-        if ( allEstimates[i-1].second == allEstimates[i].second )
+        if ( allEstimates[i - 1].second == allEstimates[i].second )
         {
-            for ( int j=0; j<allEstimates[i-1].first.size(); ++j )
-                if ( allEstimates[i-1].first[j] != allEstimates[i].first[j] )
-                    allEstimates[i-1].first[j] = MULTIPLE_OPTIONS;
+            for ( unsigned int j = 0; j < allEstimates[i - 1].first.size(); ++j )
+                if ( allEstimates[i - 1].first[j] != allEstimates[i].first[j] )
+                    allEstimates[i - 1].first[j] = MULTIPLE_OPTIONS;
             allEstimates.erase( allEstimates.begin() + i );
             --i;
         }
     }
 
     // Print out top 10
-    for ( int i=0; /*i<10 &&*/ i<allEstimates.size(); ++i )
+    for ( unsigned int i = 0; /*i<10 &&*/ i < allEstimates.size(); ++i )
     {
         Logger::out( LOG_SHOW_IF_VERBOSE ) << allEstimates[i] << endl;
     }
@@ -299,24 +299,24 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
         for (int i=0; i<paramValues.size(); ++i)
             cout << paramValues[i] << ", ";
         cout << endl;
-        OPTION_INPUT_FORMAT,
-        OPTION_ALGORITHM,
-        OPTION_INTERMEDIATE_FORMAT,
-        OPTION_INTERMEDIATE_STORAGE_MEDIUM,
-        OPTION_PARALLEL_PREFETCH,
-        OPTION_PARALLEL_PROCESSING,
-        OPTION_GENERATE_QUALITIES,
-        OPTION_GENERATE_LCP,
-        OPTION_SINGLE_CYCLE,
-        OPTION_COUNT // end marker
+        BWT_OPTION_INPUT_FORMAT,
+        BWT_OPTION_ALGORITHM,
+        BWT_OPTION_INTERMEDIATE_FORMAT,
+        BWT_OPTION_INTERMEDIATE_STORAGE_MEDIUM,
+        BWT_OPTION_PARALLEL_PREFETCH,
+        BWT_OPTION_PARALLEL_PROCESSING,
+        BWT_OPTION_GENERATE_QUALITIES,
+        BWT_OPTION_GENERATE_LCP,
+        BWT_OPTION_SINGLE_CYCLE,
+        BWT_OPTION_COUNT // end marker
     */
 
     //    unsigned long dataSize = static_cast<unsigned long>( datasetMetadata.nBases * datasetMetadata.rleCompressibility / 8 );
     unsigned long dataRead = 0;
     unsigned long dataWritten = 0;
-    for ( int i=0; i<datasetMetadata.nCycles; ++i )
+    for ( unsigned int i = 0; i < datasetMetadata.nCycles; ++i )
     {
-        switch ( paramValues[OPTION_INTERMEDIATE_FORMAT] )
+        switch ( paramValues[BWT_OPTION_INTERMEDIATE_FORMAT] )
         {
             case INTERMEDIATE_FORMAT_ASCII:
             {
@@ -326,17 +326,17 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
             }
             case INTERMEDIATE_FORMAT_HUFFMAN:
                 // unknown => special value so that it only gets selected if specified by the user
-                result.timeSeconds = 10*60*60;
+                result.timeSeconds = 10 * 60 * 60;
             case INTERMEDIATE_FORMAT_RLE:
             {
-                float cycleRleCompressibility = 2 * datasetMetadata.rleCompressibility - datasetMetadata.rleCompressibility*i/datasetMetadata.nCycles;
+                float cycleRleCompressibility = 2 * datasetMetadata.rleCompressibility - datasetMetadata.rleCompressibility * i / datasetMetadata.nCycles;
                 dataRead += static_cast<unsigned long>( datasetMetadata.nReads * i * cycleRleCompressibility / 8 );
                 dataWritten += static_cast<unsigned long>( datasetMetadata.nReads * i * cycleRleCompressibility / 8 );
                 break;
             }
             case INTERMEDIATE_FORMAT_MULTIRLE:
             {
-                float cycleRleCompressibility = 2 * datasetMetadata.rleCompressibility - datasetMetadata.rleCompressibility*i/datasetMetadata.nCycles;
+                float cycleRleCompressibility = 2 * datasetMetadata.rleCompressibility - datasetMetadata.rleCompressibility * i / datasetMetadata.nCycles;
                 dataRead += static_cast<unsigned long>( datasetMetadata.nReads * i * cycleRleCompressibility / 8 );
                 dataWritten += static_cast<unsigned long>( 4 * datasetMetadata.nReads * cycleRleCompressibility / 8 );
                 break;
@@ -346,54 +346,54 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
         }
     }
 
-    switch ( paramValues[OPTION_ALGORITHM] )
+    switch ( paramValues[BWT_OPTION_ALGORITHM] )
     {
         case ALGORITHM_BCR:
             /*
                     // Beetl bcr -r
-                OPTION_INPUT_FORMAT                     = not taken into consideration
-                OPTION_ALGORITHM                        = bcr
-                OPTION_INTERMEDIATE_FORMAT         = RLE
-                OPTION_INTERMEDIATE_STORAGE_MEDIUM = disk
-                OPTION_PARALLEL_PREFETCH                = OFF
-                OPTION_PARALLEL_PROCESSING              = OFF
-                OPTION_GENERATE_QUALITIES               = n/a
-                OPTION_GENERATE_LCP                     = n/a
-                OPTION_SINGLE_CYCLE                     = n/a
+                BWT_OPTION_INPUT_FORMAT                     = not taken into consideration
+                BWT_OPTION_ALGORITHM                        = bcr
+                BWT_OPTION_INTERMEDIATE_FORMAT         = RLE
+                BWT_OPTION_INTERMEDIATE_STORAGE_MEDIUM = disk
+                BWT_OPTION_PARALLEL_PREFETCH                = OFF
+                BWT_OPTION_PARALLEL_PROCESSING              = OFF
+                BWT_OPTION_GENERATE_QUALITIES               = n/a
+                BWT_OPTION_GENERATE_LCP                     = n/a
+                BWT_OPTION_SINGLE_CYCLE                     = n/a
 
                     // Beetl bcr -r + parallel (branch027)
-                OPTION_INPUT_FORMAT                     = not taken into consideration
-                OPTION_ALGORITHM                        = bcr
-                OPTION_INTERMEDIATE_FORMAT         = RLE
-                OPTION_INTERMEDIATE_STORAGE_MEDIUM = disk
-                OPTION_PARALLEL_PREFETCH                = ON
-                OPTION_PARALLEL_PROCESSING              = OFF/2cores/4cores
-                OPTION_GENERATE_QUALITIES               = n/a
-                OPTION_GENERATE_LCP                     = n/a
-                OPTION_SINGLE_CYCLE                     = n/a
+                BWT_OPTION_INPUT_FORMAT                     = not taken into consideration
+                BWT_OPTION_ALGORITHM                        = bcr
+                BWT_OPTION_INTERMEDIATE_FORMAT         = RLE
+                BWT_OPTION_INTERMEDIATE_STORAGE_MEDIUM = disk
+                BWT_OPTION_PARALLEL_PREFETCH                = ON
+                BWT_OPTION_PARALLEL_PROCESSING              = OFF/2cores/4cores
+                BWT_OPTION_GENERATE_QUALITIES               = n/a
+                BWT_OPTION_GENERATE_LCP                     = n/a
+                BWT_OPTION_SINGLE_CYCLE                     = n/a
 
                     // Beetl bcr -t (parallel)
-                OPTION_INPUT_FORMAT                     = not taken into consideration
-                OPTION_ALGORITHM                        = bcr
-                OPTION_INTERMEDIATE_FORMAT         = MultiRLE
-                OPTION_INTERMEDIATE_STORAGE_MEDIUM = RAM
-                OPTION_PARALLEL_PREFETCH                = ON
-                OPTION_PARALLEL_PROCESSING              = OFF/2cores/4cores
-                OPTION_GENERATE_QUALITIES               = n/a
-                OPTION_GENERATE_LCP                     = n/a
-                OPTION_SINGLE_CYCLE                     = n/a
+                BWT_OPTION_INPUT_FORMAT                     = not taken into consideration
+                BWT_OPTION_ALGORITHM                        = bcr
+                BWT_OPTION_INTERMEDIATE_FORMAT         = MultiRLE
+                BWT_OPTION_INTERMEDIATE_STORAGE_MEDIUM = RAM
+                BWT_OPTION_PARALLEL_PREFETCH                = ON
+                BWT_OPTION_PARALLEL_PROCESSING              = OFF/2cores/4cores
+                BWT_OPTION_GENERATE_QUALITIES               = n/a
+                BWT_OPTION_GENERATE_LCP                     = n/a
+                BWT_OPTION_SINGLE_CYCLE                     = n/a
             */
         {
-            float diskSpeed = min( hardwareConstraints.diskMaxSpeedPerProcess * ( 1 << paramValues[OPTION_PARALLEL_PROCESSING] )
+            float diskSpeed = min( hardwareConstraints.diskMaxSpeedPerProcess * ( 1 << paramValues[BWT_OPTION_PARALLEL_PROCESSING] )
                                    , hardwareConstraints.diskMaxTotalSpeed );
-            float ramSpeed = min( hardwareConstraints.ramMaxSpeedPerProcess * ( 1 << paramValues[OPTION_PARALLEL_PROCESSING] )
+            float ramSpeed = min( hardwareConstraints.ramMaxSpeedPerProcess * ( 1 << paramValues[BWT_OPTION_PARALLEL_PROCESSING] )
                                   , hardwareConstraints.ramMaxTotalSpeed );
 
             // base RAM
-            result.ramRssMBytes += 14 * datasetMetadata.nReads / 1024 / 1024 * ( paramValues[OPTION_PARALLEL_PROCESSING]?2:1 );
+            result.ramRssMBytes += 14 * datasetMetadata.nReads / 1024 / 1024 * ( paramValues[BWT_OPTION_PARALLEL_PROCESSING] ? 2 : 1 );
 
             // TransposeFasta
-            switch ( paramValues[OPTION_INPUT_FORMAT] )
+            switch ( paramValues[BWT_OPTION_INPUT_FORMAT] )
             {
                 case INPUT_FORMAT_FASTQ:
                     dataRead += static_cast<unsigned long>( 2 * datasetMetadata.nReads * datasetMetadata.nCycles );
@@ -411,7 +411,7 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
 
             unsigned long dataRw = dataRead + dataWritten;
 
-            if ( paramValues[OPTION_PARALLEL_PREFETCH] == PARALLEL_PREFETCH_ON )
+            if ( paramValues[BWT_OPTION_PARALLEL_PREFETCH] == PARALLEL_PREFETCH_ON )
             {
                 unsigned int prefetchRam = datasetMetadata.nReads / 1024 / 1024;
                 result.ramRssMBytes += prefetchRam;
@@ -422,7 +422,7 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
                 result.timeSeconds += prefetchTime;
             }
 
-            if ( paramValues[OPTION_INTERMEDIATE_STORAGE_MEDIUM] == INTERMEDIATE_STORAGE_MEDIUM_DISK )
+            if ( paramValues[BWT_OPTION_INTERMEDIATE_STORAGE_MEDIUM] == INTERMEDIATE_STORAGE_MEDIUM_DISK )
             {
                 unsigned long dataRwTime = static_cast<unsigned long>( dataRw / diskSpeed / 1024 / 1024 ) + 16;
                 result.timeSeconds += dataRwTime;
@@ -445,7 +445,7 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
             result.ramVszMBytes = 19;
 
             // TransposeFasta
-            switch ( paramValues[OPTION_INPUT_FORMAT] )
+            switch ( paramValues[BWT_OPTION_INPUT_FORMAT] )
             {
                 case INPUT_FORMAT_CYC:
                 case INPUT_FORMAT_BCL:
@@ -480,18 +480,18 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
 void launchBeetlBwt( BwtParamsAndEstimate &config, const string &inputFilename, const string &outputFilename )
 {
     Logger::out( LOG_ALWAYS_SHOW ) << "\nLaunching the following configuration of Beetl:" << endl;
-    for ( int i=0; i<config.first.size(); ++i )
+    for ( unsigned int i = 0; i < config.first.size(); ++i )
     {
-        Logger::out( LOG_ALWAYS_SHOW ) << "  " << optionNames[i] << " = ";
+        Logger::out( LOG_ALWAYS_SHOW ) << "  " << config.first.getOptionName( i ) << " = ";
         if ( config.first[i] == MULTIPLE_OPTIONS )
         {
             Logger::out( LOG_ALWAYS_SHOW ) << "* => ";
             config.first[i] = 0;
         }
-        Logger::out( LOG_ALWAYS_SHOW ) << optionPossibleValues[i][config.first[i]] << endl;
+        Logger::out( LOG_ALWAYS_SHOW ) << config.first.getOptionPossibleValue( i, config.first[i] ) << endl;
     }
 
-    if ( config.first[OPTION_ALGORITHM] == ALGORITHM_BCR )
+    if ( config.first[BWT_OPTION_ALGORITHM] == ALGORITHM_BCR )
     {
         int bcrMode = 0 ; // 0=build BWT
         CompressionFormatType outputCompression = compressionIncrementalRunLength; // todo
@@ -505,11 +505,11 @@ void launchBeetlBwt( BwtParamsAndEstimate &config, const string &inputFilename, 
         return;
     }
 
-    stringstream cmdLineParams;
-    cmdLineParams << optionPossibleValues[OPTION_ALGORITHM][config.first[OPTION_ALGORITHM]]
+    ostringstream cmdLineParams;
+    cmdLineParams << config.first.getOptionPossibleValue( BWT_OPTION_ALGORITHM, config.first[BWT_OPTION_ALGORITHM] )
                   << " -i " << inputFilename;
 
-    switch ( config.first[OPTION_ALGORITHM] )
+    switch ( config.first[BWT_OPTION_ALGORITHM] )
     {
         case MULTIPLE_OPTIONS:
         case ALGORITHM_BCR:
@@ -523,11 +523,11 @@ void launchBeetlBwt( BwtParamsAndEstimate &config, const string &inputFilename, 
             assert( false && "shouldn't reach here" );
     }
 
-    if ( config.first[OPTION_INTERMEDIATE_FORMAT] == INTERMEDIATE_FORMAT_MULTIRLE )
+    if ( config.first[BWT_OPTION_INTERMEDIATE_FORMAT] == INTERMEDIATE_FORMAT_MULTIRLE )
     {
         cmdLineParams << " -t ";
     }
-    else switch ( config.first[OPTION_OUTPUT_FORMAT] )
+    else switch ( config.first[BWT_OPTION_OUTPUT_FORMAT] )
         {
             case MULTIPLE_OPTIONS:
             case OUTPUT_FORMAT_ASCII:
@@ -543,7 +543,7 @@ void launchBeetlBwt( BwtParamsAndEstimate &config, const string &inputFilename, 
                 assert( false && "shouldn't reach here" );
         }
 
-    if ( config.first[OPTION_SAP_ORDERING] == SAP_ORDERING_ON )
+    if ( config.first[BWT_OPTION_SAP_ORDERING] == SAP_ORDERING_ON )
     {
         cmdLineParams << " -sap ";
     }
@@ -568,7 +568,7 @@ void printUsage()
     cout << "Options:" << endl;
     cout << "    --qualities (-q)         = ignore [ignore|permute]: Ignore/Permute qualities (only available with bcr algorithm)" << endl;
     cout << "    --concatenate-output     Concatenate BWT files at the end" << endl;
-    //TODO in future release:    cout << "    --generate-lcp           " << endl;
+    cout << "    --generate-lcp           Generate Longest Common Prefix lengths (see LCP note below)" << endl;
     cout << "    --sap-ordering           Use SAP ordering (see SAP note below)" << endl;
     cout << "    --generate-end-pos-file  Generates outFileEndPos.bwt" << endl;
     //TODO in future release:    cout << "    --single-cycle           " << endl;
@@ -584,6 +584,8 @@ void printUsage()
     cout << "    RLE      : run-length-encoded format" << endl;
     cout << "    multiRLE : run-length-encoded using an incremental strategy with multiple files" << endl;
     cout << "    SAP      : implicit permutation to obtain more compressible BWT (Note: forces algorithm=ext and intermediate-format=ascii)" << endl;
+    cout << "    LCP      : length of Longest Common Prefix shared between a BWT letter and the next one. Stored using 4 bytes per BWT letter in files with -Lxx suffix." << endl;
+    cout << "               (Note: forces algorithm=bcr, non-parallel and intermediate-format=ascii)" << endl;
 #ifndef USE_OPENMP
     cout << endl;
     cout << "Warning:" << endl;
@@ -648,7 +650,7 @@ int main( const int argc, const char **argv )
     cout << endl;
 
     cout << "Command called:" << endl << "   ";
-    for ( int i=0; i < argc; ++i )
+    for ( int i = 0; i < argc; ++i )
     {
         cout << " " << argv[i];
     }
@@ -691,7 +693,10 @@ int main( const int argc, const char **argv )
         {
             args.argParallelProcessing = false;
         }
-        //        else if (isNextArgument( ""  , "--generate-lcp"           , argc, argv, i                               )) { args.argGenerateLcp = true; }
+        else if ( isNextArgument( ""  , "--generate-lcp"           , argc, argv, i                               ) )
+        {
+            args.argGenerateLcp = true;
+        }
         //        else if (isNextArgument( ""  , "--single-cycle"           , argc, argv, i                               )) { args.argSingleCycle = true; }
         else if ( isNextArgument( ""  , "--hw-constraints"         , argc, argv, i, &args.argHardwareConstraints ) ) {}
         else if ( isNextArgument( ""  , "--verbose"                , argc, argv, i, &args.argVerbosityLevel      ) )
@@ -724,14 +729,29 @@ int main( const int argc, const char **argv )
     // Special case of SAP ordering
     if ( args.argSapOrdering )
     {
-        if ( args.argAlgorithm != "" && strcasecmp( args.argAlgorithm.c_str(), "ext" ) != 0 )
+        if ( args.argAlgorithm == "" || strcasecmp( args.argAlgorithm.c_str(), "ext" ) != 0 )
         {
             clog << "Warning: Forcing algorithm=ext for --sap-ordering" << endl;
             args.argAlgorithm = "ext";
         }
-        if ( args.argIntermediateFormat != "" && strcasecmp( args.argIntermediateFormat.c_str(), "ascii" ) != 0 )
+        if ( args.argIntermediateFormat == "" || strcasecmp( args.argIntermediateFormat.c_str(), "ascii" ) != 0 )
         {
             clog << "Warning: Forcing intermediate-format=ascii for --sap-ordering" << endl;
+            args.argIntermediateFormat = "ascii";
+        }
+    }
+
+    // Special case of LCP generation
+    if ( args.argGenerateLcp )
+    {
+        if ( args.argAlgorithm == "" || strcasecmp( args.argAlgorithm.c_str(), "bcr" ) != 0 )
+        {
+            clog << "Warning: Forcing algorithm=bcr for --generate-lcp" << endl;
+            args.argAlgorithm = "bcr";
+        }
+        if ( args.argIntermediateFormat == "" || strcasecmp( args.argIntermediateFormat.c_str(), "ascii" ) != 0 )
+        {
+            clog << "Warning: Forcing intermediate-format=ascii for --generate-lcp" << endl;
             args.argIntermediateFormat = "ascii";
         }
     }
@@ -752,9 +772,10 @@ int main( const int argc, const char **argv )
         filters.push_back( make_pair( "intermediate format", args.argIntermediateFormat ) );
     if ( !args.argIntermediateMedium.empty() )
         filters.push_back( make_pair( "intermediate storage medium", args.argIntermediateMedium ) );
-    filters.push_back( make_pair( "concatenate output", args.argConcatenateOutput?"on":"off" ) );
-    filters.push_back( make_pair( "SAP ordering", args.argSapOrdering?"on":"off" ) );
-    filters.push_back( make_pair( "generate endPosfile", args.argGenerateEndPosFile?"on":"off" ) );
+    filters.push_back( make_pair( "concatenate output", args.argConcatenateOutput ? "on" : "off" ) );
+    filters.push_back( make_pair( "SAP ordering", args.argSapOrdering ? "on" : "off" ) );
+    filters.push_back( make_pair( "generate LCP", args.argGenerateLcp ? "on" : "off" ) );
+    filters.push_back( make_pair( "generate endPosfile", args.argGenerateEndPosFile ? "on" : "off" ) );
     if ( args.argQualities == "ignore" )
         filters.push_back( make_pair( "permute qualities", "off" ) );
     else if ( args.argQualities == "permute" )

@@ -27,10 +27,10 @@ BackTracker::BackTracker( BwtReaderBase *inBwtA, BwtReaderBase *inBwtB,
                           RangeStoreExternal &rA, RangeStoreExternal &rB,
                           LetterCount &countsSoFarA, LetterCount &countsSoFarB,
                           int minOcc ) :
-    inBwtA_( inBwtA ),inBwtB_( inBwtB ),
+    inBwtA_( inBwtA ), inBwtB_( inBwtB ),
     currentPosA_( currentPosA ), currentPosB_( currentPosB ),
-    rA_( rA ),rB_( rB ),countsSoFarA_( countsSoFarA ),countsSoFarB_( countsSoFarB ),
-    minOcc_( minOcc ), numRanges_( 0 ),numSingletonRanges_( 0 )
+    rA_( rA ), rB_( rB ), countsSoFarA_( countsSoFarA ), countsSoFarB_( countsSoFarB ),
+    minOcc_( minOcc ), numRanges_( 0 ), numSingletonRanges_( 0 )
 {}
 
 void BackTracker::skipIfNecessary( const Range &thisRange,
@@ -39,19 +39,19 @@ void BackTracker::skipIfNecessary( const Range &thisRange,
                                    LetterCount &countsSoFar )
 {
 #ifdef DEBUG
-    cout << "Want 2 skip " << thisRange.pos_-currentPos << ": " << currentPos << " to " << thisRange.pos_<< endl;
+    cout << "Want 2 skip " << thisRange.pos_ - currentPos << ": " << currentPos << " to " << thisRange.pos_ << endl;
 #endif
-    if ( ( thisRange.pos_&matchMask )>currentPos )
+    if ( ( thisRange.pos_ & matchMask ) > currentPos )
     {
 #ifdef DEBUG
-        cout << "Skipping " << thisRange.pos_-currentPos << ": " << currentPos << " to " << thisRange.pos_<< endl;
+        cout << "Skipping " << thisRange.pos_ - currentPos << ": " << currentPos << " to " << thisRange.pos_ << endl;
 #endif
-        inBwt.readAndCount( countsSoFar,( thisRange.pos_&matchMask )-currentPos );
-        currentPos=( thisRange.pos_&matchMask );
+        inBwt.readAndCount( countsSoFar, ( thisRange.pos_ & matchMask ) - currentPos );
+        currentPos = ( thisRange.pos_ & matchMask );
     } // ~if
-    if ( thisRange.pos_<currentPos )
+    if ( thisRange.pos_ < currentPos )
     {
-        cerr << "thisRange is to low. Should be > " << currentPos << "." <<endl;
+        cerr << "thisRange is to low. Should be > " << currentPos << "." << endl;
     }
 } // ~BackTracker::skipIfNecessary
 

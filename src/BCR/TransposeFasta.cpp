@@ -17,6 +17,7 @@
 
 #include "TransposeFasta.hh"
 
+#include "Filename.hh"
 #include "Logger.hh"
 #include "SeqReader.hh"
 #include "TemporaryFilesManager.hh"
@@ -30,7 +31,7 @@ using namespace std;
 
 TransposeFasta::TransposeFasta()
 {
-    for ( int i( 0 ); i<256; i++ ) freq[i]=0;
+    for ( int i( 0 ); i < 256; i++ ) freq[i] = 0;
 }
 
 void TransposeFasta::init( SeqReaderFile *pReader, const bool processQualities )
@@ -74,42 +75,26 @@ bool TransposeFasta::convert( const string &input, const string &output )
     //for alpha[256] -->Corresponding between the alphabet, the piles and tableOcc
     //and to know sizeAlpha
     //We supposed that the symbols in the input file are the following
-    freq[int( TERMINATE_CHAR )]=1;
-    freq[int( 'A' )]=1;
-    freq[int( 'C' )]=1;
-    freq[int( 'G' )]=1;
-    freq[int( 'N' )]=1;
-    freq[int( 'T' )]=1;
+    freq[int( TERMINATE_CHAR )] = 1;
+    freq[int( 'A' )] = 1;
+    freq[int( 'C' )] = 1;
+    freq[int( 'G' )] = 1;
+    freq[int( 'N' )] = 1;
+    freq[int( 'T' )] = 1;
     //GIOVANNA: ADDED THE SYMBOL Z IN THE ALPHABET, SO sizeAlpha = alphabetSize
-    freq[int( 'Z' )]=1;
-
-    FILE *ifile;
-    ifile = fopen( input.c_str(), "rb" );
-
-    //        SeqReaderFile* pReader(SeqReaderFile::getReader(fopen(input.c_str(),"rb")));
-
-    //        cycleNum_=pReader->getLength();
-    //        cerr << "Deduced read length of " << cycleNum_ << endl;
-
-
-    if ( ifile == NULL )
-    {
-        cerr << "TransposeFasta: could not open file " << input << " !" << endl;
-    }
+    freq[int( 'Z' )] = 1;
 
     // create output files
-    for ( dataTypelenSeq i=0; i<cycleNum_; i++ )
+    for ( dataTypelenSeq i = 0; i < cycleNum_; i++ )
     {
-        stringstream fn;
-        fn << output <<  i << ".txt";
-        outputFiles_[i] = fopen( fn.str().c_str(),"w" );
-        TemporaryFilesManager::get().addFilename( fn.str() );
+        Filename fn( output, i, ".txt" );
+        outputFiles_[i] = fopen( fn, "w" );
+        TemporaryFilesManager::get().addFilename( fn );
         if ( processQualities_ )
         {
-            stringstream fnQual;
-            fnQual << output << "qual." << i << ".txt";
-            outputFilesQual[i] = fopen( fnQual.str().c_str(),"w" );
-            TemporaryFilesManager::get().addFilename( fnQual.str() );
+            Filename fnQual( output + "qual.", i, ".txt" );
+            outputFilesQual[i] = fopen( fnQual, "w" );
+            TemporaryFilesManager::get().addFilename( fnQual );
         }
     }
 
@@ -120,45 +105,37 @@ bool TransposeFasta::convert( const string &input, const string &output )
     unsigned int charsBuffered = 0;
 
     //******************************buf[cycleNum_+1];  ********* is cycleNum_ right?
-    char buf[cycleNum_+1];
     lengthTexts = 0;
-
-
-    for ( dataTypelenSeq i=0; i<cycleNum_; i++ )
-    {
-        buf[i] = '\0';
-    }
-
     nSeq = 0;
     //    num_read = fread(buf,sizeof(uchar),cycleNum_,ifile);
 
     //    fgets ( buf,1024, ifile ); %%%%%
     //    while( !feof(ifile) ) %%%%%
-    while ( pReader_->allRead()==false )
+    while ( pReader_->allRead() == false )
     {
         //cerr << "current line : " << buf << endl;
 
         if ( charsBuffered == BUFFERSIZE )
         {
             // write buffers to the files, clear buffers
-            for ( dataTypelenSeq i=0; i<cycleNum_; i++ )
+            for ( dataTypelenSeq i = 0; i < cycleNum_; i++ )
             {
                 //cerr << "writing to " << i << " : " << buf_[i] << endl;
-                num_write = fwrite ( ( void * )( &buf_[i][0] ),sizeof( char ),charsBuffered,outputFiles_[i] );
+                num_write = fwrite ( ( void * )( &buf_[i][0] ), sizeof( char ), charsBuffered, outputFiles_[i] );
                 lengthTexts += num_write;
                 if ( processQualities_ )
                 {
-                    size_t num_write_qual = fwrite ( ( void * )( &bufQual[i][0] ),sizeof( char ),charsBuffered,outputFilesQual[i] );
+                    size_t num_write_qual = fwrite ( ( void * )( &bufQual[i][0] ), sizeof( char ), charsBuffered, outputFilesQual[i] );
                     checkIfEqual( num_write, num_write_qual );
                 }
             }
-            checkIfEqual( num_write,charsBuffered ); // we should always read/write the same number of characters
+            checkIfEqual( num_write, charsBuffered ); // we should always read/write the same number of characters
 
 
-            charsBuffered=0;
+            charsBuffered = 0;
         }
 
-        for ( dataTypelenSeq i=0; i<cycleNum_; i++ )
+        for ( dataTypelenSeq i = 0; i < cycleNum_; i++ )
         {
             buf_[i][charsBuffered] = pReader_->thisSeq()[i];
 
@@ -177,7 +154,7 @@ bool TransposeFasta::convert( const string &input, const string &output )
         if ( buf[0] != '>' )
         {
             // add the characters
-            for ( dataTypelenSeq i=0; i<cycleNum_; i++ )
+            for ( dataTypelenSeq i = 0; i < cycleNum_; i++ )
             {
                 buf_[i][charsBuffered] = buf[i];
             }
@@ -195,22 +172,22 @@ bool TransposeFasta::convert( const string &input, const string &output )
     }
 
     // write the rest
-    for ( dataTypelenSeq i=0; i<cycleNum_; i++ )
+    for ( dataTypelenSeq i = 0; i < cycleNum_; i++ )
     {
-        num_write = fwrite ( ( void * )( &buf_[i][0] ),sizeof( uchar ),charsBuffered,outputFiles_[i] );
+        num_write = fwrite ( ( void * )( &buf_[i][0] ), sizeof( uchar ), charsBuffered, outputFiles_[i] );
         lengthTexts += num_write;
         if ( processQualities_ )
         {
-            size_t num_write_qual = fwrite ( ( void * )( &bufQual[i][0] ),sizeof( uchar ),charsBuffered,outputFilesQual[i] );
+            size_t num_write_qual = fwrite ( ( void * )( &bufQual[i][0] ), sizeof( uchar ), charsBuffered, outputFilesQual[i] );
             checkIfEqual( num_write, num_write_qual );
         }
     }
-    checkIfEqual( num_write,charsBuffered );
+    checkIfEqual( num_write, charsBuffered );
 
 
 
     // closing all the output file streams
-    for ( dataTypelenSeq i=0; i<cycleNum_; i++ )
+    for ( dataTypelenSeq i = 0; i < cycleNum_; i++ )
     {
         fclose( outputFiles_[i] );
         if ( processQualities_ )
@@ -235,14 +212,14 @@ bool TransposeFasta::inputCycFile( const string &cycPrefix )
 
     //1) Alphabet
     //We supposed that the symbols in the input file are the following
-    freq[int( TERMINATE_CHAR )]=1;
-    freq[int( 'A' )]=1;
-    freq[int( 'C' )]=1;
-    freq[int( 'G' )]=1;
-    freq[int( 'N' )]=1;
-    freq[int( 'T' )]=1;
+    freq[int( TERMINATE_CHAR )] = 1;
+    freq[int( 'A' )] = 1;
+    freq[int( 'C' )] = 1;
+    freq[int( 'G' )] = 1;
+    freq[int( 'N' )] = 1;
+    freq[int( 'T' )] = 1;
     //GIOVANNA: ADDED THE SYMBOL Z IN THE ALPHABET, SO sizeAlpha = alphabetSize
-    freq[int( 'Z' )]=1;
+    freq[int( 'Z' )] = 1;
 
     //2) Number of sequences
     string cyc1Filename = cycPrefix + "1.txt";
@@ -257,11 +234,10 @@ bool TransposeFasta::inputCycFile( const string &cycPrefix )
     fclose( f );
 
     //3) Length of the longest sequence
-    for ( lengthRead=1; ; ++lengthRead )
+    for ( lengthRead = 1; ; ++lengthRead )
     {
-        stringstream cycFilename;
-        cycFilename << cycPrefix << lengthRead << ".txt";
-        FILE *f = fopen( cycFilename.str().c_str(), "rb" );
+        Filename cycFilename( cycPrefix, lengthRead, ".txt" );
+        FILE *f = fopen( cycFilename, "rb" );
         if ( f )
             fclose( f );
         else
@@ -297,22 +273,20 @@ bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPr
     vector <FILE *> inFilesCyc;
     vector <FILE *> inFilesCycQual;
     //Open all cyc files
-    for ( int i=0; ; ++i )
+    for ( int i = 0; ; ++i )
     {
-        stringstream fn;
-        fn << fileInputPrefix <<  ( int )i << ".txt";
-        FILE *f = fopen( fn.str().c_str(),"rb" );
+        Filename fn( fileInputPrefix, i, ".txt" );
+        FILE *f = fopen( fn, "rb" );
         if ( !f ) break;
         inFilesCyc.push_back( f );
 
         if ( outputIsFastq )
         {
-            stringstream fnQual;
-            fnQual << fileInputPrefix <<  ( int )i << ".qual.txt";
-            inFilesCycQual.push_back( fopen( fnQual.str().c_str(),"rb" ) );
+            Filename fnQual( fileInputPrefix, i, ".qual.txt" );
+            inFilesCycQual.push_back( fopen( fnQual, "rb" ) );
             if ( inFilesCycQual[i] == NULL )
             {
-                std::cerr << "TransposeFasta: could not open file "  <<  fn.str().c_str() << std::endl;
+                std::cerr << "TransposeFasta: could not open file " << fnQual << std::endl;
                 exit ( EXIT_FAILURE );
             }
         }
@@ -330,23 +304,22 @@ bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPr
     ofstream outFile ( fileOutput.c_str() );
     if ( outFile.is_open() == false )
     {
-        std::cerr << "Error opening \"" << fileOutput << "\" file"<< std::endl;
+        std::cerr << "Error opening \"" << fileOutput << "\" file" << std::endl;
         exit ( 1 );
     }
 
     //I must read a char for each sequence. The chars at the position i corresponds to the chars of the sequence i.
-    dataTypeNChar num_read;
     char symbol;
     string sequence = "";
-    for ( dataTypeNSeq j=0; j<nSeq; j++ )
+    for ( dataTypeNSeq j = 0; j < nSeq; j++ )
     {
         if ( outputIsFastq )
             outFile << "@Read"  << j << std::endl;
         else
             outFile << "> Read "  << j << std::endl;
-        for ( dataTypelenSeq i=0; i<lengthRead; i++ )
+        for ( dataTypelenSeq i = 0; i < lengthRead; i++ )
         {
-            num_read = fread ( &symbol, sizeof( char ), 1, inFilesCyc[i] );
+            fread ( &symbol, sizeof( char ), 1, inFilesCyc[i] );
             sequence.append ( 1, symbol );
         }
         outFile << sequence << std::endl;
@@ -358,9 +331,9 @@ bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPr
             outFile << "+" << std::endl;
             if ( outputIsFastq && inFilesCycQual.size() >= lengthRead )
             {
-                for ( dataTypelenSeq i=0; i<lengthRead; i++ )
+                for ( dataTypelenSeq i = 0; i < lengthRead; i++ )
                 {
-                    num_read = fread ( &symbol, sizeof( char ), 1, inFilesCycQual[i] );
+                    fread ( &symbol, sizeof( char ), 1, inFilesCycQual[i] );
                     sequence.append ( 1, symbol );
                 }
                 outFile << sequence << std::endl;
@@ -376,7 +349,7 @@ bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPr
 
 
     //Close all cyc files
-    for ( dataTypelenSeq i=0; i<lengthRead; i++ )
+    for ( dataTypelenSeq i = 0; i < lengthRead; i++ )
     {
         fclose( inFilesCyc[i] );
     }

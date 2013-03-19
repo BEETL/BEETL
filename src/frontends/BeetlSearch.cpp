@@ -55,13 +55,13 @@ int main( const int argc, const char **argv )
     cout << endl;
 
     cout << "Command called:" << endl << "   ";
-    for ( int i=0; i < argc; ++i )
+    for ( int i = 0; i < argc; ++i )
     {
         cout << " " << argv[i];
     }
     cout << "\n" << endl;
 
-    BeetlSearchArguments args;
+    //    BeetlSearchArguments args;
 
     for ( int i = 1; i < argc; ++i )
     {

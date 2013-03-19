@@ -32,9 +32,9 @@ struct BwtWriterBase
 {
     virtual ~BwtWriterBase() {};
 
-    virtual void operator()( const char *p, int numChars ) =0;
+    virtual void operator()( const char *p, int numChars ) = 0;
 
-    virtual void sendRun( char c, int runLength ) =0;
+    virtual void sendRun( char c, int runLength ) = 0;
     virtual void sendRunOfPreExistingData( char c, int runLength, int fileNum, size_t posInRamFile, int remainingRunLength )
     {
         sendRun( c, runLength );
@@ -82,7 +82,7 @@ struct BwtWriterRunLength : public BwtWriterFile
 {
     BwtWriterRunLength( const string &fileName ):
         BwtWriterFile( fileName ),
-        runLength_( 0 ),pBuf_( buf_ ),pBufMax_( buf_+ReadBufferSize ), lastChar_( notInAlphabet )
+        runLength_( 0 ), pBuf_( buf_ ), pBufMax_( buf_ + ReadBufferSize ), lastChar_( notInAlphabet )
 #ifdef REPORT_COMPRESSION_RATIO
         , charsReceived_( 0 ), bytesWritten_( 0 )
 #endif

@@ -58,12 +58,12 @@ public:
 
     StaticOccComparison( const int &i )
     {
-        idx=i;
+        idx = i;
     }
 
     bool operator() ( const vector<dataTypeNSeq> &left, dataTypeNSeq right )
     {
-        return left[idx]<right;
+        return left[idx] < right;
     }
 };
 
@@ -76,11 +76,11 @@ public:
     ~Rank();
 
     // set methods
-    bool setAlpha( dataTypedimAlpha *alpha,const int &s );
-    bool setAlphaInverse( dataTypedimAlpha *alphaInverse,const int &s );
+    bool setAlpha( dataTypedimAlpha *alpha, const int &s );
+    bool setAlphaInverse( dataTypedimAlpha *alphaInverse, const int &s );
     void setCharCount( const int &cnt )
     {
-        charCount_=cnt;
+        charCount_ = cnt;
     }
 
     // read BWT and initialize all the counts
@@ -88,7 +88,7 @@ public:
 
     // Given character x and a number n, get the blockID that contains
     // the n-th occurrence of x
-    dataTypeNChar getInverseRank( const char &c,const dataTypeNChar &n );
+    dataTypeNChar getInverseRank( const char &c, const dataTypeNChar &n );
 
 private:
     FILE *ifsBWT; // input file streamn of BWT
@@ -102,7 +102,7 @@ private:
 
     // holding the actual counts
     vector< vector<dataTypeNSeq> > occ_; // addressing: occ_[blockID][char]
-    vector< map<dataTypedimAlpha,dataTypedimAlpha> > mapCountToBlock_; // adressing mapCountToBlock_[char][countToFind]==blockID
+    vector< map<dataTypedimAlpha, dataTypedimAlpha> > mapCountToBlock_; // adressing mapCountToBlock_[char][countToFind]==blockID
     vector< StaticOccComparison > compareObjects_;
 
 };

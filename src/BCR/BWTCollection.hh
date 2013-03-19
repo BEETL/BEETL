@@ -23,6 +23,7 @@
 #include "Sorting.hh"
 #include "Tools.hh" // Defines ulong and uchar.
 #include "parameters/BwtParameters.hh"
+#include "parameters/UnbwtParameters.hh"
 
 #include <iostream>
 
@@ -92,7 +93,7 @@ public:
     * Returns a pointer to an object implementing this interface.
     */
     static BWTCollection *InitBWTCollection
-    ( char *file1,char *fileOut, int mode,
+    ( char *file1, char *fileOut, int mode,
       CompressionFormatType outputCompression );
 
     /**
@@ -107,38 +108,40 @@ public:
     virtual int buildBCR( char const *, char const *, const BwtParameters *bwtParams ) = 0;
     virtual int unbuildBCR( char const *, char const *, char const *, char const * ) = 0;
     virtual int backwardSearchBCR( char const * , char const * , char const * , char const * ) = 0;
-    virtual int decodeBCRnaiveForward( char const *, char const *, char const * )= 0; //Inverse BWT by Forward direction of nText sequences, one sequence at a time, in lexicographic order.
-    virtual int decodeBCRmultipleReverse( char const *, char const *, char const *, bool processQualities = false )= 0; //Inverse BWT by Backward direction of nText sequences at the same time by lengthRead iterations.
+    virtual int decodeBCRnaiveForward( char const *, char const *, char const * ) = 0; //Inverse BWT by Forward direction of nText sequences, one sequence at a time, in lexicographic order.
+    virtual int decodeBCRmultipleReverse( char const *, char const *, char const *, bool processQualities = false ) = 0; //Inverse BWT by Backward direction of nText sequences at the same time by lengthRead iterations.
     virtual int RecoverNsymbolsReverse( char const *, char const *, uchar *, uchar *newQual = 0 ) = 0;
     virtual int RecoverNsymbolsReverseByVector( char const *file1, char const *fileOutBwt, uchar *newSymb, uchar *newQual = 0 ) = 0;
     virtual int Recover1symbolReverse( char const * , char const * , uchar *, sortElement * ) = 0;
-    virtual dataTypeNSeq recover1SequenceForward( char const * , char const * , sortElement , uchar *, dataTypelenSeq * )=0 ;
-    virtual vector <int> recoverNSequenceForward( char const * , char const *, dataTypeNSeq )=0;
-    virtual int recoverNSequenceForwardSequentially( char const * , char const *, dataTypeNSeq )=0;
+    virtual dataTypeNSeq recover1SequenceForward( char const * , char const * , sortElement , uchar *, dataTypelenSeq * ) = 0 ;
+    virtual vector <int> recoverNSequenceForward( char const * , char const *, dataTypeNSeq ) = 0;
+    virtual int recoverNSequenceForwardSequentially( char const * , char const *, dataTypeNSeq ) = 0;
     virtual void storeBWT( uchar const *, uchar const *qual = NULL ) = 0;
     virtual void storeEntireBWT( const char * ) = 0;
     virtual void storeSA( dataTypelenSeq ) = 0;
     virtual void storeEntirePairSA( const char * ) = 0;
     virtual void storeEntireSAfromPairSA( const char * ) = 0;
-    virtual dataTypeNChar rankManySymbols( FILE &, dataTypeNChar *, dataTypeNChar, uchar * )=0;
-    virtual dataTypeNChar rankManySymbolsByVector( FILE & , dataTypeNChar *, dataTypeNChar, uchar *, uchar *foundQual = 0, FILE *InFileBWTQual = 0 )=0;
-    virtual dataTypeNChar findRankInBWT ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar )=0;
-    virtual dataTypeNChar findRankInBWTbyVector ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar )=0;
-    virtual int rankInverseManyByVector ( char const * , char const * , dataTypeNSeq , uchar * )=0;
+    virtual void storeBWTandLCP( uchar const * ) = 0;
+    virtual void storeEntireLCP( const char * ) = 0;
+    virtual dataTypeNChar rankManySymbols( FILE &, dataTypeNChar *, dataTypeNChar, uchar * ) = 0;
+    virtual dataTypeNChar rankManySymbolsByVector( FILE & , dataTypeNChar *, dataTypeNChar, uchar *, uchar *foundQual = 0, FILE *InFileBWTQual = 0 ) = 0;
+    virtual dataTypeNChar findRankInBWT ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar ) = 0;
+    virtual dataTypeNChar findRankInBWTbyVector ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar ) = 0;
+    virtual int rankInverseManyByVector ( char const * , char const * , dataTypeNSeq , uchar * ) = 0;
     virtual int backwardSearchManyBCR( char const * , char const *, char const *, vector<string>, dataTypelenSeq ) = 0;
-    virtual int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , dataTypelenSeq, vector <int> * )=0;
+    virtual int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , dataTypelenSeq, vector <int> * ) = 0;
 private:
 
     virtual void InsertNsymbols( uchar const *, dataTypelenSeq, uchar const *qual = NULL ) = 0;
-    virtual void InsertFirstsymbols( uchar const *,uchar const *qual = NULL ) = 0;
+    virtual void InsertFirstsymbols( uchar const *, uchar const *qual = NULL ) = 0;
     virtual int initializeUnbuildBCR( char const *, char const *, dataTypeNChar [] ) = 0;
     virtual int computeNewPositonForBackSearch ( char const *, char const *, uchar ) = 0;
     virtual int computeNewPositonForBackSearchByVector ( char const *, char const *, uchar ) = 0;
     virtual int computeVectorUnbuildBCR( char const *, char const *, dataTypeNChar [] ) = 0;
-    virtual int computeManyNewPositonForBackSearchByVector( char const * , char const * , uchar *, dataTypeNSeq ) =0;
-    virtual int update_Pos_Pile( sortElement * )=0;
-    virtual int update_Pos_Pile_Blocks( dataTypeNChar *, dataTypeNChar *, dataTypedimAlpha, uchar )=0;
-    virtual int findBlockToRead( dataTypeNChar *, dataTypedimAlpha , dataTypeNChar *, dataTypeNChar * )=0;
+    virtual int computeManyNewPositonForBackSearchByVector( char const * , char const * , uchar *, dataTypeNSeq ) = 0;
+    virtual int update_Pos_Pile( sortElement * ) = 0;
+    virtual int update_Pos_Pile_Blocks( dataTypeNChar *, dataTypeNChar *, dataTypedimAlpha, uchar ) = 0;
+    virtual int findBlockToRead( dataTypeNChar *, dataTypedimAlpha , dataTypeNChar *, dataTypeNChar * ) = 0;
 protected:
     // Protected constructor; call the static function InitBWTCollection().
     BWTCollection() { };

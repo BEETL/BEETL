@@ -59,7 +59,7 @@ typedef unsigned long long LetterCountType;
 
 const LetterCountType maxLetterCountType( static_cast<LetterCountType>( -1 ) );
 
-const LetterCountType matchFlag( ( ( LetterCountType )1 )<<( ( 8*sizeof( LetterCountType ) )-1 ) );
+const LetterCountType matchFlag( ( ( LetterCountType )1 ) << ( ( 8 * sizeof( LetterCountType ) ) - 1 ) );
 const LetterCountType matchMask( ~matchFlag );
 
 const string taxLevel[] = {"superkingdom", "phylum", "class", "order", "family", "genus", "species", "strain"};

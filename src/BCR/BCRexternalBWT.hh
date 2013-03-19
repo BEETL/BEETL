@@ -20,7 +20,7 @@
 
 #include "BWTCollection.hh"
 #include "BwtReader.hh"
-#include "parameters/BwtParameters.hh"
+#include "parameters/ToolParameters.hh"
 
 #include <fstream>
 #include <iostream>
@@ -33,7 +33,7 @@ public:
     /**
      * Constructor
      */
-    explicit BCRexternalBWT ( char *file1, char *fileOut, int mode, CompressionFormatType outputCompression, const BwtParameters *bwtParams = NULL );
+    explicit BCRexternalBWT ( char *file1, char *fileOut, int mode, CompressionFormatType outputCompression, ToolParameters *toolParams = NULL );
     ~BCRexternalBWT();
 
     int buildBCR( char const *, char const *, const BwtParameters *bwtParams );
@@ -53,6 +53,8 @@ public:
     void storeSA( dataTypelenSeq );
     void storeEntirePairSA( const char * );
     void storeEntireSAfromPairSA( const char * );
+    virtual void storeBWTandLCP( uchar const * );
+    virtual void storeEntireLCP( const char * );
     dataTypeNChar rankManySymbols( FILE &, dataTypeNChar *, dataTypeNChar, uchar * );
 #ifdef XXX
     dataTypeNChar rankManySymbols( FILE &, LetterCount &, dataTypeNChar, uchar * ); // TEMP
@@ -66,7 +68,7 @@ public:
 private:
     void InsertNsymbols( uchar const *, dataTypelenSeq, uchar const *qual = NULL );
     void InsertNsymbols_parallelPile( uchar const *newSymb, dataTypelenSeq posSymb, uchar const *newQual, unsigned int parallelPile, dataTypeNSeq startIndex, dataTypeNSeq endIndex, vector< vector< sortElement > > &newVectTriplePerNewPile );
-    void InsertFirstsymbols( uchar const *,uchar const *qual = NULL );
+    void InsertFirstsymbols( uchar const *, uchar const *qual = NULL );
     int initializeUnbuildBCR( char const *, char const *, dataTypeNChar [] );
     int computeNewPositonForBackSearch ( char const *, char const *, uchar );
     int computeNewPositonForBackSearchByVector ( char const *, char const *, uchar );
@@ -84,7 +86,9 @@ private:
     BwtReaderBase *instantiateBwtReaderForIntermediateCycle( const char *filenameIn, bool allowDefrag = false );
     BwtWriterBase *instantiateBwtWriterForIntermediateCycle( const char *filenameOut );
     BwtWriterBase *instantiateBwtWriterForLastCycle( const char *filenameOut );
-    const BwtParameters *bwtParams_;
+    ToolParameters *toolParams_;
+    BwtParameters *bwtParams_;
+    UnbwtParameters *unbwtParams_;
 };
 
 #endif

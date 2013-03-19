@@ -29,19 +29,19 @@
 #endif //ifdef USE_OPENMP
 
 
-bool cmpSortEl ( sortElement a,sortElement b )
+bool cmpSortEl ( sortElement a, sortElement b )
 {
     if ( a.pileN == b.pileN )
         return ( a.posN < b.posN );
     else
-        return ( a.pileN<b.pileN );
+        return ( a.pileN < b.pileN );
 }
 
 void quickSort( vector< sortElement > &v )
 {
 #ifdef USE_OPENMP
-    __gnu_parallel::sort( v.begin(),v.end(),cmpSortEl );
+    __gnu_parallel::sort( v.begin(), v.end(), cmpSortEl );
 #else //ifdef USE_OPENMP
-    sort( v.begin(),v.end(),cmpSortEl );
+    sort( v.begin(), v.end(), cmpSortEl );
 #endif //ifdef USE_OPENMP
 }

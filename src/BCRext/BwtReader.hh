@@ -37,13 +37,13 @@ public:
     BwtReaderBase( const string &fileName );
     virtual ~BwtReaderBase();
 
-    virtual unsigned int readAndCount( LetterCount &c, const LetterCountType numChars )=0;
+    virtual unsigned int readAndCount( LetterCount &c, const LetterCountType numChars ) = 0;
     uint readAndCount( LetterCount &c );
-    virtual uint readAndSend( BwtWriterBase &writer, const int numChars )=0;
+    virtual uint readAndSend( BwtWriterBase &writer, const int numChars ) = 0;
     virtual uint readAndSend( BwtWriterBase &writer );
-    virtual int operator()( char *p, int numChars )=0;
-    virtual void rewindFile( void )=0;
-    virtual LetterCountType tellg( void ) const=0;
+    virtual int operator()( char *p, int numChars ) = 0;
+    virtual void rewindFile( void ) = 0;
+    virtual LetterCountType tellg( void ) const = 0;
 
 protected:
     FILE *pFile_;
@@ -124,12 +124,12 @@ public:
 
     virtual uint readAndSend( BwtWriterBase &writer, const int numChars )
     {
-        assert( 1==0 );
+        assert( 1 == 0 );
     }
 
     virtual int operator()( char *p, int numChars )
     {
-        assert( 1==0 );
+        assert( 1 == 0 );
     }
 
     virtual void rewindFile( void );
