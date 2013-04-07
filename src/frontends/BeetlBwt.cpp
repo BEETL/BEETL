@@ -88,7 +88,7 @@ struct ResourceEstimate
     ResourceEstimate()
         : ramRssMBytes( 0xFFFFFFFF )
         , ramVszMBytes( 0xFFFFFFFF )
-        , timeSeconds( 0xFFFFFFFFFFFFFFFF )
+        , timeSeconds( 0xFFFFFFFFFFFFFFFFull )
     {}
 
     bool operator==( const ResourceEstimate &rhs )
@@ -102,12 +102,12 @@ struct ResourceEstimate
     {
         return ramRssMBytes != 0xFFFFFFFF
                || ramVszMBytes != 0xFFFFFFFF
-               || timeSeconds != 0xFFFFFFFFFFFFFFFF;
+               || timeSeconds != 0xFFFFFFFFFFFFFFFFull;
     }
 
     unsigned int ramRssMBytes;
     unsigned int ramVszMBytes;
-    unsigned long timeSeconds;
+    unsigned long long timeSeconds;
 };
 
 std::ostream &operator<<( std::ostream &os, const BwtParameters &obj )

@@ -243,6 +243,7 @@ void convert( const BeetlConvertArguments &args )
 
             delete pReader;
             delete pWriter;
+            return;
         }
         else if ( args.argOutputFormat == "fasta" || args.argOutputFormat == "fastq" || args.argOutputFormat == "seq" || args.argOutputFormat == "cyc" )
         {
@@ -263,6 +264,7 @@ void convert( const BeetlConvertArguments &args )
 
             delete pReader;
             delete pWriter;
+            return;
         }
         else if ( args.argOutputFormat == "fasta" || args.argOutputFormat == "fastq" || args.argOutputFormat == "seq" || args.argOutputFormat == "cyc" )
         {

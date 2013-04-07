@@ -24,25 +24,10 @@ using std::string;
 
 
 /* Standard data types */
-
-// defined in Tool.h by giovanna, commented to
-// catch compile time error for umtiple typedefs
-
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
-#ifdef USE_TYPEDEF_NOT_HASH_DEFINE
-#ifndef uchar
-#define uchar unsigned char
-#endif
-#ifndef uint
-#define uint unsigned int
-#endif
-#ifndef ulong
-#define ulong unsigned long
-#endif
-#endif
 
 // used for huffman encoder
 union BitBuffer

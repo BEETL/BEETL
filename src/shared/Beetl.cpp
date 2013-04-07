@@ -467,7 +467,8 @@ int main( int numArgs, char **args )
                         break;
                     case 'C':
                         cout << "-> assuming set A&B are compressed" << endl;
-                        compressedBoth = true;
+                        compressedInputA = true;
+                        compressedInputB = true;
                         break;
                     default:
                         cout << "!! unknown flag \"" << args[i][1]
@@ -483,7 +484,7 @@ int main( int numArgs, char **args )
         {
 
             // create new tool object
-            Algorithm *pcountWords = new CountWords( compressedBoth, compressedInputA,
+            Algorithm *pcountWords = new CountWords( compressedInputA,
                     compressedInputB, whichHandler, minimalOccurencesN,
                     maxLengthK, filesA, filesB, filesC, ncbiTax, testDatabase, minWord, prefix );
 

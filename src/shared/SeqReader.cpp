@@ -138,7 +138,7 @@ void SeqReaderRaw::readNext( char *seqBuf )
     }
     else if ( ( length_ != -1 ) && ( ( ( int )strlen( seqBuf ? : bufSeq_ ) ) != length_ + 1 ) )
     {
-        Logger::error() << "Length of current sequence does not match length of first" << endl;
+        Logger::error() << "Length of current sequence does not match length of first @pos " << ftell(pFile_) << endl;
         exit( EXIT_FAILURE );
 
     }
@@ -256,7 +256,7 @@ void SeqReaderFastq::readNext( char *seqBuf )
             if ( ( length_ != -1 ) && ( ( ( int )strlen( seqBuf ? : bufSeq_ ) ) != length_ + 1 ) )
                 //else if (strlen(seqBuf?:bufSeq_)!=length_)
             {
-                Logger::error() << "Length of current sequence does not match length of first" << endl;
+                Logger::error() << "Length of current sequence does not match length of first at position " << ftell(pFile_) << endl;
                 exit( EXIT_FAILURE );
             }
             else if ( fgets( bufQual_, maxSeqSize, pFile_ ) == NULL )

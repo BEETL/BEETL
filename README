@@ -34,6 +34,11 @@ In both cases, for best performance it is recommended to run on a
 dedicated local file system. A solid state hard drive (SSD) has been found
 to be particularly suitable.
 
+
+For metagenomics, one of the tools (makeBWTskew) needs the Seqan library's header files.
+Seqan can be downloaded from www.seqan.de
+
+
 *** Installation ***
 
 Assuming BEETL source code is in directory /source_path
@@ -167,6 +172,11 @@ G	7	0	7
 -------------------------------------------------------------
 
 *** Release notes ***
+
+Version 0.3.0 (7th April 2013)
+
+- Metagenomics 'META-BEETL' code added to main tree
+
 
 Version 0.2.0 (19th March 2013)
 

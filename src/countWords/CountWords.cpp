@@ -18,8 +18,9 @@
 #include "CountWords.hh"
 
 #include "Timer.hh"
+#include "config.h"
 
-#ifdef USE_POSIX_FILE_OPTIMIZATIONS
+#ifdef HAVE_POSIX_FADVISE
 #define _XOPEN_SOURCE 600
 #endif
 
@@ -29,7 +30,7 @@ using namespace std;
 //#define MET_DEBUG 1
 //#define DEBUG 1
 
-CountWords::CountWords( bool bothSetsCompressed, bool inputACompressed,
+CountWords::CountWords( bool inputACompressed,
                         bool inputBCompressed, char whichHandler,
                         int paramN, int paramK, const vector<string> &setA,
                         const vector<string> &setB, const vector<string> &setC,
@@ -57,7 +58,6 @@ CountWords::CountWords( bool bothSetsCompressed, bool inputACompressed,
     //ncbiInfo_ should be the information about which files in the database have which taxonomy
     ncbiInfo_ = ncbiTax;
     // set tool flags
-    bothSetsCompressed_ = bothSetsCompressed;
     inputACompressed_ = inputACompressed;
     inputBCompressed_ = inputBCompressed;
     whichHandler_ = whichHandler;
@@ -92,12 +92,6 @@ void CountWords::run( void )
     referenceMode = ( whichHandler_ == 'r' ) ? true : false;
 
     metagenomeMode = ( whichHandler_ == 'm' ) ? true : false;
-
-    if ( bothSetsCompressed_ )
-    {
-        inputACompressed_ = true;
-        inputBCompressed_ = true;
-    }
 
     if ( referenceMode && testDB_ )
     {

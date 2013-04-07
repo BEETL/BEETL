@@ -98,6 +98,19 @@ bool isNextArgument( const string shortPrefix, const string longPrefix, const in
     return false;
 }
 
+bool isNextArgumentInt( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, int *argValue )
+{
+    string s;
+    if ( isNextArgument( shortPrefix, longPrefix, argc, argv, i, &s ) )
+    {
+        stringstream ss;
+        ss << s;
+        ss >> *argValue;
+        return true;
+    }
+    return false;
+}
+
 bool parseNextArgument( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, ToolParameters &toolParams, const unsigned toolParamKey )
 {
     string argValue;

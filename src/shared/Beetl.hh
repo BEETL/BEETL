@@ -78,7 +78,6 @@ short int maxLengthK; // max length
 char whichHandler;
 bool compressedInputA; // input A is compressed
 bool compressedInputB; // input B is compressed
-bool compressedBoth; // A & B are compressed
 
 string countWordsInputA; // input set A
 string countWordsInputB; // input set B

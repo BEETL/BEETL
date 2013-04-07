@@ -1,0 +1,28 @@
+How to create a database of reference genomes for metaBEETL: 
+
+1. Creating a new metagenomic database an installation of the SeqAn library (www.seqan.de). You can set the location of your SeqAn installation using the configure parameter --with-seqan.
+   If you do this, all executables mentioned below will be compiled automatically and copied into <BEETL_INSTALL_DIR>/bin. 
+2. Download all bacteria, archea and virus genomes from ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/.
+3. Create single sequence files with the reverse complement of all genomes but exclude plasmids. For this use genomeToSingleSeq. Do NOT change the names of the generated files!
+4. Open the script arrayBWT.sh and adopt the paths. To create the BWTs for all the G_* and G_*_rev files submit it the cluster via :
+	qsub -t n arrayBWT.sh
+	where n should be 1-500 if you have the files G_1 till G_500. As an alternative you can also run makeBWTScew for each of the files individually.
+5. Login on a machine whith enough memory to load all sequences in RAM and run mergeBacteria on all files. 
+	You will have to call this once for each of the piles created by BEETL which means six times overall e.g.
+    for pileNum in `seq 0 5`; do mergeBacteria $pileNum databaseTest G_* ; done
+	For each pile this will create 3 files and one fileCounter.csv (which doesn't change)
+	The output files will be called: yourPrefix-C0*, yourPrefix-B0*, yourPrefix-A0* 
+	C0* -> contains for each position in the BWT the file number where the char at this position came from.
+	B0* -> are the BWTs for all files.
+	A0* -> contains a for each position in the BWT the suffix position in the file where this BWT came from.
+	Files C and B are needed for the countWords algorithm. 
+6. Download the NCBI taxonomy from here. ftp://ftp.ncbi.nih.gov/pub/taxonomy/. You will need the files names.dmp, nodes.dmp, merged.dmp and the gi_taxid_nucl.cmp.
+	Use the findTaxa script to find the taxonomic tree corresponding to the file numbers in the database. You will need the headerfile produced by running "genomeToSingleSeq" and 
+    fileCounterFile created during the merging of the bacterial reference genomes. 
+	This will first give all found GI-Numbers out in std::err. If you want to shorten the search for the gi numbers in gi_taxid_nucl.dmp, grep the gi-numbers in advance and search for 
+    the taxonomy only in the grepped output. 
+	Finally, you get for each file number in the database a taxonomic tree with the taxonomic ids. There will be some 0 in the taxonomic tree. This is a taxonomic id which could not be 
+    matched to: Superkingdom, Phylum, Order, Class, Family, Genus, Species or Strain. Sometimes there are just missing taxa in the taxonomy. 
+
+Now everything should be ready to run metaBEETL!  :-)
+

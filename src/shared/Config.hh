@@ -18,13 +18,14 @@
 #ifndef DEFINED_CONFIG_HH
 #define DEFINED_CONFIG_HH
 
+#include "Types.hh"
+
 #include <cstdlib>
 
 
 /* Control flags - modify and recompile to change program behaviour */
 
 //#define DEBUG 1
-#define USE_POSIX_FILE_OPTIMIZATIONS 1
 #define USE_STANDARD_LEXICOGRAPHIC_ORDER 1
 
 // USE_4_BITS_PER_BASE: if set, convert the input sequences from ASCII into

@@ -28,6 +28,7 @@
 #include "Timer.hh"
 #include "Tools.hh"
 #include "Types.hh"
+#include "config.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -39,7 +40,7 @@
 #include <unistd.h>
 #include <vector>
 
-#ifdef USE_POSIX_FILE_OPTIMIZATIONS
+#ifdef HAVE_POSIX_FADVISE
 #define _XOPEN_SOURCE 600
 #endif
 #include <fcntl.h>
@@ -532,12 +533,12 @@ void BCRext::run( void )
             readWriteCheck( fileName.c_str(), false );
             fdNum = open( fileName.c_str(), O_RDONLY, 0 );
 
-#ifdef USE_POSIX_FILE_OPTIMIZATIONS
+#ifdef HAVE_POSIX_FADVISE
             assert( posix_fadvise( fdNum, 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_NOREUSE | POSIX_FADV_WILLNEED ) != -1 );
 #endif
 #endif
 
-#ifdef USE_POSIX_FILE_OPTIMIZATIONS
+#ifdef HAVE_POSIX_FADVISE
             assert( posix_fadvise( fdSeq, 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_NOREUSE | POSIX_FADV_WILLNEED ) != -1 );
             assert( posix_fadvise( fdPtr, 0, 0, POSIX_FADV_SEQUENTIAL | POSIX_FADV_NOREUSE | POSIX_FADV_WILLNEED ) != -1 );
 #endif

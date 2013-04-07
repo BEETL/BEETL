@@ -1,4 +1,4 @@
-SUBDIRS = . frontends
+SUBDIRS = . frontends metagenomics
 
 bin_PROGRAMS = OldBeetl
 noinst_LIBRARIES = liball.a

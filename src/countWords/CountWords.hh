@@ -40,7 +40,7 @@ class CountWords : public Algorithm
 {
 
 public:
-    CountWords( bool, bool, bool, char, int, int, const vector<string> &, const vector<string> &,
+    CountWords( bool, bool, char, int, int, const vector<string> &, const vector<string> &,
                 const vector<string> &, const string &, bool testDB, uint minWord, string prefix );
 
     virtual ~CountWords() {}

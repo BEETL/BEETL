@@ -31,18 +31,6 @@
 
 #define TERMINATE_CHAR '$'
 
-#ifdef THESE_DEFS_REPEATED_IN_TYPES_DOT_HH
-#ifndef uchar
-#define uchar unsigned char
-#endif
-#ifndef uint
-#define uint unsigned int
-#endif
-#ifndef ulong
-#define ulong unsigned long
-#endif
-#endif
-
 #define dataTypedimAlpha uchar  //size of the alphabet (in biologic case 6 ($,A,C,G,N,T))
 #define dataTypelenSeq uint //length of the sequences (in biologic case 100)
 #define dataTypeNumSeq 0  //number of sequences in the input file
