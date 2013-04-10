@@ -17,6 +17,9 @@
 
 #include "Common.hh"
 
+#include "Logger.hh"
+#include "config.h"
+
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -24,6 +27,21 @@
 #include <iostream>
 #include <sstream>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
+#ifdef HAVE_SYSINFO
+#include <sys/sysinfo.h>
+#endif //ifdef HAVE_SYSINFO
+
+#ifdef HAVE_SYSCTLBYNAME
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif //ifdef HAVE_SYSCTLBYNAME
+
+#ifdef HAVE_PROC_PIDPATH
+#include "libproc.h"
+#endif //ifdef HAVE_PROC_PIDPATH
 
 using namespace std;
 
@@ -139,20 +157,33 @@ void launchBeetl( const string &params )
 {
     ostringstream path;
 
+#ifdef HAVE_PROC_PIDPATH
+
+    // This should work on mac
+    char pathBuf[PROC_PIDPATHINFO_MAXSIZE] = "\0";
+    pid_t pid = getpid();
+    ssize_t len = proc_pidpath ( pid, pathBuf, sizeof( pathBuf ) );
+
+#else //ifdef HAVE_PROC_PIDPATH
+
     // Use the same path as the current executable if we manage to extract it
     // Note: "/proc/self/exe" only exists on linux, but launching executables is a temporary solution anyway
-    char selfPath[1024];
-    ssize_t len = ::readlink( "/proc/self/exe", selfPath, sizeof( selfPath ) - 1 );
-    if ( len != -1 )
+    char pathBuf[1024] = "\0";
+    ssize_t len = ::readlink( "/proc/self/exe", pathBuf, sizeof( pathBuf ) - 1 );
+
+#endif //ifdef HAVE_PROC_PIDPATH
+
+    if ( len > 0 )
     {
-        selfPath[len] = '\0';
-        char *lastSlash = strrchr( selfPath, '/' );
+        pathBuf[len] = '\0';
+        char *lastSlash = strrchr( pathBuf, '/' );
         if ( lastSlash )
         {
             *( lastSlash + 1 ) = 0;
-            path << selfPath;
+            path << pathBuf;
         }
     }
+
     string oldBeetl = path.str() + "OldBeetl";
 
     FILE *f = fopen( oldBeetl.c_str(), "rb" );
@@ -187,4 +218,65 @@ void launchBeetl( const string &params )
             exit( retChild );
         }
     }
+}
+
+int detectMemoryLimitInMB()
+{
+    // Strategy: Retrieve the smallest of ulimit -v and /proc/meminfo
+    int result = 0;
+
+    // ulimit -v
+    struct rlimit rl;
+    if ( getrlimit( RLIMIT_AS, &rl ) != -1 )
+    {
+        if ( RLIM_INFINITY != rl.rlim_cur )
+        {
+            result = ( rl.rlim_cur >> 20 );
+            Logger::out( LOG_SHOW_IF_VERY_VERBOSE ) << "ulimit -v: " << result << " MB" << endl;
+        }
+    }
+
+    // /proc/meminfo
+#ifdef HAVE_SYSINFO
+    struct sysinfo info;
+    if ( sysinfo( &info ) != -1 )
+    {
+        const int totalRamInMB = info.totalram >> 20;
+        if ( result == 0 )
+            result = totalRamInMB;
+        else
+            result = min( result, totalRamInMB );
+    }
+#endif //ifdef HAVE_SYSINFO
+
+#ifdef HAVE_SYSCTLBYNAME
+    const char *name = "hw.memsize";
+    unsigned long long value = 0;
+    size_t valueLength = sizeof( value );
+    if ( sysctlbyname( name, &value, &valueLength, NULL, 0 ) != -1 )
+    {
+        int totalRamInMB = 0;
+        if ( valueLength == sizeof( unsigned long long ) )
+            totalRamInMB = value >> 20;
+        else if ( valueLength == sizeof( unsigned int ) )
+            totalRamInMB = ( *( ( unsigned int * )&value ) ) >> 20;
+
+        if ( totalRamInMB )
+        {
+            if ( result == 0 )
+                result = totalRamInMB;
+            else
+                result = min( result, totalRamInMB );
+        }
+    }
+#endif //ifdef HAVE_SYSCTLBYNAME
+
+    // Use a default minimum in case all detections failed
+    if ( result == 0 )
+    {
+        Logger::out( LOG_ALWAYS_SHOW ) << "Warning: Couldn't determine RAM constraint. Using default 1024 MB, you can specify it with --memory-limit." << endl;
+        result = 1024; // 1 GB
+    }
+
+    return result;
 }

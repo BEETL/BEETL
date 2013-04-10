@@ -262,7 +262,6 @@ void BwtWriterRunLength::sendRun( char c, int runLength )
 
 uint BwtWriterIncrementalRunLength::nextFileNum_ = 0;
 vector< vector<unsigned char> > ramFiles( 1000 ); //TODO: make this '1000' dynamic (the array resize just needs to be put in an openmp critical section)
-//vector< size_t > ramFileLengths;
 
 BwtWriterIncrementalRunLength::BwtWriterIncrementalRunLength( const string &fileName )
     : BwtWriterFile( fileName )
@@ -443,6 +442,34 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
         ramFiles[fileNum_].push_back( c );
         ramFiles[fileNum_].push_back( metadata );
         return;
+    }
+
+    // Insertion at the start of a file
+    if ( fpos == 0 )
+    {
+        assert( fnum < 5 && "Only first cycle files may be empty" );
+        if ( LOCAL_DEBUG ) clog << " Insertion at the start of a file" << endl;
+        unsigned char replacementMetadata = fileNum_ / 5;
+        assert( ( replacementMetadata & 0x80 ) == 0 && "Error: there may be too many cycles for this algorithm, which overwrote the Return bit" );
+        if ( ramFiles[fnum].empty() )
+        {
+            ramFiles[fnum].push_back( 0xFF ); // Special byte meaning that we'll ignore this base (but not its associated metadata)
+            ramFiles[fnum].push_back( replacementMetadata );
+            fpos = 2;
+
+            ramFiles[fileNum_].push_back( c );
+            ramFiles[fileNum_].push_back( metadata );
+            return;
+        }
+        else if ( ramFiles[fnum][0] == 0xFF )
+        {
+            fpos = 2;
+        }
+        else
+        {
+            assert( false && "todo" );
+        }
+
     }
 
     // Insertion of a letter that can be added to the run-length-encoded char

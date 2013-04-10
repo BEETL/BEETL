@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.59)
 
-AC_INIT(BEETL, 0.3.0, acox@illumina.com)
+AC_INIT(BEETL, 0.4.0, acox@illumina.com)
 AM_INIT_AUTOMAKE
 
 AC_CONFIG_SRCDIR([src/frontends/BeetlBwt.cpp])
@@ -48,7 +48,7 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MALLOC
 AC_FUNC_SETVBUF_REVERSED
 AC_FUNC_STAT
-AC_CHECK_FUNCS([floor gettimeofday memset mkdir strchr strtoul strcasecmp posix_fadvise])
+AC_CHECK_FUNCS([floor gettimeofday memset mkdir strchr strtoul strcasecmp posix_fadvise sysinfo sysctlbyname proc_pidpath])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile

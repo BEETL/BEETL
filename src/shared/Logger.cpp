@@ -21,7 +21,7 @@ using namespace std;
 
 
 NullStream nullStream;
-int Logger::currentVerbosity = 0;
+int Logger::currentVerbosity = 1;
 
 
 void Logger::setVerbosity( const string &verbosityString )
@@ -30,21 +30,25 @@ void Logger::setVerbosity( const string &verbosityString )
          verbosityString == "0" )
         currentVerbosity = 0;
 
-    else if ( verbosityString == "verbose" ||
+    else if ( verbosityString == "normal" ||
               verbosityString == "1" )
         currentVerbosity = 1;
 
-    else if ( verbosityString == "very-verbose" ||
+    else if ( verbosityString == "verbose" ||
               verbosityString == "2" )
         currentVerbosity = 2;
 
-    else if ( verbosityString == "debug" ||
+    else if ( verbosityString == "very-verbose" ||
               verbosityString == "3" )
         currentVerbosity = 3;
 
+    else if ( verbosityString == "debug" ||
+              verbosityString == "4" )
+        currentVerbosity = 4;
+
     else
     {
-        clog << "Warning: Invalid verbosity value. Setting to \"verbose\"" << endl;
+        clog << "Warning: Invalid verbosity value. Setting to \"normal\"" << endl;
         currentVerbosity = 1;
     }
 

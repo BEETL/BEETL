@@ -86,23 +86,29 @@ private:
 struct ResourceEstimate
 {
     ResourceEstimate()
-        : ramRssMBytes( 0xFFFFFFFF )
-        , ramVszMBytes( 0xFFFFFFFF )
-        , timeSeconds( 0xFFFFFFFFFFFFFFFFull )
-    {}
+    {
+        unset();
+    }
 
-    bool operator==( const ResourceEstimate &rhs )
+    bool operator==( const ResourceEstimate &rhs ) const
     {
         return ramRssMBytes == rhs.ramRssMBytes
                && ramVszMBytes == rhs.ramVszMBytes
                && timeSeconds == rhs.timeSeconds;
     }
 
-    bool isSet()
+    bool isSet() const
     {
         return ramRssMBytes != 0xFFFFFFFF
                || ramVszMBytes != 0xFFFFFFFF
                || timeSeconds != 0xFFFFFFFFFFFFFFFFull;
+    }
+
+    void unset()
+    {
+        ramRssMBytes = 0xFFFFFFFF;
+        ramVszMBytes = 0xFFFFFFFF;
+        timeSeconds = 0xFFFFFFFFFFFFFFFFull;
     }
 
     unsigned int ramRssMBytes;
@@ -126,8 +132,14 @@ std::ostream &operator<<( std::ostream &os, const BwtParameters &obj )
 
 std::ostream &operator<<( std::ostream &os, const ResourceEstimate &obj )
 {
-    os << "RSS: " << obj.ramRssMBytes << "MB";
-    os << ",\tVSZ: " << obj.ramVszMBytes << "MB";
+    if ( !obj.isSet() )
+    {
+        os << "<undefined>";
+        return os;
+    }
+
+    os << "RAM_RSS: " << obj.ramRssMBytes << "MB";
+    os << ",\tRAM_VSZ: " << obj.ramVszMBytes << "MB";
     os << ",\ttime: " << obj.timeSeconds << "sec";
     if ( obj.timeSeconds >= 60 )
     {
@@ -166,7 +178,6 @@ std::ostream &operator<<( std::ostream &os, const BwtParamsAndEstimate &obj )
 
 vector< BwtParamsAndEstimate > allEstimates;
 
-void calculateResourceRequirements( const vector< pair< string, string > > & );
 ResourceEstimate estimateResourcesFor( BwtParameters &paramValues );
 
 
@@ -254,7 +265,7 @@ void filterEstimates( const vector< pair< string, string > > &filters, BwtParame
     }
 }
 
-void calculateResourceRequirements( const vector< pair< string, string > > &filters )
+void calculateResourceRequirements( const vector< pair< string, string > > &filters, const unsigned int memoryLimitMB )
 {
     BwtParameters paramValues;
     recursiveFillOptionValuesAndRunEstimate( paramValues );
@@ -266,7 +277,6 @@ void calculateResourceRequirements( const vector< pair< string, string > > &filt
     sort( allEstimates.begin(), allEstimates.end(), sortEstimatesByTime );
 
     // Merge identical estimates
-    vector< BwtParamsAndEstimate > mergedEstimates;
     for ( unsigned int i = 1; i < allEstimates.size(); ++i )
     {
         if ( allEstimates[i - 1].second == allEstimates[i].second )
@@ -279,7 +289,22 @@ void calculateResourceRequirements( const vector< pair< string, string > > &filt
         }
     }
 
-    // Print out top 10
+    // Filter out estimates above the memory limit
+    Logger::out( LOG_ALWAYS_SHOW ) << "RAM constraint: " << memoryLimitMB << " MB" << endl;
+    bool filteringOutTopPicks = true;
+    for ( unsigned int i = 0; i < allEstimates.size(); ++i )
+    {
+        if ( allEstimates[i].second.ramRssMBytes > memoryLimitMB )
+        {
+            Logger::out( filteringOutTopPicks ? LOG_SHOW_IF_VERBOSE : LOG_FOR_DEBUGGING ) << "RAM too low for: " << allEstimates[i] << endl;
+            allEstimates.erase( allEstimates.begin() + i );
+            --i;
+        }
+        else
+            filteringOutTopPicks = false;
+    }
+
+    // Print out /*top 10*/ estimates
     for ( unsigned int i = 0; /*i<10 &&*/ i < allEstimates.size(); ++i )
     {
         Logger::out( LOG_SHOW_IF_VERBOSE ) << allEstimates[i] << endl;
@@ -344,6 +369,12 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
             default:
                 assert( 0 && "should never reach here" );
         }
+    }
+
+    // Deactivate MultiRLE by estimating it slower (special value so that it only gets selected if specified by the user)
+    if ( paramValues[BWT_OPTION_INTERMEDIATE_FORMAT] == INTERMEDIATE_FORMAT_MULTIRLE )
+    {
+        result.timeSeconds += 100 * 60 * 60;
     }
 
     switch ( paramValues[BWT_OPTION_ALGORITHM] )
@@ -441,6 +472,15 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
         case ALGORITHM_EXT:
         {
             // Beetl ext
+
+            // Filter out unsupported options
+            if ( paramValues[BWT_OPTION_INTERMEDIATE_FORMAT] == INTERMEDIATE_FORMAT_MULTIRLE )
+            {
+                result.unset();
+                break;
+            }
+
+            // Fixed RAM consumption for all Beetl ext
             result.ramRssMBytes = 2;
             result.ramVszMBytes = 19;
 
@@ -490,6 +530,10 @@ void launchBeetlBwt( BwtParamsAndEstimate &config, const string &inputFilename, 
         }
         Logger::out( LOG_ALWAYS_SHOW ) << config.first.getOptionPossibleValue( i, config.first[i] ) << endl;
     }
+    Logger::out( LOG_ALWAYS_SHOW ) << endl;
+
+    Logger::out( LOG_ALWAYS_SHOW ) << "Estimated RAM consumption: " << config.second.ramRssMBytes << " MB" << endl;
+    Logger::out( LOG_ALWAYS_SHOW ) << endl;
 
     if ( config.first[BWT_OPTION_ALGORITHM] == ALGORITHM_BCR )
     {
@@ -559,11 +603,12 @@ void printUsage()
     cout << "    --output (-o)            Output file name or prefix" << endl;
     cout << endl;
     cout << "Automatic parameters:" << endl;
-    cout << "    --input-format           = autodetect [fasta|fastq|cyc|seq|bcl]" << endl;
+    cout << "    --input-format           = detect [fasta|fastq|cyc|seq|bcl]" << endl;
     cout << "    --output-format (-f)     = rle [ascii|rle|huffman]" << endl;
     cout << "    --intermediate-format    = auto [ascii|rle|multirle|huffman]" << endl;
     cout << "    --intermediate-medium    = auto [disk|ram] (multirle->ram, others->disk)" << endl;
     cout << "    --algorithm (-a)         = auto [bcr|ext]" << endl;
+    cout << "    --memory-limit (-m)      = detect: RAM constraint in MB. Default value is the smallest of ulimit -v and /proc/meminfo" << endl;
     cout << endl;
     cout << "Options:" << endl;
     cout << "    --qualities (-q)         = ignore [ignore|permute]: Ignore/Permute qualities (only available with bcr algorithm)" << endl;
@@ -577,7 +622,8 @@ void printUsage()
     cout << "    --no-parallel-processing Disable parallel processing by letter" << endl;
 #endif //ifdef USE_OPENMP
     cout << "    --hw-constraints         File describing hardware constraints for speed estimates" << endl;
-    cout << "    --verbose                = quiet [quiet|verbose|very-verbose|debug] or [0|1|2|3]" << endl;
+    cout << "    --verbosity              = normal [quiet|normal|verbose|very-verbose|debug] or [0|1|2|3|4]" << endl;
+    cout << "    -v / -vv                 Shortcuts to --verbosity = verbose / very-verbose" << endl;
     cout << "    --help (-h)              Help" << endl;
     cout << endl;
     cout << "Notes:" << endl;
@@ -602,6 +648,7 @@ struct BeetlBwtArguments
     string argOutputFormat       ;// = "rle"
     bool   argConcatenateOutput  ;//= false;
     string argAlgorithm          ;//= "auto";
+    int    argMemoryLimitMB      ;
     string argIntermediateFormat ;//= "auto";
     string argIntermediateMedium ;//= "auto";
     bool   argParallelPrefetch   ;//= true;
@@ -620,6 +667,7 @@ struct BeetlBwtArguments
         argOutputFormat       = "rle";
         argConcatenateOutput  = false;
         argAlgorithm          = "";//"auto";
+        argMemoryLimitMB      = 0;
         argIntermediateFormat = "";//"auto";
         argIntermediateMedium = "";//"auto";
         argParallelPrefetch   = true;
@@ -630,11 +678,6 @@ struct BeetlBwtArguments
         argGenerateEndPosFile = false;
         argSingleCycle        = false;
         argVerbosityLevel     = "0";
-    }
-
-    int getMaxRamInMB()
-    {
-        return 0;
     }
 };
 
@@ -672,6 +715,7 @@ int main( const int argc, const char **argv )
         else if ( isNextArgument( ""  , "--intermediate-format"    , argc, argv, i, &args.argIntermediateFormat  ) ) {}
         else if ( isNextArgument( ""  , "--intermediate-medium"    , argc, argv, i, &args.argIntermediateMedium  ) ) {}
         else if ( isNextArgument( "-a", "--algorithm"              , argc, argv, i, &args.argAlgorithm           ) ) {}
+        else if ( isNextArgumentInt( "-m", "--memory-limit"        , argc, argv, i, &args.argMemoryLimitMB       ) ) {}
         else if ( isNextArgument( "-q", "--qualities"              , argc, argv, i, &args.argQualities           ) ) {}
         else if ( isNextArgument( ""  , "--concatenate-output"     , argc, argv, i                               ) )
         {
@@ -699,9 +743,17 @@ int main( const int argc, const char **argv )
         }
         //        else if (isNextArgument( ""  , "--single-cycle"           , argc, argv, i                               )) { args.argSingleCycle = true; }
         else if ( isNextArgument( ""  , "--hw-constraints"         , argc, argv, i, &args.argHardwareConstraints ) ) {}
-        else if ( isNextArgument( ""  , "--verbose"                , argc, argv, i, &args.argVerbosityLevel      ) )
+        else if ( isNextArgument( ""  , "--verbosity"              , argc, argv, i, &args.argVerbosityLevel      ) )
         {
             Logger::setVerbosity( args.argVerbosityLevel );
+        }
+        else if ( isNextArgument( "-v"  , ""                       , argc, argv, i                               ) )
+        {
+            Logger::setVerbosity( "verbose" );
+        }
+        else if ( isNextArgument( "-vv" , ""                       , argc, argv, i                               ) )
+        {
+            Logger::setVerbosity( "very-verbose" );
         }
         else
         {
@@ -725,6 +777,11 @@ int main( const int argc, const char **argv )
         args.argInputFormat = detectFileFormat( args.argInput );
     }
     checkFileFormat( args.argInput, args.argInputFormat );
+
+    if ( args.argMemoryLimitMB <= 0 )
+    {
+        args.argMemoryLimitMB = detectMemoryLimitInMB();
+    }
 
     // Special case of SAP ordering
     if ( args.argSapOrdering )
@@ -796,7 +853,7 @@ int main( const int argc, const char **argv )
     }
 
     // Resource estimation
-    calculateResourceRequirements( filters );
+    calculateResourceRequirements( filters, args.argMemoryLimitMB );
 
     // Launch the fastest estimated configuration of Beetl
     if ( allEstimates.empty() )

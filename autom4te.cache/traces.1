@@ -1,4 +1,4 @@
-m4trace:configure.in:6: -1- AC_INIT([BEETL], [0.3.0], [acox@illumina.com])
+m4trace:configure.in:6: -1- AC_INIT([BEETL], [0.4.0], [acox@illumina.com])
 m4trace:configure.in:6: -1- m4_pattern_forbid([^_?A[CHUM]_])
 m4trace:configure.in:6: -1- m4_pattern_forbid([_AC_])
 m4trace:configure.in:6: -1- m4_pattern_forbid([^LIBOBJS$], [do not use LIBOBJS directly, use AC_LIBOBJ (see section `AC_LIBOBJ vs LIBOBJS'])
@@ -247,7 +247,7 @@ m4trace:configure.in:50: -1- AC_DEFINE_TRACE_LITERAL([HAVE_STAT_EMPTY_STRING_BUG
 m4trace:configure.in:50: -1- AH_OUTPUT([HAVE_STAT_EMPTY_STRING_BUG], [/* Define to 1 if `stat\' has the bug that it succeeds when given the
    zero-length file name argument. */
 #undef HAVE_STAT_EMPTY_STRING_BUG])
-m4trace:configure.in:51: -1- AC_CHECK_FUNCS([floor gettimeofday memset mkdir strchr strtoul strcasecmp posix_fadvise])
+m4trace:configure.in:51: -1- AC_CHECK_FUNCS([floor gettimeofday memset mkdir strchr strtoul strcasecmp posix_fadvise sysinfo sysctlbyname proc_pidpath])
 m4trace:configure.in:51: -1- AH_OUTPUT([HAVE_FLOOR], [/* Define to 1 if you have the `floor\' function. */
 #undef HAVE_FLOOR])
 m4trace:configure.in:51: -1- AH_OUTPUT([HAVE_GETTIMEOFDAY], [/* Define to 1 if you have the `gettimeofday\' function. */
@@ -264,6 +264,12 @@ m4trace:configure.in:51: -1- AH_OUTPUT([HAVE_STRCASECMP], [/* Define to 1 if you
 #undef HAVE_STRCASECMP])
 m4trace:configure.in:51: -1- AH_OUTPUT([HAVE_POSIX_FADVISE], [/* Define to 1 if you have the `posix_fadvise\' function. */
 #undef HAVE_POSIX_FADVISE])
+m4trace:configure.in:51: -1- AH_OUTPUT([HAVE_SYSINFO], [/* Define to 1 if you have the `sysinfo\' function. */
+#undef HAVE_SYSINFO])
+m4trace:configure.in:51: -1- AH_OUTPUT([HAVE_SYSCTLBYNAME], [/* Define to 1 if you have the `sysctlbyname\' function. */
+#undef HAVE_SYSCTLBYNAME])
+m4trace:configure.in:51: -1- AH_OUTPUT([HAVE_PROC_PIDPATH], [/* Define to 1 if you have the `proc_pidpath\' function. */
+#undef HAVE_PROC_PIDPATH])
 m4trace:configure.in:59: -1- AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/frontends/Makefile

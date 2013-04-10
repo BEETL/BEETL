@@ -277,10 +277,12 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
     else
     {
         cycFilesPrefix = string( fileOut );
-        SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( file1, "rb" ) ) );
+        FILE *f = fopen( file1, "rb" );
+        SeqReaderFile *pReader( SeqReaderFile::getReader( f ) );
         transp.init( pReader, bwtParams->getValue( BWT_OPTION_PERMUTE_QUALITIES ) == PERMUTE_QUALITIES_ON );
         transp.convert( file1, cycFilesPrefix );
         delete pReader;
+        fclose( f );
     }
 
     nText = transp.nSeq;
@@ -758,29 +760,15 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, dataTypelenSeq posSym
     dataTypeNChar numchar = 0;
 
     // We first calculate at which index each pile starts
-    vector<dataTypeNSeq> pileStarts( alphabetSize, -1 );
-    int lastPile = -1;
-    for ( dataTypeNSeq j = 0; j < nText; ++j )
-    {
-        int currentPile = vectTriple[j].pileN;
-        if ( currentPile == lastPile )
-        {
-        }
-        else
-        {
-            Logger::out( LOG_FOR_DEBUGGING ) << "pile " << currentPile << " starts at index " << j << endl;
-            pileStarts[currentPile] = j;
-            lastPile = currentPile;
-        }
-    }
-    Logger::out( LOG_FOR_DEBUGGING ) << "piles finish at index " << nText << endl;
-    pileStarts[alphabetSize - 1] = nText;
-    for ( unsigned int j = alphabetSize - 2; j >= 1; --j )
-    {
-        if ( pileStarts[j] == static_cast<dataTypeNSeq>( -1 ) )
-            pileStarts[j] = pileStarts[j + 1];
-    }
+    vector<dataTypeNSeq> pileStarts( alphabetSize );
     pileStarts[0] = 0;
+    dataTypeNSeq index = 0;
+    for ( int pile = 1; pile < alphabetSize; ++pile )
+    {
+        while ( index < nText && vectTriple[index].pileN < pile )
+            ++index;
+        pileStarts[pile] = index;
+    }
     /*
       for (unsigned int j = 0; j < alphabetSize-1; ++j)
       {
@@ -1115,14 +1103,13 @@ void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, dataType
 
             k++;
         }
-
-        //    fclose(InFileBWT);
-        delete pReader;
-        pReader = NULL;
         j = k;
 
         assert ( j == endIndex ); // while loop removed, as we now only process one pile here
-    } // ~while j
+    }
+
+    delete pReader;
+    pReader = NULL;
 }
 
 void BCRexternalBWT::storeBWT( uchar const *newSymb, uchar const *newQual )
@@ -1133,26 +1120,13 @@ void BCRexternalBWT::storeBWT( uchar const *newSymb, uchar const *newQual )
 
     // We first calculate at which index each pile starts
     vector<dataTypeNSeq> pileStarts( alphabetSize );
-    int lastPile = -1;
-    for ( dataTypeNSeq j = 0; j < nText; ++j )
+    pileStarts[0] = 0;
+    dataTypeNSeq index = 0;
+    for ( int pile = 1; pile < alphabetSize; ++pile )
     {
-        int currentPile = vectTriple[j].pileN;
-        if ( currentPile == lastPile )
-        {
-        }
-        else
-        {
-            Logger::out( LOG_FOR_DEBUGGING ) << "pile " << currentPile << " starts at index " << j << endl;
-            pileStarts[currentPile] = j;
-            lastPile = currentPile;
-        }
-    }
-    Logger::out( LOG_FOR_DEBUGGING ) << "piles finish at index " << nText << endl;
-    pileStarts[alphabetSize - 1] = nText;
-    for ( unsigned int j = alphabetSize - 2; j >= 1; --j )
-    {
-        if ( pileStarts[j] == 0 )
-            pileStarts[j] = pileStarts[j + 1];
+        while ( index < nText && vectTriple[index].pileN < pile )
+            ++index;
+        pileStarts[pile] = index;
     }
 
 
@@ -1236,18 +1210,25 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
     dataTypeNChar toRead = 0;
 
     dataTypeNSeq j;
-    dataTypedimAlpha currentPile;
+    dataTypedimAlpha currentPile = parallelPile;
 
     BwtReaderBase *pReader( NULL );
     BwtWriterBase *pWriter( NULL );
     BwtReaderBase *pQualReader( NULL );
     BwtWriterBase *pQualWriter( NULL );
 
+    // If there are no letters to add at the last cycle, still process it
+    if ( startIndex >= endIndex && debugCycle >= lengthRead && currentPile > 0 )
+    {
+        Filename filenameIn( "", currentPile, "" );
+        Filename filenameOut( "new_", currentPile, "" );
+        dumpRamFileToFile( filenameIn, filenameOut );
+    }
 
     j = startIndex;
     while ( j < endIndex )
     {
-        currentPile = vectTriple[j].pileN;
+        assert( currentPile == vectTriple[j].pileN );
         if ( verboseEncode == 1 )
             std::cerr << "index j= " << j << " current BWT segment " << ( int )currentPile << std::endl;
 

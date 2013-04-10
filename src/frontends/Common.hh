@@ -53,3 +53,5 @@ bool isNextArgument( const string shortPrefix, const string longPrefix, const in
 bool isNextArgumentInt( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, int *argValue = 0 );
 bool parseNextArgument( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, ToolParameters &, const unsigned toolParamKey );
 void launchBeetl( const string &params );
+
+int detectMemoryLimitInMB();

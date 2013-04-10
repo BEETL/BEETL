@@ -103,10 +103,10 @@ int main( int argc, char **argv )
     vector <SequenceInformation > seqs = loadSequenceInfo( headerFile, fileCountFile );
     vector<int> gis;
     gis.push_back( seqs[0].giNumber_ );
-    for ( uint i( 1 ); i < seqs.size(); i++ )
+    for ( unsigned int i( 1 ); i < seqs.size(); i++ )
     {
         bool found = false;
-        for ( uint j( 0 ); j < gis.size(); j++ )
+        for ( unsigned int j( 0 ); j < gis.size(); j++ )
         {
             if ( gis[j] == ( int )seqs[i].giNumber_ )
             {
@@ -123,7 +123,7 @@ int main( int argc, char **argv )
     cout << endl;
     cerr << "Gi Id size " << gis.size() << endl;
     giToTaxId = getGiTotaxId( giToTaxIdFile, gis );
-    for ( uint i ( 0 ); i < seqs.size() ; i++ )
+    for ( unsigned int i ( 0 ); i < seqs.size() ; i++ )
     {
         bool foundTaxa( false );
         for ( map<int, int>::iterator it = giToTaxId.begin() ; it != giToTaxId.end(); it++ )
@@ -207,7 +207,7 @@ map<int, int> getGiTotaxId( string giToTaxIdFName, vector<int> giNumbers )
     map<int, int> giToTaxId;
     int smallestGiNumber = giNumbers[0];
     cout << "all GI numbers " << giNumbers.size() << endl;
-    for ( uint i( 0 ); i < giNumbers.size(); i++ )
+    for ( unsigned int i( 0 ); i < giNumbers.size(); i++ )
         smallestGiNumber = ( smallestGiNumber > giNumbers[i] && giNumbers[i] != 0 ) ? giNumbers[i] : smallestGiNumber;
     cout << "smallest GI " << smallestGiNumber << endl;
     int lineNumber( 0 );
@@ -224,7 +224,7 @@ map<int, int> getGiTotaxId( string giToTaxIdFName, vector<int> giNumbers )
             int giNumber = atoi( lineVector[0].c_str() );
 
             //cerr <<giNumber<<endl;
-            for ( uint i( 0 ); i < giNumbers.size(); i++ )
+            for ( unsigned int i( 0 ); i < giNumbers.size(); i++ )
             {
                 if ( giNumber == giNumbers[i] )
                 {
@@ -318,7 +318,7 @@ void findNCBITaxa( vector<SequenceInformation> &seqs, string namesDMP, string no
 
     cerr << "after merged out " << idToNode.size() << endl;
     cerr << "seq size " << seqs.size() << endl;
-    for ( uint j ( 0 ) ; j < seqs.size(); j++ )
+    for ( unsigned int j ( 0 ) ; j < seqs.size(); j++ )
     {
         unsigned short fileNum = seqs[j].fileNum_;
         cerr << fileNum << endl;

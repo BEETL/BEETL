@@ -1123,12 +1123,12 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
 
             vector<string> fileNumbersStrings = ( splitLine[7].compare( "" ) == 0 ) ? split( splitLine[8], ":" ) : split( splitLine[7], ":" );
             vector<int> fileNumbers;
-            for ( uint i( 0 ); i < fileNumbersStrings.size() - 1 ; i++ )
+            for ( unsigned int i( 0 ); i < fileNumbersStrings.size() - 1 ; i++ )
             {
                 fileNumbers.push_back( atoi( fileNumbersStrings[i].c_str() ) );
                 //cerr << "string " << fileNumbersStrings[i] << " int " << atoi(fileNumbersStrings[i].c_str()) <<endl;
             }
-            uint fileCounts = fileNumbers.size();
+            unsigned int fileCounts = fileNumbers.size();
             fseek( mergeAOutput[whichPile( splitLine[3][0] )], ( BWTPosition * sizeof( unsigned ) ) , SEEK_SET );
 
             unsigned *suffStarts = ( unsigned * ) malloc ( ( fileCounts ) * ( sizeof( unsigned ) ) );
@@ -1140,9 +1140,9 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
             // cout << "Read suff worked " <<endl;
             int readsSuffCount( 0 );
             vector<string> countsA = split( splitLine[5], ":" );
-            for ( uint i( 0 ); i < countsA.size(); i++ )
+            for ( unsigned int i( 0 ); i < countsA.size(); i++ )
                 readsSuffCount += atoi( countsA[i].c_str() );
-            for ( uint i( 0 ); i < fileCounts; i++ )
+            for ( unsigned int i( 0 ); i < fileCounts; i++ )
             {
                 //if(fileNumbers[i] != fileNum[i] )
                 int fileNumber = fileNumbers[i];

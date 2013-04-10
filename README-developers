@@ -9,7 +9,8 @@ Then you can use "configure, make, make install" as normal.
 2. Ideas of coding conventions
 
 C++ formatting is ensured by:
-    find src \( -name "*cpp" -or -name "*hh" \) -print -exec /home/ljanin/net/astyle/build/gcc/bin/astyle --style=allman --indent-switches --pad-paren-in --pad-header --pad-oper --align-pointer=name --align-reference=name --lineend=linux --indent-col1-comments --min-conditional-indent=0 {} \;
+    export PATH=/home/ljanin/net/astyle/build/gcc/bin/:$PATH
+    find src \( -name "*cpp" -or -name "*hh" \) -print -exec astyle --style=allman --indent-switches --pad-paren-in --pad-header --pad-oper --align-pointer=name --align-reference=name --lineend=linux --indent-col1-comments --min-conditional-indent=0 {} \;
 
 Details: See http://astyle.sourceforge.net/astyle.html
   --style=allman

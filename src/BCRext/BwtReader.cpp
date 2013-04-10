@@ -231,7 +231,6 @@ LetterCountType BwtReaderRunLength::tellg( void ) const
 } // ~tellg
 
 
-// TODO: return type should be unsigned in order to avoid compiler warnings
 unsigned int BwtReaderRunLength::readAndCount( LetterCount &c, const LetterCountType numChars )
 {
 #ifdef DEBUG_RAC
@@ -620,7 +619,6 @@ LetterCountType BwtReaderIncrementalRunLength::tellg( void ) const
     return currentPos_;
 } // ~tellg
 
-// TODO: return type should be unsigned in order to avoid compiler warnings
 uint BwtReaderIncrementalRunLength::readAndCount( LetterCount &c, const LetterCountType numChars )
 {
 #ifdef DEBUG
@@ -730,6 +728,7 @@ int BwtReaderIncrementalRunLength::operator()( char *p, int numChars )
 
 bool BwtReaderIncrementalRunLength::getRun( void )
 {
+again:
     if ( lastMetadata_ != 0 )
     {
         if ( ( lastMetadata_ & ~0x80 ) != 0 ) // if there is a subcall, whether or not the Return flag is also present
@@ -817,6 +816,9 @@ bool BwtReaderIncrementalRunLength::getRun( void )
 #endif
     pBuf_ += 2;
     posInRamFile_ += 2;
+
+    if ( c == 0xFF )
+        goto again;
 
     return true;
 

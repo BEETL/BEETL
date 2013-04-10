@@ -39,6 +39,11 @@ void DatasetMetadata::init( const string &input, const string &inputFormat )
     else
     {
         FILE *f = fopen( input.c_str(), "rb" );
+        if ( !f )
+        {
+            cerr << "Error: Cannot open " << input << endl;
+            exit( EXIT_FAILURE );
+        }
         SeqReaderFile *pReader( SeqReaderFile::getReader( f ) );
         nCycles = pReader->length();
 
@@ -49,6 +54,7 @@ void DatasetMetadata::init( const string &input, const string &inputFormat )
         long fileSize = ftell( f );
         nReads = fileSize / entrySize;
         delete pReader;
+        fclose( f );
     }
 
     nBases = nCycles * nReads;

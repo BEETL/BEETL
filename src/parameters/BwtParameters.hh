@@ -86,8 +86,8 @@ static const string algorithmOptionLabels[] =
 
 enum IntermediateFormat
 {
-    INTERMEDIATE_FORMAT_ASCII,
     INTERMEDIATE_FORMAT_RLE,
+    INTERMEDIATE_FORMAT_ASCII,
     INTERMEDIATE_FORMAT_MULTIRLE,
     INTERMEDIATE_FORMAT_HUFFMAN,
     INTERMEDIATE_FORMAT_COUNT
@@ -95,8 +95,8 @@ enum IntermediateFormat
 
 static const string intermediateFormatLabels[] =
 {
-    "ASCII",
     "RLE",
+    "ASCII",
     "multiRLE",
     "Huffman",
     "" // end marker
