@@ -32,6 +32,7 @@
 #include <sstream>
 
 using namespace std;
+using namespace BeetlBwtParameters;
 
 
 class HardwareConstraints
@@ -613,15 +614,19 @@ void printUsage()
     cout << "Options:" << endl;
     cout << "    --qualities (-q)         = ignore [ignore|permute]: Ignore/Permute qualities (only available with bcr algorithm)" << endl;
     cout << "    --concatenate-output     Concatenate BWT files at the end" << endl;
-    cout << "    --generate-lcp           Generate Longest Common Prefix lengths (see LCP note below)" << endl;
+    cout << "    --reverse                Process cycles in reverse order (Note: forces algorithm=bcr)" << endl;
     cout << "    --sap-ordering           Use SAP ordering (see SAP note below)" << endl;
-    cout << "    --generate-end-pos-file  Generates outFileEndPos.bwt" << endl;
+    cout << "    --generate-end-pos-file  Generate outFileEndPos.bwt" << endl;
+    cout << "    --generate-lcp           Generate Longest Common Prefix lengths (see LCP note below)" << endl;
+    cout << "    --generate-cycle-bwt     = off [off|pbe] pbe=Generate cycle-by-cycle BWT with prediction-based encoding" << endl;
+    cout << "    --generate-cycle-qual    = off [off|pbe] pbe=Generate cycle-by-cycle qualities zeroed at correctly-predicted bases" << endl;
     //TODO in future release:    cout << "    --single-cycle           " << endl;
 #ifdef USE_OPENMP
     cout << "    --no-parallel-prefetch   Disable parallel prefetch of cycle files" << endl;
     cout << "    --no-parallel-processing Disable parallel processing by letter" << endl;
 #endif //ifdef USE_OPENMP
     cout << "    --hw-constraints         File describing hardware constraints for speed estimates" << endl;
+    cout << "    --pause-between-cycles   Wait for a key press after each cycle" << endl;
     cout << "    --verbosity              = normal [quiet|normal|verbose|very-verbose|debug] or [0|1|2|3|4]" << endl;
     cout << "    -v / -vv                 Shortcuts to --verbosity = verbose / very-verbose" << endl;
     cout << "    --help (-h)              Help" << endl;
@@ -632,6 +637,7 @@ void printUsage()
     cout << "    SAP      : implicit permutation to obtain more compressible BWT (Note: forces algorithm=ext and intermediate-format=ascii)" << endl;
     cout << "    LCP      : length of Longest Common Prefix shared between a BWT letter and the next one. Stored using 4 bytes per BWT letter in files with -Lxx suffix." << endl;
     cout << "               (Note: forces algorithm=bcr, non-parallel and intermediate-format=ascii)" << endl;
+    cout << "    PBE      : prediction-based encoding" << endl;
 #ifndef USE_OPENMP
     cout << endl;
     cout << "Warning:" << endl;
@@ -655,11 +661,15 @@ struct BeetlBwtArguments
     bool   argParallelProcessing ;//= true;
     string argQualities          ;//= "ignore";
     bool   argGenerateLcp        ;//= false;
+    bool   argReverse            ;//= false;
     bool   argSapOrdering        ;//= false;
     bool   argGenerateEndPosFile ;//= false;
+    string argGenerateCycleBwt   ;
+    string argGenerateCycleQual  ;
     bool   argSingleCycle        ;//= false;
     string argHardwareConstraints;
-    string argVerbosityLevel     ;//= "0"
+    bool   argPauseBetweenCycles ;//= false;
+    string argVerbosityLevel     ;
 
     BeetlBwtArguments()
     {
@@ -674,10 +684,11 @@ struct BeetlBwtArguments
         argParallelProcessing = true;
         argQualities          = "ignore";
         argGenerateLcp        = false;
+        argReverse            = false;
         argSapOrdering        = false;
         argGenerateEndPosFile = false;
         argSingleCycle        = false;
-        argVerbosityLevel     = "0";
+        argPauseBetweenCycles = false;
     }
 };
 
@@ -741,8 +752,18 @@ int main( const int argc, const char **argv )
         {
             args.argGenerateLcp = true;
         }
+        else if ( isNextArgument( ""  , "--reverse"                , argc, argv, i                               ) )
+        {
+            args.argReverse = true;
+        }
+        else if ( isNextArgument( ""  , "--generate-cycle-bwt"     , argc, argv, i, &args.argGenerateCycleBwt    ) ) {}
+        else if ( isNextArgument( ""  , "--generate-cycle-qual"    , argc, argv, i, &args.argGenerateCycleQual   ) ) {}
         //        else if (isNextArgument( ""  , "--single-cycle"           , argc, argv, i                               )) { args.argSingleCycle = true; }
         else if ( isNextArgument( ""  , "--hw-constraints"         , argc, argv, i, &args.argHardwareConstraints ) ) {}
+        else if ( isNextArgument( ""  , "--pause-between-cycles"   , argc, argv, i                               ) )
+        {
+            args.argPauseBetweenCycles = true;
+        }
         else if ( isNextArgument( ""  , "--verbosity"              , argc, argv, i, &args.argVerbosityLevel      ) )
         {
             Logger::setVerbosity( args.argVerbosityLevel );
@@ -813,6 +834,26 @@ int main( const int argc, const char **argv )
         }
     }
 
+    // Special case of --reverse
+    if ( args.argReverse )
+    {
+        if ( args.argAlgorithm == "" || strcasecmp( args.argAlgorithm.c_str(), "bcr" ) != 0 )
+        {
+            clog << "Warning: Forcing algorithm=bcr for --reverse" << endl;
+            args.argAlgorithm = "bcr";
+        }
+    }
+
+    // Special case of --pause-between-cycles
+    if ( args.argPauseBetweenCycles )
+    {
+        if ( args.argAlgorithm == "" || strcasecmp( args.argAlgorithm.c_str(), "bcr" ) != 0 )
+        {
+            clog << "Warning: Forcing algorithm=bcr for --pause-between-cycles" << endl;
+            args.argAlgorithm = "bcr";
+        }
+    }
+
     datasetMetadata.init( args.argInput, args.argInputFormat );
     hardwareConstraints.init( args.argHardwareConstraints );
 
@@ -832,12 +873,13 @@ int main( const int argc, const char **argv )
     filters.push_back( make_pair( "concatenate output", args.argConcatenateOutput ? "on" : "off" ) );
     filters.push_back( make_pair( "SAP ordering", args.argSapOrdering ? "on" : "off" ) );
     filters.push_back( make_pair( "generate LCP", args.argGenerateLcp ? "on" : "off" ) );
+    filters.push_back( make_pair( "reverse", args.argReverse ? "on" : "off" ) );
     filters.push_back( make_pair( "generate endPosfile", args.argGenerateEndPosFile ? "on" : "off" ) );
-    if ( args.argQualities == "ignore" )
-        filters.push_back( make_pair( "permute qualities", "off" ) );
-    else if ( args.argQualities == "permute" )
+    filters.push_back( make_pair( "generate cycle BWT", args.argGenerateCycleBwt.empty() ? "off" : args.argGenerateCycleBwt ) );
+    filters.push_back( make_pair( "generate cycle qualities", args.argGenerateCycleQual.empty() ? "off" : args.argGenerateCycleQual ) );
+    filters.push_back( make_pair( "process qualities",  args.argQualities ) );
+    if ( args.argQualities != "ignore" )
     {
-        filters.push_back( make_pair( "permute qualities", "on" ) );
         if ( strcasecmp( args.argAlgorithm.c_str(), "ext" ) == 0 )
         {
             cerr << "Error: Quality permutation is not available with \"ext\" algorithm\n" << endl;
@@ -845,12 +887,7 @@ int main( const int argc, const char **argv )
             exit( 1 );
         }
     }
-    else
-    {
-        cerr << "Error: Invalid --qualities=" << args.argQualities << " value\n" << endl;
-        printUsage();
-        exit( 1 );
-    }
+    filters.push_back( make_pair( "Pause between cycles", args.argPauseBetweenCycles ? "on" : "off" ) );
 
     // Resource estimation
     calculateResourceRequirements( filters, args.argMemoryLimitMB );

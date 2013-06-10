@@ -28,6 +28,7 @@
 #include <sstream>
 
 using namespace std;
+using namespace BeetlUnbwtParameters;
 
 
 void launchBeetlUnbwt( UnbwtParameters &unbwtParams, const string &inputFilename, const string &outputFilename )
@@ -36,15 +37,6 @@ void launchBeetlUnbwt( UnbwtParameters &unbwtParams, const string &inputFilename
     CompressionFormatType outputCompression = compressionIncrementalRunLength; // not used
     BCRexternalBWT bwt( ( char * )inputFilename.c_str(), ( char * )outputFilename.c_str(), bcrMode, outputCompression, &unbwtParams );
     // automatically calls: result = unbuildBCR( file1, fileOutBwt, intermediateCycFiles, fileOutput );
-    return;
-
-
-    ostringstream cmdLineParams;
-    cmdLineParams << " bcr -m 1 "
-                  << " -i " << inputFilename
-                  << " -o " << outputFilename;
-
-    launchBeetl( cmdLineParams.str() );
 }
 
 
@@ -57,7 +49,8 @@ void printUsage()
     cout << "Options:" << endl;
     cout << "    --decode-direction (-d)  = backward [forward|backward]" << endl;
     cout << "    --use-vector             = on [on|off]: Pre-compute a sampling vector of the BWT segments. More RAM, faster." << endl;
-    cout << "    --verbose                = quiet [quiet|verbose|very-verbose|debug] or [0|1|2|3]" << endl;
+    cout << "    --verbosity              = normal [quiet|normal|verbose|very-verbose|debug] or [0|1|2|3|4]" << endl;
+    cout << "    -v / -vv                 Shortcuts to --verbosity = verbose / very-verbose" << endl;
     cout << "    --help (-h)              Help" << endl;
     cout << endl;
 }
@@ -103,9 +96,17 @@ int main( const int argc, const char **argv )
         else if ( isNextArgument   ( "-o", "--output"              , argc, argv, i, &args.argOutput                          ) ) {}
         else if ( parseNextArgument( "-d", "--decode-direction"    , argc, argv, i, params, UNBWT_OPTION_DECODE_DIRECTION    ) ) {}
         else if ( parseNextArgument( ""  , "--use-vector"          , argc, argv, i, params, UNBWT_OPTION_USE_VECTOR          ) ) {}
-        else if ( isNextArgument   ( ""  , "--verbose"             , argc, argv, i, &args.argVerbosityLevel                  ) )
+        else if ( isNextArgument   ( ""  , "--verbosity"           , argc, argv, i, &args.argVerbosityLevel                  ) )
         {
             Logger::setVerbosity( args.argVerbosityLevel );
+        }
+        else if ( isNextArgument   ( "-v"  , ""                    , argc, argv, i ) )
+        {
+            Logger::setVerbosity   ( "verbose" );
+        }
+        else if ( isNextArgument   ( "-vv" , ""                    , argc, argv, i ) )
+        {
+            Logger::setVerbosity( "very-verbose" );
         }
         else
         {

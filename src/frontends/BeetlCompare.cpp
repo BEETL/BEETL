@@ -19,6 +19,7 @@
 
 #include "Common.hh"
 #include "Logger.hh"
+#include "TemporaryFilesManager.hh"
 #include "config.h"
 #include "countWords/CountWords.hh"
 #include "parameters/CompareParameters.hh"
@@ -29,6 +30,7 @@
 #include <unistd.h>
 
 using namespace std;
+using namespace BeetlCompareParameters;
 
 
 void printUsage()
@@ -44,7 +46,10 @@ void printUsage()
     cout << "    --min-occ (-n)           = 1          Minimum number of occurrences (coverage)" << endl;
     cout << "    --inputA-format          = autodetect [bwt_ascii|bwt_rle]" << endl;
     cout << "    --inputB-format          = autodetect [bwt_ascii|bwt_rle]" << endl;
-    cout << "    --verbose                = quiet      [quiet|verbose|very-verbose|debug] or [0|1|2|3]" << endl;
+    cout << "    --subset                 = \"\"       Restrict computation to this suffix - Used for distributed computing" << endl;
+    cout << "    --temp-directory (-T)    = \".\"      Path for temporary files (hint: choose a fast drive)" << endl;
+    cout << "    --verbosity              = normal [quiet|normal|verbose|very-verbose|debug] or [0|1|2|3|4]" << endl;
+    cout << "    -v / -vv                 Shortcuts to --verbosity = verbose / very-verbose" << endl;
     cout << "    --help (-h)              Help" << endl;
     cout << endl;
     cout << "Metagenomics mode parameters:" << endl;
@@ -69,6 +74,8 @@ struct BeetlCompareArguments
     string argOutput;
     int argMaxLength;
     int argMinOcc;
+    string argSubset;
+    string argTempPath;
     string argVerbosityLevel;
 
     // metagenomics mode
@@ -197,6 +204,9 @@ void launchBeetlCompare( CompareParameters &compareParams, const BeetlCompareArg
 
     bool reportMinLength = ( compareParams.getValue( COMPARE_OPTION_REPORT_MINLENGTH ) == REPORT_MINLENGTH_ON );
 
+    // Initialise temporary directory
+    TemporaryFilesManager::get().setTempPath( args.argTempPath );
+
     clog << "Launching CountWords with "
          << "handler=" << whichHandler
          << ", minOcc=" << args.argMinOcc
@@ -204,17 +214,19 @@ void launchBeetlCompare( CompareParameters &compareParams, const BeetlCompareArg
          << ", #files=" << setA.size()
          << ", reportMinLength=" << reportMinLength
          << ", minKmerLength=" << args.argMinKmerLength
+         << ", subset=" << args.argSubset
          << endl;
 
     Algorithm *pcountWords = new CountWords( inputACompressed,
             inputBCompressed, whichHandler, args.argMinOcc,
-            args.argMaxLength, setA, setB, setC, args.argTaxonomy, reportMinLength, args.argMinKmerLength, args.argOutput );
+            args.argMaxLength, setA, setB, setC, args.argTaxonomy, reportMinLength, args.argMinKmerLength, args.argOutput, args.argSubset );
 
     // run the "main" method
     pcountWords->run();
 
     // clean up
     delete pcountWords;
+    TemporaryFilesManager::get().cleanup();
 }
 
 int main( const int argc, const char **argv )
@@ -258,9 +270,19 @@ int main( const int argc, const char **argv )
         else if ( isNextArgument   ( "-t", "--taxonomy"            , argc, argv, i, &args.argTaxonomy                        ) ) {}
         else if ( isNextArgumentInt( "-w", "--min-kmer-length"     , argc, argv, i, &args.argMinKmerLength                   ) ) {}
         else if ( parseNextArgument( "-d", "--report-min-length"   , argc, argv, i, params, COMPARE_OPTION_REPORT_MINLENGTH  ) ) {}
-        else if ( isNextArgument   ( ""  , "--verbose"             , argc, argv, i, &args.argVerbosityLevel                  ) )
+        else if ( isNextArgument   ( ""  , "--subset"              , argc, argv, i, &args.argSubset                          ) ) {}
+        else if ( isNextArgument   ( "-T", "--temp-directory"      , argc, argv, i, &args.argTempPath                        ) ) {}
+        else if ( isNextArgument   ( ""  , "--verbosity"           , argc, argv, i, &args.argVerbosityLevel                  ) )
         {
             Logger::setVerbosity( args.argVerbosityLevel );
+        }
+        else if ( isNextArgument   ( "-v"  , ""                    , argc, argv, i ) )
+        {
+            Logger::setVerbosity   ( "verbose" );
+        }
+        else if ( isNextArgument   ( "-vv" , ""                    , argc, argv, i ) )
+        {
+            Logger::setVerbosity( "very-verbose" );
         }
         else
         {

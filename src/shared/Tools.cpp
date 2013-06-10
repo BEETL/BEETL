@@ -221,18 +221,20 @@ bool isValidReadFile( const char *fileName )
     return 1;
 }
 
-void readWriteCheck( const char *fileName, const bool readWrite )
+bool readWriteCheck( const char *fileName, const bool readWrite, const bool failIfError )
 {
     FILE *file;
     file = fopen( fileName, readWrite ? "w" : "r" );
-    string mode = readWrite ? "writing." : "reading.";
-    if ( file == NULL )
+    if ( file == NULL && failIfError )
     {
+        string mode = readWrite ? "writing." : "reading.";
         cerr << "Could not open file " << fileName << " for "
              << mode << " Aborting." << endl;
         exit( EXIT_FAILURE );
     }
-    fclose( file );
+    if ( file )
+        fclose( file );
+    return ( file != NULL );
 }
 
 void checkIfEqual( const int arg1, const int arg2 )

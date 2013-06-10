@@ -59,7 +59,7 @@ genomesToSingleSeq_LDADD = $(LDADD)
 am_makeBWTSkew_OBJECTS = makeBWTSkew-BuildChromosomeBwt.$(OBJEXT)
 makeBWTSkew_OBJECTS = $(am_makeBWTSkew_OBJECTS)
 makeBWTSkew_LDADD = $(LDADD)
-am_mergeBacteria_OBJECTS = MergeBacteria.$(OBJEXT)
+am_mergeBacteria_OBJECTS = mergeBacteria-MergeBacteria.$(OBJEXT)
 mergeBacteria_OBJECTS = $(am_mergeBacteria_OBJECTS)
 mergeBacteria_LDADD = $(LDADD)
 am_parseMetagenomeOutput_OBJECTS = parse.$(OBJEXT)
@@ -171,6 +171,7 @@ genomesToSingleSeq_SOURCES = GenomesToSingleSeq.cpp
 makeBWTSkew_SOURCES = BuildChromosomeBwt.cpp
 makeBWTSkew_CXXFLAGS = ${SEQAN_CXXFLAGS}
 mergeBacteria_SOURCES = MergeBacteria.cpp
+mergeBacteria_CXXFLAGS = -I$(srcdir) -I$(top_srcdir)/src/shared 
 findTaxa_SOURCES = findCertainTaxLevel.cpp
 parseMetagenomeOutput_SOURCES = parse.cpp
 all: all-am
@@ -271,9 +272,9 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GenomesToSingleSeq.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MergeBacteria.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/findCertainTaxLevel.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mergeBacteria-MergeBacteria.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parse.Po@am__quote@
 
 .cpp.o:
@@ -303,6 +304,20 @@ makeBWTSkew-BuildChromosomeBwt.obj: BuildChromosomeBwt.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='BuildChromosomeBwt.cpp' object='makeBWTSkew-BuildChromosomeBwt.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -c -o makeBWTSkew-BuildChromosomeBwt.obj `if test -f 'BuildChromosomeBwt.cpp'; then $(CYGPATH_W) 'BuildChromosomeBwt.cpp'; else $(CYGPATH_W) '$(srcdir)/BuildChromosomeBwt.cpp'; fi`
+
+mergeBacteria-MergeBacteria.o: MergeBacteria.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(mergeBacteria_CXXFLAGS) $(CXXFLAGS) -MT mergeBacteria-MergeBacteria.o -MD -MP -MF "$(DEPDIR)/mergeBacteria-MergeBacteria.Tpo" -c -o mergeBacteria-MergeBacteria.o `test -f 'MergeBacteria.cpp' || echo '$(srcdir)/'`MergeBacteria.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/mergeBacteria-MergeBacteria.Tpo" "$(DEPDIR)/mergeBacteria-MergeBacteria.Po"; else rm -f "$(DEPDIR)/mergeBacteria-MergeBacteria.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='MergeBacteria.cpp' object='mergeBacteria-MergeBacteria.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(mergeBacteria_CXXFLAGS) $(CXXFLAGS) -c -o mergeBacteria-MergeBacteria.o `test -f 'MergeBacteria.cpp' || echo '$(srcdir)/'`MergeBacteria.cpp
+
+mergeBacteria-MergeBacteria.obj: MergeBacteria.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(mergeBacteria_CXXFLAGS) $(CXXFLAGS) -MT mergeBacteria-MergeBacteria.obj -MD -MP -MF "$(DEPDIR)/mergeBacteria-MergeBacteria.Tpo" -c -o mergeBacteria-MergeBacteria.obj `if test -f 'MergeBacteria.cpp'; then $(CYGPATH_W) 'MergeBacteria.cpp'; else $(CYGPATH_W) '$(srcdir)/MergeBacteria.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/mergeBacteria-MergeBacteria.Tpo" "$(DEPDIR)/mergeBacteria-MergeBacteria.Po"; else rm -f "$(DEPDIR)/mergeBacteria-MergeBacteria.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='MergeBacteria.cpp' object='mergeBacteria-MergeBacteria.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(mergeBacteria_CXXFLAGS) $(CXXFLAGS) -c -o mergeBacteria-MergeBacteria.obj `if test -f 'MergeBacteria.cpp'; then $(CYGPATH_W) 'MergeBacteria.cpp'; else $(CYGPATH_W) '$(srcdir)/MergeBacteria.cpp'; fi`
 uninstall-info-am:
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)

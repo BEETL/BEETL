@@ -27,8 +27,11 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -40,7 +43,7 @@ void printUsage()
     cout << "    --output (-o)            Output file name or prefix" << endl;
     cout << endl;
     cout << "Options:" << endl;
-    cout << "    --input-format           = autodetect [fastq|fasta|seq|cyc|bwt_ascii|bwt_rle]" << endl;
+    cout << "    --input-format           = autodetect [fastq|fasta|seq|cyc|bcl|bwt_ascii|bwt_rle]" << endl;
     cout << "    --output-format          = autodetect [fastq|fasta|seq|cyc|bwt_ascii|bwt_rle]" << endl;
     cout << "    --help (-h)              Help" << endl;
     cout << endl;
@@ -49,6 +52,7 @@ void printUsage()
     cout << "    FASTA     : 2 lines per read ('>'read name, nucleotides)" << endl;
     cout << "    seq       : 1 line  per read (nucleotides)" << endl;
     cout << "    cyc       : 1 file per cycle (byte K in file cycN  = Nth nucleotide of Kth read)" << endl;
+    cout << "    BCL       : Conversion of a single cycle corresponding to 1 BCL file - only works with output-format=cyc" << endl;
     cout << "    BWT_ASCII : ASCII sequence of BWT-reordered nucleotides" << endl;
     cout << "    BWT_RLE   : Run-length-encoded version of BWT_ASCII, where bits 0-3 = binary-encoded nucleotide and bits 4-7 = count-1" << endl;
     cout << endl;
@@ -224,11 +228,183 @@ void convert( const BeetlConvertArguments &args )
         {
             // CYC -> SEQ
         }
+        if ( args.argOutputFormat == "bcl" )
+        {
+            // CYC -> BCL
+            // Single file conversion if the file exists, or multiple if %d appears in the middle
+            int cycleNum = -1; // -1 = single file conversion
+
+            for ( ;; )
+            {
+                // Open input file
+                char inputFilename[1024];
+                assert( args.argInput.size() < 1020 && "Input filename too long" );
+                if ( cycleNum == -1 )
+                    strcpy( inputFilename, args.argInput.c_str() );
+                else
+                    sprintf( inputFilename, args.argInput.c_str(), cycleNum );
+                ifstream is( inputFilename, ios_base::binary );
+                if ( !is.good() )
+                {
+                    if ( cycleNum == -1 )
+                    {
+                        cycleNum = 0;
+                        continue;
+                    }
+                    else
+                        break;
+                }
+
+                // Open input qual file
+                string qualFilename = string( inputFilename ) + ".qual";
+                ifstream isQual( qualFilename.c_str(), ios_base::binary );
+
+                // Open output file
+                char outputFilename[1024];
+                assert( args.argOutput.size() < 1020 && "Output filename too long" );
+                if ( cycleNum == -1 )
+                    strcpy( outputFilename, args.argOutput.c_str() );
+                else
+                    sprintf( outputFilename, args.argOutput.c_str(), cycleNum + 1 );
+                ofstream os( outputFilename, ios_base::binary );
+
+                // Write header bytes
+                struct stat fileStats;
+                assert ( stat( inputFilename, &fileStats ) == 0 );
+                unsigned int byteCount = fileStats.st_size;
+                os.write( reinterpret_cast<char *>( &byteCount ), 4 );
+
+                // Convert
+                clog << "Converting: " << inputFilename << " + " << qualFilename << " -> " << outputFilename << endl;
+                char c, q;
+                vector<unsigned char> baseToBin( 256, 0xFF );
+                baseToBin[( int )'A'] = 0;
+                baseToBin[( int )'C'] = 1;
+                baseToBin[( int )'G'] = 2;
+                baseToBin[( int )'T'] = 3;
+                while ( is.get( c ) )
+                {
+                    assert ( isQual.get( q ) );
+                    unsigned char b = baseToBin[( int )c];
+                    assert( b <= 3 );
+                    assert( q >= 33 && q < ( 33 + 64 ) );
+                    os.put( b | ( ( q - 33 ) << 2 ) );
+                }
+
+                if ( cycleNum == -1 )
+                    break;
+                else
+                    ++cycleNum;
+            }
+            return;
+        }
         else if ( args.argOutputFormat == "bwt_ascii" || args.argOutputFormat == "bwt_rle" )
         {
             // CYC -> BWT_*
             cerr << "Error: This is not a simple file conversion. Try \"beetl bwt\"" << endl;
             exit ( 1 );
+        }
+    }
+    else if ( args.argInputFormat == "bcl" )
+    {
+        if ( args.argOutputFormat == "cyc" )
+        {
+            // BCL -> CYC
+            string tileName = args.argInput.substr( 1 + args.argInput.find_last_of( "/" ) );
+            tileName.erase( tileName.find_last_of( ".bcl" ) - 3 );
+
+            string filterFilename = args.argInput;
+            try
+            {
+                filterFilename.erase( filterFilename.find_last_of( "/" ) );
+                filterFilename.erase( filterFilename.find_last_of( "/" ) + 1 );
+            }
+            catch ( const std::exception &e )
+            {
+                // Ignore... the file will get ignored anyway
+            }
+            filterFilename += tileName + ".filter";
+
+            clog << "Converting tile " << tileName << " + " << filterFilename << endl;
+
+            // Single file conversion if the file exists, or multiple if %d appears in the middle
+            int cycleNum = -1; // -1 = single file conversion
+
+            for ( ;; )
+            {
+                // Open input file
+                char inputFilename[1024];
+                assert( args.argInput.size() < 1020 && "Input filename too long" );
+                if ( cycleNum == -1 )
+                    strcpy( inputFilename, args.argInput.c_str() );
+                else
+                    sprintf( inputFilename, args.argInput.c_str(), cycleNum + 1 );
+                ifstream is( inputFilename, ios_base::binary );
+                if ( !is.good() )
+                {
+                    if ( cycleNum == -1 )
+                    {
+                        cycleNum = 0;
+                        continue;
+                    }
+                    else
+                        break;
+                }
+
+                // Open output file
+                ostringstream oss;
+                oss << args.argOutput;
+                if ( cycleNum >= 0 )
+                    oss << "." << cycleNum;
+                string outputFilename = oss.str();
+                ofstream os( outputFilename.c_str(), ios_base::binary );
+
+                // Open output quality file
+                ostringstream ossQual;
+                ossQual << args.argOutput << ".qual";
+                if ( cycleNum >= 0 )
+                    ossQual << "." << cycleNum;
+                string outputFilenameQual = ossQual.str();
+                ofstream osQual( outputFilenameQual.c_str(), ios_base::binary );
+
+                // Open input filter file
+                ifstream filterFile( filterFilename.c_str(), ios_base::binary );
+
+                // Skip header bytes of each file
+                unsigned int buf4a, buf4b;
+                filterFile.read( reinterpret_cast<char *>( &buf4a ), 4 );
+                is.read( reinterpret_cast<char *>( &buf4b ), 4 );
+                if ( buf4a != buf4b )
+                {
+                    // Try to read an extra 8 bytes, corresponding to a different version of the .filter format
+                    filterFile.read( reinterpret_cast<char *>( &buf4a ), 4 );
+                    filterFile.read( reinterpret_cast<char *>( &buf4a ), 4 );
+                    if ( buf4a != buf4b )
+                    {
+                        cerr << "Error parsing filter file: File lengths are not matching" << endl;
+                        exit( -1 );
+                    }
+                }
+
+                // Convert
+                clog << "Converting: " << inputFilename << " -> " << outputFilename << " + " << outputFilenameQual << endl;
+                char c, filterVal;
+                const char binToBase[4] = { 'A', 'C', 'G', 'T' };
+                while ( is.get( c ) )
+                {
+                    if ( !filterFile.get( filterVal ) || filterVal != '\0' )
+                    {
+                        os.put( binToBase[c & 3] );
+                        osQual.put( 33 + ( ( ( unsigned char )c ) >> 2 ) );
+                    }
+                }
+
+                if ( cycleNum == -1 )
+                    break;
+                else
+                    ++cycleNum;
+            }
+            return;
         }
     }
     else if ( args.argInputFormat == "bwt_ascii" )

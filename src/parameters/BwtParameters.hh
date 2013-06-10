@@ -23,6 +23,9 @@
 #include <string>
 
 
+namespace BeetlBwtParameters
+{
+
 // options: input format
 
 enum InputFormat
@@ -156,19 +159,23 @@ static const string parallelProcessingLabels[] =
 };
 
 
-// options: permute qualities off/on
+// options: process qualities
 
-enum PermuteQualities
+enum ProcessQualities
 {
-    PERMUTE_QUALITIES_OFF,
-    PERMUTE_QUALITIES_ON,
-    PERMUTE_QUALITIES_COUNT,
+    PROCESS_QUALITIES_IGNORE,
+    PROCESS_QUALITIES_PERMUTE,
+    //    PROCESS_QUALITIES_PRESERVE,
+    //    PROCESS_QUALITIES_SMOOTH,
+    PROCESS_QUALITIES_COUNT,
 };
 
-static const string permuteQualitiesLabels[] =
+static const string processQualitiesLabels[] =
 {
-    "off",
-    "on",
+    "ignore",
+    "permute",
+    //    "preserve",
+    //    "smooth",
     "" // end marker
 };
 
@@ -183,6 +190,23 @@ enum GenerateLcp
 };
 
 static const string generateLcpLabels[] =
+{
+    "off",
+    "on",
+    "" // end marker
+};
+
+
+// options: reverse off/on
+
+enum Reverse
+{
+    REVERSE_OFF,
+    REVERSE_ON,
+    REVERSE_COUNT,
+};
+
+static const string reverseLabels[] =
 {
     "off",
     "on",
@@ -258,6 +282,23 @@ static const string generateEndPosFileLabels[] =
 };
 
 
+// options: pause between cycles off/on
+
+enum PauseBetweenCycles
+{
+    PAUSE_BETWEEN_CYCLES_OFF,
+    PAUSE_BETWEEN_CYCLES_ON,
+    PAUSE_BETWEEN_CYCLES_COUNT,
+};
+
+static const string pauseBetweenCyclesLabels[] =
+{
+    "off",
+    "on",
+    "" // end marker
+};
+
+
 // Option container
 
 enum BwtOptions
@@ -269,12 +310,14 @@ enum BwtOptions
     BWT_OPTION_INTERMEDIATE_STORAGE_MEDIUM,
     BWT_OPTION_PARALLEL_PREFETCH,
     BWT_OPTION_PARALLEL_PROCESSING,
-    BWT_OPTION_PERMUTE_QUALITIES,
+    BWT_OPTION_PROCESS_QUALITIES,
     BWT_OPTION_GENERATE_LCP,
+    BWT_OPTION_REVERSE,
     BWT_OPTION_SINGLE_CYCLE,
     BWT_OPTION_CONCATENATE_OUTPUT,
     BWT_OPTION_SAP_ORDERING,
     BWT_OPTION_GENERATE_ENDPOSFILE,
+    BWT_OPTION_PAUSE_BETWEEN_CYCLES,
     BWT_OPTION_COUNT // end marker
 };
 
@@ -287,12 +330,14 @@ static const string bwtOptionNames[] =
     "intermediate storage medium",
     "parallel prefetch",
     "parallel processing",
-    "permute qualities",
+    "process qualities",
     "generate LCP",
+    "reverse",
     "single cycle",
     "concatenate output",
     "SAP ordering",
     "generate endPosFile",
+    "pause between cycles",
     "" // end marker
 };
 
@@ -305,28 +350,33 @@ static const string *bwtOptionPossibleValues[] =
     intermediateStorageMediumLabels,
     parallelPrefetchLabels,
     parallelProcessingLabels,
-    permuteQualitiesLabels,
+    processQualitiesLabels,
     generateLcpLabels,
+    reverseLabels,
     singleCycleLabels,
     concatenateOutputLabels,
     sapOrderingLabels,
     generateEndPosFileLabels,
+    pauseBetweenCyclesLabels,
     NULL // end marker
 };
+
+} // namespace BeetlBwtParameters
 
 
 class BwtParameters : public ToolParameters
 {
     virtual const string **getOptionPossibleValues() const
     {
-        return bwtOptionPossibleValues;
+        return BeetlBwtParameters::bwtOptionPossibleValues;
     }
 public:
     virtual const string getOptionName( const unsigned i ) const
     {
-        return bwtOptionNames[i];
+        return BeetlBwtParameters::bwtOptionNames[i];
     }
     //    virtual const string getOptionPossibleValue( const unsigned i, const unsigned j ) const { return bwtOptionPossibleValues[i][j]; }
 };
+
 
 #endif //ifndef BEETL_BWT_PARAMETERS_HH

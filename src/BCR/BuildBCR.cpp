@@ -38,6 +38,7 @@
 #endif //ifdef USE_OPENMP
 
 using namespace std;
+using namespace BeetlBwtParameters;
 
 
 //#ifdef COMPRESS_BWT
@@ -75,7 +76,7 @@ void debugRamFile( char *filenameIn, size_t n, char *filenameOut = "tmp.debug" )
     pReader = new BwtReaderIncrementalRunLength( filenameIn );
     assert( pReader != NULL );
 
-    clog << "Writing " << filenameOut << endl;
+    Logger::out( LOG_FOR_DEBUGGING ) << "Writing " << filenameOut << endl;
     BwtWriterASCII *pWriter = new BwtWriterASCII( filenameOut );
     for ( size_t i = 0; i < n; ++i )
     {
@@ -100,9 +101,9 @@ void BCRexternalBWT::dumpRamFileToFile( const char *filenameIn, const char *file
     BwtWriterBase *pWriter = instantiateBwtWriterForLastCycle( filenameOut );
     assert( pWriter != NULL );
 
-    clog << "Writing " << filenameOut << endl;
+    Logger::out( LOG_FOR_DEBUGGING ) << "Writing " << filenameOut << endl;
     while ( pReader->readAndSend( *pWriter, 1 ) ) {}
-    clog << " ... done" << endl;
+    Logger::out( LOG_FOR_DEBUGGING ) << " ... done" << endl;
 
     delete pReader;
     delete pWriter;
@@ -110,7 +111,7 @@ void BCRexternalBWT::dumpRamFileToFile( const char *filenameIn, const char *file
 
 void BCRexternalBWT::ReadFilesForCycle( const char *prefix, const dataTypelenSeq cycle, const dataTypeNSeq nText, uchar *newSymb, const bool processQualities, uchar *newQual )
 {
-    Filename filename( prefix, cycle, ".txt" );
+    Filename filename( prefix, cycle, "" );
     FILE *InFileInputText = fopen( filename, "rb" );
     if ( InFileInputText == NULL )
     {
@@ -122,7 +123,7 @@ void BCRexternalBWT::ReadFilesForCycle( const char *prefix, const dataTypelenSeq
     fclose( InFileInputText );
     if ( processQualities )
     {
-        Filename qualFilename( prefix, "qual.", cycle, ".txt" );
+        Filename qualFilename( prefix, "qual.", cycle, "" );
         FILE *InQualFileInputText = fopen( qualFilename, "rb" );
         if ( InQualFileInputText == NULL )
         {
@@ -260,12 +261,15 @@ BwtWriterBase *BCRexternalBWT::instantiateBwtWriterForLastCycle( const char *fil
 int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtParameters *bwtParams )
 {
 #ifdef USE_OPENMP
-    if ( bwtParams->getValue( BWT_OPTION_PARALLEL_PROCESSING ) != PARALLEL_PROCESSING_OFF )
+    //    if ( bwtParams->getValue( BWT_OPTION_PARALLEL_PROCESSING ) != PARALLEL_PROCESSING_OFF )
     {
         // Use nested openmp parallelisation
         omp_set_nested( 1 );
     }
 #endif //ifdef USE_OPENMP
+
+    const bool permuteQualities = ( bwtParams_->getValue( BWT_OPTION_PROCESS_QUALITIES ) == PROCESS_QUALITIES_PERMUTE );
+    const bool readQualities = permuteQualities;
 
     string cycFilesPrefix;
     TransposeFasta transp;
@@ -279,7 +283,7 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
         cycFilesPrefix = string( fileOut );
         FILE *f = fopen( file1, "rb" );
         SeqReaderFile *pReader( SeqReaderFile::getReader( f ) );
-        transp.init( pReader, bwtParams->getValue( BWT_OPTION_PERMUTE_QUALITIES ) == PERMUTE_QUALITIES_ON );
+        transp.init( pReader, readQualities );
         transp.convert( file1, cycFilesPrefix );
         delete pReader;
         fclose( f );
@@ -289,6 +293,20 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
     lengthRead = transp.lengthRead;
     lengthTot = transp.lengthTexts;
     bool processQualities = transp.hasProcessedQualities();
+
+    dataTypelenSeq currentIteration = 0; // iteration counter of symbols insertion
+    dataTypelenSeq currentCycleFileNum; // file num processed in the current iteration (may not be equal to file num being read, in case of prefetch)
+    int cycleFileNumIncrement;
+    if ( bwtParams->getValue( BWT_OPTION_REVERSE ) == REVERSE_ON )
+    {
+        currentCycleFileNum = 0;
+        cycleFileNumIncrement = 1;
+    }
+    else
+    {
+        currentCycleFileNum = lengthRead - 1;
+        cycleFileNumIncrement = -1;
+    }
 
     //#ifdef REPLACE_TABLEOCC
     sizeAlpha = 0;
@@ -341,37 +359,32 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
 #endif
     tableOcc_.clear();
 
-    //lengthTot = 0;  //Counts the number of symbols
+    Logger::out( LOG_SHOW_IF_VERBOSE ) << "\nFirst symbols: " << "Iteration " << 0 << " - symbols in (zero-based) position " << currentCycleFileNum << "\n";
+    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
+    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
 
-    Logger::out( LOG_SHOW_IF_VERBOSE ) << "\nFirst symbols: " << "j= " << 0 << " - symbols in position " << lengthRead << "\n";
-
-    ReadFilesForCycle( cycFilesPrefix.c_str(), lengthRead - 1, nText, newSymb, processQualities, newQual );
-    //lengthTot += num;   //Increment the number of chars
-    /*
-      std::cerr << filename  << std::endl;
-      std::cerr << "number read " << num << "\n";
-      for (dataTypeNSeq j = 0 ; j < nText; j++)
-      std::cerr << newSymb[j];
-      std::cerr << ".\n";
-    */
+    ReadFilesForCycle( cycFilesPrefix.c_str(), currentCycleFileNum, nText, newSymb, processQualities, newQual );
     InsertFirstsymbols( newSymb, newQual );
+    // Update iteration counters
+    ++currentIteration;
+    currentCycleFileNum += cycleFileNumIncrement;
+    debugCycle = currentIteration;
 
-    if ( lengthRead - 2 > 0 )
+    if ( lengthRead >= 2 )
     {
         Logger::out( LOG_SHOW_IF_VERBOSE ) << "Reading next cycle files, time now: " << timer.timeNow();
         Logger::out( LOG_SHOW_IF_VERBOSE ) << "Reading next cycle files, usage: " << timer << endl;
-        ReadFilesForCycle( cycFilesPrefix.c_str(), lengthRead - 2, nText, newSymb, processQualities, newQual );
+        ReadFilesForCycle( cycFilesPrefix.c_str(), currentCycleFileNum, nText, newSymb, processQualities, newQual );
     }
 
-
-    //maxLengthRead-2
-    for ( dataTypelenSeq t = lengthRead - 2 ; t > 0; t-- ) //dataTypelenSeq is unsigned
+    while ( currentIteration <= lengthRead - 2 )
+        //    for ( dataTypelenSeq t = lengthRead - 2 ; t > 0; t-- ) //dataTypelenSeq is unsigned
     {
-        //        if (verboseEncode == 1)
-        Logger::out( LOG_SHOW_IF_VERBOSE ) << "j= " << ( int )( lengthRead - t - 1 ) << " - symbols in position " << ( int )t << std::endl;
-        debugCycle = lengthRead - t - 1;
-        Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << t << ", time now: " << timer.timeNow();
-        Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << t << ", usage: " << timer << endl;
+        pauseBetweenCyclesIfNeeded ();
+
+        Logger::out( LOG_SHOW_IF_VERBOSE ) << "Iteration " << ( int ) currentIteration << " - symbols in position " << ( int ) currentCycleFileNum << std::endl;
+        Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
+        Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
 
 
         //To insert the symbol from position m-3 to position 1
@@ -383,12 +396,12 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
         {
             #pragma omp section
             {
-                ReadFilesForCycle( cycFilesPrefix.c_str(), t - 1, nText, nextSymb, processQualities, nextQual );
-                Logger::out( LOG_SHOW_IF_VERBOSE ) << "Reading input file, time now: " << timer.timeNow();
+                InsertNsymbols( newSymb, currentIteration, newQual );
             }
             #pragma omp section
             {
-                InsertNsymbols( newSymb, t, newQual );
+                ReadFilesForCycle( cycFilesPrefix.c_str(), currentCycleFileNum + cycleFileNumIncrement, nText, nextSymb, processQualities, nextQual );
+                Logger::out( LOG_SHOW_IF_VERBOSE ) << "Reading input file, time now: " << timer.timeNow();
             }
         }
 
@@ -403,33 +416,44 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
             newQual = nextQual;
             nextQual = tmp;
         }
+
+        // Update iteration counters
+        ++currentIteration;
+        currentCycleFileNum += cycleFileNumIncrement;
+        debugCycle = currentIteration;
     }
 
-    debugCycle = lengthRead - 1;
+    pauseBetweenCyclesIfNeeded ();
+
     //The last inserted symbol was in position 1 (or it is newSymb[j]),
     //the next symbol (to insert) is in position 0
-    Logger::out( LOG_SHOW_IF_VERBOSE ) << "\n" << "j= " << lengthRead - 1 << " - symbols in position " << 0 << "\n";
+    Logger::out( LOG_SHOW_IF_VERBOSE ) << "Iteration " << ( int ) currentIteration << " - symbols in position " << ( int ) currentCycleFileNum << std::endl;
+    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
+    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
+    assert( currentIteration == lengthRead - 1 );
+    assert( currentCycleFileNum == 0 || currentCycleFileNum == lengthRead - 1 ); // depending on the --reverse flag
+    InsertNsymbols( newSymb, currentIteration, newQual );
+    // Update iteration counters
+    ++currentIteration;
+    debugCycle = currentIteration;
 
-    //    ReadFilesForCycle( fileOut, 0, nText, newSymb, processQualities, newQual );
-    InsertNsymbols( newSymb, 0, newQual );
+    pauseBetweenCyclesIfNeeded ();
 
     //The last inserted symbol was in position 0 (or it is newSymb[j]),
     //the next symbol (to insert) is in position m-1, that is, I have to inserted the symbols $
-    Logger::out( LOG_SHOW_IF_VERBOSE ) << "\n" << "j= " << lengthRead << " - symbols in position " << lengthRead  << ". Inserting $=" << ( int )TERMINATE_CHAR << "=" << TERMINATE_CHAR << " symbol\n\n";
-    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << 0 << ", time now: " << timer.timeNow();
-    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << 0 << ", usage: " << timer << endl;
+    Logger::out( LOG_SHOW_IF_VERBOSE ) << "Final iteration " << ( int ) currentIteration << " - Inserting $=" << ( int )TERMINATE_CHAR << "=" << TERMINATE_CHAR << " symbols" << std::endl;
+    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
+    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
+    assert( currentIteration == lengthRead );
     for ( dataTypeNSeq j = 0 ; j < nText; j++ )
     {
         newSymb[j] = '$';
-        if ( newQual )
+        if ( readQualities )
             newQual[j] = 0;
-        //std::cerr << newSymb[j];
     }
-    //std::cerr << "\n";
+    InsertNsymbols( newSymb, currentIteration, newQual );
 
-    debugCycle = lengthRead;
-    InsertNsymbols( newSymb, lengthRead, newQual );
-
+    Logger::out( LOG_ALWAYS_SHOW ) << "Final iteration complete, time now: " << timer.timeNow();
     Logger::out( LOG_ALWAYS_SHOW ) << "Final iteration complete, usage: " << timer << endl;
 
 
@@ -558,7 +582,7 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
         }
     }
 
-    return processQualities ? 2 : 1;
+    return permuteQualities ? 2 : 1;
 } // ~buildBCR
 
 void BCRexternalBWT::InsertFirstsymbols( uchar const *newSymb, uchar const *newSymbQual )
@@ -635,8 +659,10 @@ void BCRexternalBWT::InsertFirstsymbols( uchar const *newSymb, uchar const *newS
     // std::cerr << "the written characters is not equal to number of the texts" << num << " and "<< nText <<"\n";
     fclose( OutFileBWT );
 
-    if ( newSymbQual )
+    const bool permuteQualities = ( bwtParams_->getValue( BWT_OPTION_PROCESS_QUALITIES ) == PROCESS_QUALITIES_PERMUTE );
+    if ( permuteQualities )
     {
+        assert ( newSymbQual );
         Filename filenameQualOut( "0.qual" );
         FILE *OutFileBWTQual = fopen( filenameQualOut, "wb" );
         if ( OutFileBWTQual == NULL )
@@ -663,7 +689,7 @@ void BCRexternalBWT::InsertFirstsymbols( uchar const *newSymb, uchar const *newS
         }
         fclose( OutFileBWT );
 
-        if ( newSymbQual )
+        if ( permuteQualities )
         {
             Filename filenameQualOut( filenameOut.str() + ".qual" );
             FILE *OutFileBWTQual = fopen( filenameQualOut, "wb" );
@@ -725,7 +751,7 @@ void BCRexternalBWT::InsertFirstsymbols( uchar const *newSymb, uchar const *newS
         ElementType *newEle = new ElementType[nText];
         for ( dataTypeNSeq j = 0 ; j < nText; j++ )
         {
-            //newEle[j].sa=(posSymb + 1) % (lengthRead + 1);
+            //newEle[j].sa=(iterationNum + 1) % (lengthRead + 1);
             newEle[j].sa = lengthRead;
             newEle[j].numSeq = j;
             //std::cerr << "(" << (int)newEle[j].sa << ", " << newEle[j].numSeq << ")\n";
@@ -754,7 +780,7 @@ void BCRexternalBWT::InsertFirstsymbols( uchar const *newSymb, uchar const *newS
     }
 }
 
-void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, dataTypelenSeq posSymb, uchar const *newQual )
+void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, dataTypelenSeq iterationNum, uchar const *newQual )
 {
     FILE *InFileBWT;                  // output and input file BWT;
     dataTypeNChar numchar = 0;
@@ -782,7 +808,7 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, dataTypelenSeq posSym
     #pragma omp parallel for
     for ( parallelPile = 0; parallelPile < alphabetSize - 1; ++parallelPile )
     {
-        InsertNsymbols_parallelPile( newSymb, posSymb, newQual, parallelPile, pileStarts[parallelPile], pileStarts[parallelPile + 1], parallelVectTriplePerNewPile[parallelPile] );
+        InsertNsymbols_parallelPile( newSymb, iterationNum, newQual, parallelPile, pileStarts[parallelPile], pileStarts[parallelPile + 1], parallelVectTriplePerNewPile[parallelPile] );
     }
 
 
@@ -946,13 +972,13 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, dataTypelenSeq posSym
     //Do we want to compute the generalized suffix array (position and number of sequence)?
     if ( BUILD_SA == 1 )
     {
-        storeSA( posSymb );
+        storeSA( iterationNum );
     }
 
     //  delete pReader;
 }
 
-void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, dataTypelenSeq posSymb, uchar const *newQual, unsigned int parallelPile, dataTypeNSeq startIndex, dataTypeNSeq endIndex, vector< vector< sortElement > > &newVectTriplePerNewPile )
+void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, dataTypelenSeq iterationNum, uchar const *newQual, unsigned int parallelPile, dataTypeNSeq startIndex, dataTypeNSeq endIndex, vector< vector< sortElement > > &newVectTriplePerNewPile )
 {
     if ( Logger::isActive( LOG_FOR_DEBUGGING ) )
     {
@@ -1004,7 +1030,7 @@ void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, dataType
     }
 #endif //ifdef DUMP_EACH_CYCLE
 
-    if ( posSymb == ( lengthRead - 2 ) )
+    if ( iterationNum == 1 )
         pReader = instantiateBwtReaderForFirstCycle( filename );
     else
         pReader = instantiateBwtReaderForIntermediateCycle( filename );
@@ -1172,7 +1198,8 @@ void BCRexternalBWT::storeBWT( uchar const *newSymb, uchar const *newQual )
                 std::cerr << "An error occurred" << std::endl;
         }
 
-        if ( newQual )
+        const bool permuteQualities = ( bwtParams_->getValue( BWT_OPTION_PROCESS_QUALITIES ) == PROCESS_QUALITIES_PERMUTE );
+        if ( permuteQualities )
         {
             Filename filenameQualIn( "", g, ".qual" );
             Filename filenameQualOut( "new_", g, ".qual" );
@@ -1196,6 +1223,94 @@ void BCRexternalBWT::storeBWT( uchar const *newSymb, uchar const *newQual )
 
 }
 
+char getPredictionBasedEncoding( const char actualBase, char predictedBase, bool &isCorrectlyPredicted )
+{
+#define USE_PBE_ALGO1
+    //#define USE_PBE_ALGO2
+    char result;
+#ifdef USE_PBE_ALGO1
+    if ( predictedBase == notInAlphabet )
+        predictedBase = 'A';
+
+    switch ( predictedBase )
+    {
+        case 'A':
+        case 'C':
+        case 'G':
+        case 'T':
+            if ( actualBase == predictedBase )
+            {
+                result = 'A';
+            }
+            else if ( actualBase == 'A' )
+            {
+                result = predictedBase;
+            }
+            else
+            {
+                result = actualBase;
+            }
+            break;
+
+        default:
+            cerr << "Error: Predicted base = " << predictedBase << endl;
+            assert( false && "predicted base should have been A, C, G or T" );
+    }
+
+    isCorrectlyPredicted = ( result == 'A' );
+    return result;
+#endif // USE_PBE_ALGO1
+
+
+#ifdef USE_PBE_ALGO2
+    // from observations: when the insertion is in the middle of a BWT run of the same letter, it is more frequent to have the following insertions: A<->G and C<->T
+    char predictedBase2;
+    // if (predictedBase == predictedBase2) <- encoding used when we use both the BWT bases before and after the inserting point
+    switch ( predictedBase )
+    {
+        case 'A':
+            predictedBase2 = 'G';
+            break;
+        case 'C':
+            predictedBase2 = 'T';
+            break;
+        case 'G':
+            predictedBase2 = 'A';
+            break;
+        case 'T':
+            predictedBase2 = 'C';
+            break;
+    }
+
+    if ( actualBase == predictedBase )
+    {
+        result = 'A';
+    }
+    else if ( actualBase == predictedBase2 )
+    {
+        result = 'C';
+    }
+    else if ( actualBase == 'A' )
+    {
+        if ( predictedBase != 'C' )
+            result = predictedBase;
+        else
+            result = predictedBase2;
+    }
+    else if ( actualBase == 'C' )
+    {
+        result = predictedBase2;
+    }
+    else
+    {
+        result = actualBase;
+    }
+
+    isCorrectlyPredicted = ( result == 'A' );
+    return result;
+#endif // USE_PBE_ALGO2
+}
+
 void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *newQual, unsigned int parallelPile, dataTypeNSeq startIndex, dataTypeNSeq endIndex )
 {
     if ( 0 )
@@ -1208,14 +1323,16 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
     //I have found the position where I have to insert the chars in the position t of the each text
     //Now I have to update the BWT in each file.
     dataTypeNChar toRead = 0;
-
     dataTypeNSeq j;
     dataTypedimAlpha currentPile = parallelPile;
+    const bool permuteQualities = ( bwtParams_->getValue( BWT_OPTION_PROCESS_QUALITIES ) == PROCESS_QUALITIES_PERMUTE );
 
     BwtReaderBase *pReader( NULL );
     BwtWriterBase *pWriter( NULL );
     BwtReaderBase *pQualReader( NULL );
     BwtWriterBase *pQualWriter( NULL );
+    BwtWriterBase *pWriterPredictionBasedEncoding( NULL );
+    BwtWriterBase *pQualWriterPredictionBasedEncoding( NULL );
 
     // If there are no letters to add at the last cycle, still process it
     if ( startIndex >= endIndex && debugCycle >= lengthRead && currentPile > 0 )
@@ -1258,7 +1375,7 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
         assert( pWriter != NULL );
 
 
-        if ( newQual )
+        if ( permuteQualities )
         {
             if ( pQualReader != NULL ) delete pQualReader;
             if ( pQualWriter != NULL ) delete pQualWriter;
@@ -1267,7 +1384,6 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
             pQualReader = new BwtReaderASCII( filenameQualIn );
             pQualWriter = new BwtWriterASCII( filenameQualOut );
         }
-
 
         //For each new symbol in the same pile
         dataTypeNSeq k = j;
@@ -1286,8 +1402,10 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
                 std::cerr << "Start: to Read " << toRead << "\n";
 
             ( *pReader ).readAndSend( ( *pWriter ), toRead );
-            if ( newQual )
+            if ( permuteQualities )
+            {
                 ( *pQualReader ).readAndSend( ( *pQualWriter ), toRead );
+            }
 
             cont += toRead;
 
@@ -1298,9 +1416,13 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
             //And I have to update the number of occurrences of each symbol
             //   if (toRead==0) {
 
-            ( *pWriter )( ( char * )&newSymb[vectTriple[k].seqN], 1 );
-            if ( newQual )
+            const char charToWrite = newSymb[vectTriple[k].seqN];
+            ( *pWriter )( ( char * )&charToWrite, 1 );
+            if ( permuteQualities )
+            {
+                assert( newQual );
                 ( *pQualWriter )( ( char * )&newQual[vectTriple[k].seqN], 1 );
+            }
 
             tableOcc_[currentPile].count_[whichPile[( int )newSymb[vectTriple[k].seqN]]]++;     //update the number of occurrences in BWT of the pileN[k]
             //std::cerr << "new number write " << numchar << "\n";
@@ -1313,8 +1435,10 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
         //it means that posN[k]<>currentPile, so I have to change BWT-file
         //But before, I have to copy the remainder symbols from the old BWT to new BWT
         ( *pReader ).readAndSend( ( *pWriter ) );
-        if ( newQual )
+        if ( permuteQualities )
+        {
             ( *pQualReader ).readAndSend( ( *pQualWriter ) );
+        }
 
         j = k;
     }
@@ -1323,12 +1447,23 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
     pReader = NULL; // %%%
     delete pWriter;
     pWriter = NULL; // %%%
-    if ( newQual )
+    if ( permuteQualities )
     {
         delete pQualReader;
         pQualReader = NULL;
         delete pQualWriter;
         pQualWriter = NULL;
+    }
+
+    if ( pWriterPredictionBasedEncoding )
+    {
+        delete pWriterPredictionBasedEncoding;
+        pWriterPredictionBasedEncoding = NULL;
+    }
+    if ( pQualWriterPredictionBasedEncoding )
+    {
+        delete pQualWriterPredictionBasedEncoding;
+        pWriterPredictionBasedEncoding = NULL;
     }
 }
 
@@ -1443,7 +1578,7 @@ void BCRexternalBWT::storeEntireBWT( const char *fn )
     delete [] freqOut;
 }
 
-void BCRexternalBWT::storeSA( dataTypelenSeq posSymb )
+void BCRexternalBWT::storeSA( dataTypelenSeq iterationNum )
 {
 
     //I have found the position where I have to insert the chars in the position t of the each text
@@ -1539,7 +1674,7 @@ void BCRexternalBWT::storeSA( dataTypelenSeq posSymb )
             if ( toRead == 0 )
             {
                 ElementType newEle;
-                newEle.sa = ( posSymb + 1 ) % ( lengthRead + 1 );
+                newEle.sa = iterationNum; //( posSymb + 1 ) % ( lengthRead + 1 );
                 newEle.numSeq = vectTriple[k].seqN;
 
                 numchar = fwrite ( &newEle, sizeof( ElementType ), 1, OutFileSA );
@@ -2372,4 +2507,16 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
 void BCRexternalBWT::storeEntireLCP( const char *fn )
 {
     assert( false && "TODO" );
+}
+
+void BCRexternalBWT::pauseBetweenCyclesIfNeeded()
+{
+    if ( bwtParams_->getValue( BWT_OPTION_PAUSE_BETWEEN_CYCLES ) == PAUSE_BETWEEN_CYCLES_ON )
+    {
+        char c;
+        fflush( 0 );
+        clog << "Iteration complete" << endl;
+        clog << " Press a letter + Return to continue" << endl;
+        cin >> c;
+    }
 }

@@ -34,8 +34,8 @@ CountWords::CountWords( bool inputACompressed,
                         bool inputBCompressed, char whichHandler,
                         int paramN, int paramK, const vector<string> &setA,
                         const vector<string> &setB, const vector<string> &setC,
-                        const string &ncbiTax, bool testDB, unsigned int minWordLen, string prefix ) :
-    setA_( setA ), setB_( setB ), setC_( setC )
+                        const string &ncbiTax, bool testDB, unsigned int minWordLen, string prefix, string subset ) :
+    setA_( setA ), setB_( setB ), setC_( setC ), subset_( subset )
 {
 
 #ifdef XXX
@@ -183,12 +183,12 @@ void CountWords::run( void )
                     rA.addRange( j, i, thisWord,
                                  ( countsCumulativeA[i - 1].count_[j]
                                    | ( matchFlag * ( LetterCountType )( countsPerPileB[i].count_[j] != 0 ) ) ),
-                                 countsPerPileA[i].count_[j] );
+                                 countsPerPileA[i].count_[j], subset_ );
                 if ( countsPerPileB[i].count_[j] != 0 )
                     rB.addRange( j, i, thisWord,
                                  ( countsCumulativeB[i - 1].count_[j]
                                    | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ),
-                                 countsPerPileB[i].count_[j] );
+                                 countsPerPileB[i].count_[j], subset_ );
             } // ~if
         } // ~for j
     } // ~for i
@@ -254,7 +254,7 @@ void CountWords::run( void )
 
                 BackTracker backTracker( inBwtA[i], inBwtB[i],
                                          currentPosA, currentPosB,
-                                         rA, rB, countsSoFarA, countsSoFarB, minOcc );
+                                         rA, rB, countsSoFarA, countsSoFarB, minOcc, numCycles, subset_ );
                 if ( referenceMode == true )
                 {
                     IntervalHandlerReference intervalHandler( minOcc );
@@ -262,7 +262,7 @@ void CountWords::run( void )
                 }
                 else if ( metagenomeMode == true )
                 {
-                    IntervalHandlerMetagenome intervalHandler( minOcc, mergeCSet, fileNumToTaxIds_, testDB_, minWordLen_ );
+                    IntervalHandlerMetagenome intervalHandler( minOcc, mergeCSet, fileNumToTaxIds_, testDB_, minWordLen_, paramK_ );
                     backTracker( i, thisWord, intervalHandler );
                 }
                 else
@@ -294,11 +294,11 @@ void CountWords::run( void )
   This should be called before the comparison starts
 */
 
-void CountWords::loadFileNumToTaxIds( string taxIdNames )
+void CountWords::loadFileNumToTaxIds( const string &taxIdNames )
 {
     ifstream taxas( taxIdNames.c_str(), ios::in );
     string line;
-    //each line should contain an unsigned short as fileNumber folowed by the taxIds split up with one space character
+    //each line should contain the fileNumber followed by the taxIds split up with one space character
     while ( taxas.good() )
     {
         vector<int> taxIDs;

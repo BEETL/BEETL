@@ -124,7 +124,7 @@ int main( int numArgs, char **args )
                 bcrFileOut = bcrFileOutPrefixDefault;
             }
 
-            if ( bcrMode != 1 )
+            if ( bcrMode == 0 )
             {
                 fileIsReadableOrExit( bcrFileIn.c_str() );
             }
@@ -486,7 +486,7 @@ int main( int numArgs, char **args )
             // create new tool object
             Algorithm *pcountWords = new CountWords( compressedInputA,
                     compressedInputB, whichHandler, minimalOccurencesN,
-                    maxLengthK, filesA, filesB, filesC, ncbiTax, testDatabase, minWord, prefix );
+                    maxLengthK, filesA, filesB, filesC, ncbiTax, testDatabase, minWord, prefix, "" );
 
             // run the "main" method
             pcountWords->run();
@@ -589,7 +589,7 @@ void print_usage( char *args, const char *command )
              << "-o <file>:\toutput file" << endl
              << "-m <n>:\t\tmode = 0 --> BCR " << endl
              << "\t\tmode = 1 --> unBCR " << endl
-             << "\t\tmode = 2 --> Backward search + Locate SeqID " << endl
+             << "\t\tmode = 2 --> Backward search + Locate SeqID (Uses extra file called \"searchedKmers\" as input)" << endl
              << "-a:\t\toutput ASCII encoded files in BCR mode [mode = 0]" << endl
              << "-r:\t\toutput run length encoded files in BCR mode [mode = 0]" << endl
              << "-t:\t\toutput incremental runlength encoded files [experimental]" << endl

@@ -57,6 +57,7 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
     const char *intermediateCycFiles = "cyc.";
     if ( mode == 0 )
     {
+        using namespace BeetlBwtParameters;
         bwtParams_ = dynamic_cast<BwtParameters *>( toolParams_ );
         if ( bwtParams_ == NULL )
         {
@@ -288,6 +289,7 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
     }
     else if ( mode == 1 )
     {
+        using namespace BeetlUnbwtParameters;
         unbwtParams_ = dynamic_cast<UnbwtParameters *>( toolParams );
         if ( unbwtParams_ == NULL )
         {
@@ -304,22 +306,26 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
     }
     else if ( mode == 2 )
     {
+        using namespace BeetlSearchParameters;
+        searchParams_ = dynamic_cast<SearchParameters *>( toolParams );
+        if ( searchParams_ == NULL )
+        {
+            // Legacy mode: old code was set using #defines. We create a BwtParameters structure to reflect the default values.
+            searchParams_ = new SearchParameters;
+        }
 
         std::cerr << "Start Locate Function:\n";
-        std::cerr << "Backward Search and Recover of the number of sequences\n";
+        std::cerr << "Backward Search and Recovery of the number of sequences\n";
         const char *fileOutBwt = "";
 
         vector<string> kmers;
-        char kmer[101];
-        for ( int i = 0; i < 101; i++ )
-            kmer[i] = '\0';
+        char kmer[1000];
         dataTypelenSeq lenKmer = 0;
 
-        static FILE *InFileKmer;
-        InFileKmer = fopen( fileOutput, "rb" );
+        FILE *InFileKmer = fopen( "searchedKmers", "rb" );
         if ( InFileKmer == NULL )
         {
-            std::cerr << "Error opening \"" << fileOutput << "\" file" << std::endl;
+            std::cerr << "Error opening \"searchedKmers\" file" << std::endl;
             exit( EXIT_FAILURE );
         }
         while ( fgets( kmer, sizeof( kmer ), InFileKmer ) )
@@ -330,8 +336,6 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
             tmp = strchr( kmer, '\r' );
             if ( tmp )
                 *tmp = '\0';
-
-
 
             if ( ( strcmp( kmer, "\r" ) != 0 ) && ( strcmp( kmer, "\n" ) != 0 )
                  && ( strcmp( kmer, "\0" ) != 0 ) )
@@ -346,14 +350,14 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
 
         int result = -1;
         vector <int> seqID;
-        result = SearchAndLocateKmer( file1, fileOutBwt, intermediateCycFiles, kmers, lenKmer, &seqID );
+        result = SearchAndLocateKmer( file1, fileOutBwt, intermediateCycFiles, kmers, lenKmer, seqID );
         checkIfEqual( result, 1 );
-        std::cerr << "\nBCRexternalBWT: We have located all kmers, Now we store the positions of the found kmers";
+        std::cerr << "\nBCRexternalBWT: We have located all kmers, Now we store the positions of the found kmers" << endl;
         if ( seqID.size() == 0 )
-            std::cerr << "\nBCRexternalBWT: all k-mers don't occur in the collection";
+            std::cerr << "BCRexternalBWT: None of the k-mers occur in the collection" << endl;
         else
         {
-            Filename newfilename( fileOutput, "_positionsKmers" );
+            Filename newfilename( fileOutput );
             static FILE *FilePosKmers;
             FilePosKmers = fopen( newfilename, "wb" );
             if ( FilePosKmers == NULL )
@@ -388,10 +392,10 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
         }
     }
     else
-        std::cerr << "Mode Error \n";
+        std::cerr << "Mode Error" << endl;
 }
 
-int BCRexternalBWT::SearchAndLocateKmer ( char const *file1, char const *fileOutBwt, char const *fileOut, vector<string> kmers, dataTypelenSeq lenKmer, vector <int> *seqID )
+int BCRexternalBWT::SearchAndLocateKmer ( char const *file1, char const *fileOutBwt, char const *fileOut, vector<string> kmers, dataTypelenSeq lenKmer, vector <int> &seqID )
 {
     dataTypeNChar freq[256];  //contains the distribution of the symbols.
     int resultInit = initializeUnbuildBCR( file1, fileOutBwt, freq );
@@ -404,8 +408,9 @@ int BCRexternalBWT::SearchAndLocateKmer ( char const *file1, char const *fileOut
             std::cerr << i << "\t" << freq[i] << "\t" << ( int )alpha[i] << "\t" << ( int )alphaInverse[( int )alpha[i]] << "\n";
         }
 
-    if ( ( unbwtParams_ && unbwtParams_->getValue( UNBWT_OPTION_USE_VECTOR ) == USE_VECTOR_ON )
-         || ( BackByVector == 1 ) )
+    assert( unbwtParams_ || searchParams_ );
+    if ( ( unbwtParams_ && unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_USE_VECTOR ) == BeetlUnbwtParameters::USE_VECTOR_ON )
+         || searchParams_ )
     {
         resultInit = computeVectorUnbuildBCR( file1, fileOutBwt, freq );
         checkIfEqual( resultInit, 1 );
@@ -443,9 +448,10 @@ int BCRexternalBWT::SearchAndLocateKmer ( char const *file1, char const *fileOut
         std::cerr << std::endl;
     }
 
-    *seqID = recoverNSequenceForward( file1, fileOutBwt, kmers.size() );
-    if ( ( *seqID ).size() == 0 )
-        std::cerr << "\nSearchAndLocateKmer: all k-mers don't occur in the collection";
+    vector<int> tmpSeqId = recoverNSequenceForward( file1, fileOutBwt, kmers.size() );
+    seqID.swap( tmpSeqId );
+    if ( seqID.empty() )
+        std::cerr << "\nSearchAndLocateKmer: No k-mer occurs in the collection";
 
     //result = recoverNSequenceForwardSequentially(file1, fileOutBwt, kmers.size());
     //assert (result ==1);
@@ -482,11 +488,11 @@ int BCRexternalBWT::rankInverseManyByVector ( char const *file1, char const *fil
         //#ifdef DEBUG
         // std::cerr << "===Current BWT-partial= " << (int)currentPile << "\n";
         //#endif
-        Filename newfilename( file1, fileOutBwt, currentPile, "" );
+        Filename newfilename( file1, "-B0", currentPile, "" );
         InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
-            std::cerr << "rankInverseManyByVector: BWT file " << ( int )j << ": Error opening " << std::endl;
+            std::cerr << "rankInverseManyByVector: BWT file " << ( int )j << ": Error opening " << newfilename << std::endl;
             exit ( EXIT_FAILURE );
         }
         //contaAperturaFile++;
@@ -757,7 +763,7 @@ dataTypeNChar BCRexternalBWT::rankManySymbolsByVector( FILE &InFileBWT, dataType
 }
 
 
-int BCRexternalBWT::computeNewPositonForBackSearch( char const *file1, char const *fileOutBwt, uchar symbol )
+int BCRexternalBWT::computeNewPositionForBackSearch( char const *file1, char const *fileOutBwt, uchar symbol )
 {
     FILE *InFileBWT;
 
@@ -779,12 +785,12 @@ int BCRexternalBWT::computeNewPositonForBackSearch( char const *file1, char cons
         dataTypedimAlpha currentPile = vectTriple[j].pileN;
         //if (verboseDecode == 1)
         // std::cerr << "\n===Current BWT-partial= " << (int)currentPile << "\n";
-        Filename newfilename( file1, fileOutBwt, currentPile, "" );
+        Filename newfilename( file1, "-B0", currentPile, "" );
 
         InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
-            std::cerr << "computeNewPositonForBackSearch: BWT file " << ( int )j << ": Error opening " << std::endl;
+            std::cerr << "computeNewPositionForBackSearch: BWT file " << ( int )j << ": Error opening " << std::endl;
             exit ( EXIT_FAILURE );
         }
         dataTypeNSeq k = j;
@@ -833,7 +839,7 @@ int BCRexternalBWT::computeNewPositonForBackSearch( char const *file1, char cons
     return 1;
 }
 
-int BCRexternalBWT::computeNewPositonForBackSearchByVector( char const *file1, char const *fileOutBwt, uchar symbol )
+int BCRexternalBWT::computeNewPositionForBackSearchByVector( char const *file1, char const *fileOutBwt, uchar symbol )
 {
     FILE *InFileBWT;
 
@@ -857,13 +863,13 @@ int BCRexternalBWT::computeNewPositonForBackSearchByVector( char const *file1, c
 
         dataTypedimAlpha currentPile = vectTriple[j].pileN;
         //if (verboseDecode == 1)
-        // std::cerr << "\n===Current BWT-partial= " << (int)currentPile << "(computeNewPositonForBackSearchByVector)\n";
+        // std::cerr << "\n===Current BWT-partial= " << (int)currentPile << "(computeNewPositionForBackSearchByVector)\n";
 
-        Filename newfilename( file1, fileOutBwt, currentPile, "" );
+        Filename newfilename( file1, "-B0", currentPile, "" );
         InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
-            std::cerr << "computeNewPositonForBackSearchByVector: BWT file " << ( int )j << ": Error opening " << std::endl;
+            std::cerr << "computeNewPositionForBackSearchByVector: BWT file " << ( int )j << ": Error opening " << std::endl;
             exit ( EXIT_FAILURE );
         }
         dataTypeNSeq k = j;
@@ -950,7 +956,7 @@ int BCRexternalBWT::findBlockToRead( dataTypeNChar *counters, dataTypedimAlpha c
     return 1;
 }
 
-int BCRexternalBWT::computeManyNewPositonForBackSearchByVector( char const *file1, char const *fileOutBwt, uchar *symbols, dataTypeNSeq nKmers )
+int BCRexternalBWT::computeManyNewPositionForBackSearchByVector( char const *file1, char const *fileOutBwt, uchar *symbols, dataTypeNSeq nKmers )
 {
     FILE *InFileBWT;
 
@@ -976,13 +982,13 @@ int BCRexternalBWT::computeManyNewPositonForBackSearchByVector( char const *file
 
         dataTypedimAlpha currentPile = FirstVector[j].pileN;
         //if (verboseDecode == 1)
-        // std::cerr << "===Current BWT-partial= " << (int)currentPile << " (computeManyNewPositonForBackSearchByVector)\n";
+        // std::cerr << "===Current BWT-partial= " << (int)currentPile << " (computeManyNewPositionForBackSearchByVector)\n";
 
-        Filename newfilename( file1, fileOutBwt, currentPile, "" );
+        Filename newfilename( file1, "-B0", currentPile, "" );
         InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
-            std::cerr << "computeManyNewPositonForBackSearchByVector: BWT file " << ( int )j << ": Error opening " << std::endl;
+            std::cerr << "computeManyNewPositionForBackSearchByVector: BWT file " << ( int )j << ": Error opening " << newfilename << std::endl;
             exit ( EXIT_FAILURE );
         }
         dataTypeNSeq k = j;
@@ -1005,18 +1011,18 @@ int BCRexternalBWT::computeManyNewPositonForBackSearchByVector( char const *file
                 if ( toRead > 0 )
                 {
                     //we need to know how many occurrences of each symbol there are up to the position toRead.
-                    //if ToRead > dimBlock, we can use vectorOcc in order to find the occorrences in the blocks precede the block where the position toRead is.
+                    //if ToRead > dimBlock, we can use vectorOcc in order to find the occurrences in the blocks that precede the block where the position toRead is.
                     //Before, we need to find the block where toRead position is.
                     int result = findBlockToRead( counters, currentPile, &toRead, &numBlock );
                     checkIfEqual( result, 1 );
-                }
 
-                if ( toRead <= DIMBLOCK )   //If toRead == DIMBLOCK, because I can need to known foundSymbol character
-                {
-                    fseek ( InFileBWT, numBlock * DIMBLOCK, SEEK_SET );
-                    numberRead = rankManySymbolsByVector( *InFileBWT, counters, toRead, &foundSymbol );
-                    checkIfEqual( toRead, numberRead );
-                    //cont += numberRead;
+                    if ( toRead <= DIMBLOCK )   //If toRead == DIMBLOCK, because I can need to known foundSymbol character
+                    {
+                        fseek ( InFileBWT, numBlock * DIMBLOCK, SEEK_SET );
+                        numberRead = rankManySymbolsByVector( *InFileBWT, counters, toRead, &foundSymbol );
+                        checkIfEqual( toRead, numberRead );
+                        //cont += numberRead;
+                    }
                 }
                 //I have to update the value in vectTriple[k].posN, it must contain the position of the symbol in F
                 //Symbol is
@@ -1030,7 +1036,7 @@ int BCRexternalBWT::computeManyNewPositonForBackSearchByVector( char const *file
                 //pileN is
                 FirstVector[k].pileN = alpha[( int )symbols[FirstVector[k].seqN]];
                 //First = c[c] + rank (c, First - 1) + 1
-                FirstVector[k].posN ++;  //We must to sum 1 to first
+                FirstVector[k].posN ++;  //We must add 1 to first
 
                 //LAST
                 toRead = LastVector[k].posN;
@@ -1081,15 +1087,16 @@ int BCRexternalBWT::computeManyNewPositonForBackSearchByVector( char const *file
 
 int BCRexternalBWT::backwardSearchManyBCR( char const *file1, char const *fileOutBwt, char const *fileOut, vector<string> kmers, dataTypelenSeq lenKmer )
 {
-    if ( ( unbwtParams_ && unbwtParams_->getValue( UNBWT_OPTION_USE_VECTOR ) == USE_VECTOR_OFF )
-         || ( BackByVector == 0 ) )
+    assert( unbwtParams_ || searchParams_ );
+    if ( ( unbwtParams_ && unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_USE_VECTOR ) == BeetlUnbwtParameters::USE_VECTOR_ON )
+         || searchParams_ )
     {
-        std::cerr << "backwardSearchManyBCR is only implemented by using the sampling." << std::endl;
-        exit( EXIT_FAILURE );
+        std::cerr << "For the computation of the new position useful for BackSearch, it uses a sampling of the occurrences for each segment: " << DIMBLOCK << " size." << std::endl;
     }
     else
     {
-        std::cerr << "For the computation of the new positon useful for BackSearch, it uses a sampling of the occurrences for each segment: " << DIMBLOCK << " size." << std::endl;
+        std::cerr << "backwardSearchManyBCR is only implemented by using the sampling." << std::endl;
+        exit( EXIT_FAILURE );
     }
 
     //Initialization
@@ -1153,7 +1160,7 @@ int BCRexternalBWT::backwardSearchManyBCR( char const *file1, char const *fileOu
         quickSort( LastVector );
 
         //For each symbol in the kmer we have to update First and Last
-        int resultCompute = computeManyNewPositonForBackSearchByVector ( file1, fileOutBwt, symbols, kmers.size() );
+        int resultCompute = computeManyNewPositionForBackSearchByVector ( file1, fileOutBwt, symbols, kmers.size() );
         checkIfEqual( resultCompute, 1 );
         /*
         if (verboseDecode==1) {
@@ -1247,14 +1254,15 @@ int BCRexternalBWT::backwardSearchBCR( char const *file1, char const *fileOutBwt
 
     //The new positions of symbol followed by kmer[posSymb] in F is computed by following function
 
-    if ( ( unbwtParams_ && unbwtParams_->getValue( UNBWT_OPTION_USE_VECTOR ) == USE_VECTOR_OFF )
-         || ( BackByVector == 0 ) )
+    assert( unbwtParams_ || searchParams_ );
+    if ( ( unbwtParams_ && unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_USE_VECTOR ) == BeetlUnbwtParameters::USE_VECTOR_ON )
+         || searchParams_ )
     {
-        std::cerr << "For the computation of the new positon useful for BackSearch you don't use the vector of the occurrences. You read the file" << std::endl;
+        std::cerr << "For the computation of the new position useful for BackSearch, it uses a sampling of the occurrences for each segment: " << DIMBLOCK << " size." << std::endl;
     }
     else
     {
-        std::cerr << "For the computation of the new positon useful for BackSearch, it uses a sampling of the occurrences for each segment: " << DIMBLOCK << " size." << std::endl;
+        std::cerr << "For the computation of the new position useful for BackSearch you don't use the vector of the occurrences. You read the file" << std::endl;
     }
 
 
@@ -1267,14 +1275,15 @@ int BCRexternalBWT::backwardSearchBCR( char const *file1, char const *fileOutBwt
         //The new positions of symbol followed by kmer[posSymb] in F is computed by following function
 
         int resultCompute = 0;
-        if ( ( unbwtParams_ && unbwtParams_->getValue( UNBWT_OPTION_USE_VECTOR ) == USE_VECTOR_OFF )
-             || ( BackByVector == 0 ) )
+        assert( unbwtParams_ || searchParams_ );
+        if ( ( unbwtParams_ && unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_USE_VECTOR ) == BeetlUnbwtParameters::USE_VECTOR_ON )
+             || searchParams_ )
         {
-            resultCompute = computeNewPositonForBackSearch ( file1, fileOutBwt, symbol );
+            resultCompute = computeNewPositionForBackSearchByVector ( file1, fileOutBwt, symbol );
         }
         else
         {
-            resultCompute = computeNewPositonForBackSearchByVector ( file1, fileOutBwt, symbol );
+            resultCompute = computeNewPositionForBackSearch ( file1, fileOutBwt, symbol );
         }
         checkIfEqual( resultCompute, 1 );
 
@@ -1505,13 +1514,13 @@ int BCRexternalBWT::unbuildBCR( char const *file1, char const *fileOutBwt, char 
     int resultInit = initializeUnbuildBCR( file1, fileOutBwt, freq );
     checkIfEqual ( resultInit, 1 );
 
-    if ( unbwtParams_->getValue( UNBWT_OPTION_USE_VECTOR ) == USE_VECTOR_ON )
+    if ( unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_USE_VECTOR ) == BeetlUnbwtParameters::USE_VECTOR_ON )
     {
         resultInit = computeVectorUnbuildBCR( file1, fileOutBwt, freq );
         checkIfEqual( resultInit, 1 );
     }
 
-    if ( unbwtParams_->getValue( UNBWT_OPTION_DECODE_DIRECTION ) == DECODE_DIRECTION_BACKWARD )
+    if ( unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_DECODE_DIRECTION ) == BeetlUnbwtParameters::DECODE_DIRECTION_BACKWARD )
     {
         std::cerr << "Inverse BWT by Backward direction." << std::endl;
         decodeBCRmultipleReverse( file1, fileOutBwt, fileOut, processQualities );
@@ -1526,13 +1535,13 @@ int BCRexternalBWT::unbuildBCR( char const *file1, char const *fileOutBwt, char 
             // delete output files
             for ( dataTypelenSeq i = 0; i < lengthRead; i++ )
             {
-                Filename filename1( fileOut, i, ".txt" );
+                Filename filename1( fileOut, i, "" );
                 if ( remove( filename1 ) != 0 )
                     std::cerr << filename1 << " BCRexternalBWT: Error deleting file" << std::endl;
 
                 if ( processQualities )
                 {
-                    Filename filename2( fileOut, i, ".qual.txt" );
+                    Filename filename2( fileOut, i, ".qual" );
                     if ( remove( filename2 ) != 0 )
                         std::cerr << filename2 << " BCRexternalBWT: Error deleting file" << std::endl;
                 }
@@ -1699,16 +1708,16 @@ vector <int> BCRexternalBWT::recoverNSequenceForward( char const *file1, char co
         }
     }
 
-    vector <int> seqID;
-    seqID.resize( numTotKmers );
+    vector <int> resultSeqId;
+    resultSeqId.resize( numTotKmers );
     //The position is indexed by 1, the number of sequence by 0
     for ( h = 0 ; h < numTotKmers; h++ )
     {
-        seqID[vectTriple[h].seqN] = vectTriple[h].posN - 1;
+        resultSeqId[vectTriple[h].seqN] = vectTriple[h].posN - 1;
     }
     vectTriple.clear();  //Erase all elements of vector.
     delete[] toFindSymbols;
-    return seqID;
+    return resultSeqId;
 }
 
 int BCRexternalBWT::recoverNSequenceForwardSequentially( char const *file1, char const *fileOutBwt, dataTypeNSeq numKmersInput )
@@ -1781,7 +1790,7 @@ dataTypeNSeq BCRexternalBWT::recover1SequenceForward( char const *file1, char co
         //I have to read the pileN until I find rankFoundSymbol symbols. The found value is posN, i.e. the position of the next symbol
 
         dataTypeNChar readChar = 0;
-        if ( unbwtParams_->getValue( UNBWT_OPTION_USE_VECTOR ) == USE_VECTOR_OFF )
+        if ( unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_USE_VECTOR ) != BeetlUnbwtParameters::USE_VECTOR_ON )
         {
             readChar = findRankInBWT ( file1, fileOutBwt, tripla.pileN, tripla.posN, toFindSymbol );
         }
@@ -1848,15 +1857,16 @@ int BCRexternalBWT::decodeBCRnaiveForward( char const *file1, char const *fileOu
     numchar = 0;
     sortElement triple;
     std::cerr << "Recover the sequences of the collection in lexicographic order. A sequence at a time!" << std::endl;
-    if ( ( unbwtParams_ && unbwtParams_->getValue( UNBWT_OPTION_USE_VECTOR ) == USE_VECTOR_OFF )
-         || ( BackByVector == 0 ) )
-    {
-        std::cerr << "It is not using the sampling of the BWT. It requires more time!" << std::endl;
-    }
-    else
+    assert( unbwtParams_ || searchParams_ );
+    if ( ( unbwtParams_ && unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_USE_VECTOR ) == BeetlUnbwtParameters::USE_VECTOR_ON )
+         || searchParams_ )
     {
         std::cerr << "It is using the sampling of the BWT. It requires more memory!" << std::endl;
         std::cerr << "In order to do this, it uses a sampling of the occurrences for each segment: " << DIMBLOCK << " size." << std::endl;
+    }
+    else
+    {
+        std::cerr << "It is not using the sampling of the BWT. It requires more time!" << std::endl;
     }
     for ( dataTypeNSeq i = 0; i < nText; i++ )
     {
@@ -1901,7 +1911,7 @@ int BCRexternalBWT::decodeBCRnaiveForward( char const *file1, char const *fileOu
 //Reconstruct m sequences backwards by threading through the FL-mapping and reading the characters off of L.
 //file1 is the input file
 //fileOutBWT is the suffix of the filename of the partial BWTs
-//fileOut is the prefix of the lengthRead-filename (traspose texts: cyc.i.txt)
+//fileOut is the prefix of the lengthRead-filename (transpose texts: cyc.i)
 //Inverse BWT by Backward direction of nText sequences at the same time by lengthRead iterations.
 int BCRexternalBWT::decodeBCRmultipleReverse( char const *file1, char const *fileOutBwt, char const *fileOut, bool processQualities )
 {
@@ -1941,35 +1951,37 @@ int BCRexternalBWT::decodeBCRmultipleReverse( char const *file1, char const *fil
     uchar *newSymb = new uchar[nText];
     uchar *newQual = processQualities ? ( new uchar[nText] ) : NULL;
 
-    //As we recover the symbol in reverse order, I store the first found symbol in cyc.(length-1).txt file
-    //and the last found symbol in cyc.0.txt file
-    if ( ( unbwtParams_ && unbwtParams_->getValue( UNBWT_OPTION_USE_VECTOR ) == USE_VECTOR_OFF )
-         || ( BackByVector == 0 ) )
-    {
-        std::cerr << "It is not using the sampling of the BWT. It requires more time!" << std::endl;
-    }
-    else
+    //As we recover the symbol in reverse order, I store the first found symbol in cyc.(length-1) file
+    //and the last found symbol in cyc.0 file
+    assert( unbwtParams_ || searchParams_ );
+    if ( ( unbwtParams_ && unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_USE_VECTOR ) == BeetlUnbwtParameters::USE_VECTOR_ON )
+         || searchParams_ )
     {
         std::cerr << "It is using the sampling of the BWT. It requires more memory!" << std::endl;
         std::cerr << "In order to do this, it uses a sampling of the occurrences for each segment: " << DIMBLOCK << " size." << std::endl;
+    }
+    else
+    {
+        std::cerr << "It is not using the sampling of the BWT. It requires more time!" << std::endl;
     }
     for ( dataTypelenSeq m = lengthRead ; m > 0 ; m-- )
     {
         Logger::out( LOG_ALWAYS_SHOW ) << "Decoding cycle " << m << endl;
 
         int resultNsymbol = -1;
-        if ( ( unbwtParams_ && unbwtParams_->getValue( UNBWT_OPTION_USE_VECTOR ) == USE_VECTOR_OFF )
-             || ( BackByVector == 0 ) )
-        {
-            resultNsymbol = RecoverNsymbolsReverse ( file1, fileOutBwt, newSymb, newQual );
-        }
-        else
+        assert( unbwtParams_ || searchParams_ );
+        if ( ( unbwtParams_ && unbwtParams_->getValue( BeetlUnbwtParameters::UNBWT_OPTION_USE_VECTOR ) == BeetlUnbwtParameters::USE_VECTOR_ON )
+             || searchParams_ )
         {
             resultNsymbol = RecoverNsymbolsReverseByVector( file1, fileOutBwt, newSymb, newQual );
         }
+        else
+        {
+            resultNsymbol = RecoverNsymbolsReverse ( file1, fileOutBwt, newSymb, newQual );
+        }
         checkIfEqual ( resultNsymbol , 1 );
 
-        Filename filename( fileOut, m - 1, ".txt" );
+        Filename filename( fileOut, m - 1, "" );
         FILE *InfileOutDecodeCyc = fopen( filename, "wb" );
         if ( InfileOutDecodeCyc == NULL )
         {
@@ -1984,7 +1996,7 @@ int BCRexternalBWT::decodeBCRmultipleReverse( char const *file1, char const *fil
 
         if ( processQualities )
         {
-            Filename qualFilename( fileOut, m - 1, ".qual.txt" );
+            Filename qualFilename( fileOut, m - 1, ".qual" );
             FILE *InfileOutDecodeCycQual = fopen( qualFilename, "wb" );
             if ( InfileOutDecodeCycQual == NULL )
             {

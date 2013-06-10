@@ -41,11 +41,11 @@ class CountWords : public Algorithm
 
 public:
     CountWords( bool, bool, char, int, int, const vector<string> &, const vector<string> &,
-                const vector<string> &, const string &, bool testDB, uint minWord, string prefix );
+                const vector<string> &, const string &, bool testDB, uint minWord, string prefix, string subset );
 
     virtual ~CountWords() {}
     void run( void );
-    void loadFileNumToTaxIds( string taxIdNames );
+    void loadFileNumToTaxIds( const string &taxIdNames );
 
 private:
     bool bothSetsCompressed_;
@@ -66,18 +66,17 @@ private:
     //Filenumber superkingdom phylum class order family genus species strain
     //if one of those numbers is not available it should be replaced with a 0
     string ncbiInfo_;
-    // flag to indicate if the database should be tested
-    bool testDatabase_;
     //Christina: added a minimal word length for the output else the parsing of the results takes to long for my liking
     uint minWordLen_;
     // Prefix for temp output files
     string tmpPrefix_;
     //for each fileNumber there should be the same amount of taxIds, this can stop at any level it will be filled up with zeros
     vector< vector< int> > fileNumToTaxIds_;
-    //boolean to indicate if the database should be tested or not
+    //
     bool testDB_;
     //minimal word Lenght. Not exactly needed but speeds the algorithm up,
     //because the fileNumbers and taxa do not have to be checked before the minimal wordLength is reached
     //uint minWordLength_;
+    string subset_; // Compute only the results that have this string as a suffix' suffix
 };
 #endif

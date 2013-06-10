@@ -173,6 +173,18 @@ G	7	0	7
 
 *** Release notes ***
 
+Version 0.5.0 (10th June 2013)
+
+- Faster metaBEETL
+  - Pruning of BKPT to reduce the number of MTAXA tests and output lines
+  - New beetl-compare --subset obtion for distributed computing
+
+
+Version 0.4.0 (10th April 2013)
+
+- Robustness improvements
+
+
 Version 0.3.0 (7th April 2013)
 
 - Metagenomics 'META-BEETL' code added to main tree

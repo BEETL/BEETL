@@ -23,6 +23,9 @@
 #include <string>
 
 
+namespace BeetlUnbwtParameters
+{
+
 // options: input format
 /*
 enum InputFormat
@@ -263,18 +266,22 @@ static const string *unbwtOptionPossibleValues[] =
 };
 
 
+} // namespace BeetlUnbwtParameters
+
+
 class UnbwtParameters : public ToolParameters
 {
     virtual const string **getOptionPossibleValues() const
     {
-        return unbwtOptionPossibleValues;
+        return BeetlUnbwtParameters::unbwtOptionPossibleValues;
     }
 public:
     virtual const string getOptionName( const unsigned i ) const
     {
-        return unbwtOptionNames[i];
+        return BeetlUnbwtParameters::unbwtOptionNames[i];
     }
     //    virtual const string getOptionPossibleValue( const unsigned i, const unsigned j ) const { return unbwtOptionPossibleValues[i][j]; }
 };
+
 
 #endif //ifndef BEETL_UNBWT_PARAMETERS_HH

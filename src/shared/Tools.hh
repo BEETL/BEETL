@@ -76,7 +76,6 @@ struct ElementType
 #define deleteCycFile 1  //If it is set to 1, it deletes the cycs files.
 #define BUILD_SA 0   //If it is set to 1, it computes the GSA (seqID, position) and the SA (position of the concatenated sequences without a further end-marker).
 #define BUILD_LCP 1	    	//If it is set to 1, it uses larger structures to allow --generate-lcp
-#define BackByVector 1  //if it is set to 1, it uses the sampling of the BWT segments for inverse BWT. More memory, less time.
 
 class Tools
 {
@@ -100,7 +99,7 @@ bool isValidFastaFile( const char *filename );
 
 bool isValidReadFile( const char *filename );
 
-void readWriteCheck( const char *fileName, const bool readWrite );
+bool readWriteCheck( const char *fileName, const bool readWrite, const bool failIfError = true );
 
 void checkIfEqual( const int arg1, const int arg2 );
 

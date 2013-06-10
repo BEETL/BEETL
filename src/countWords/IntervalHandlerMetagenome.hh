@@ -42,10 +42,12 @@ struct IntervalHandlerMetagenome : public IntervalHandlerBase
                                vector<FILE *> mergeCSet,
                                vector< vector< int> > fileNumToTaxIds,
                                bool testDB,
-                               uint minWordLength )
+                               uint minWordLength,
+                               uint maxWordLength )
         : minOcc_( minOcc ), mergeCSet_( mergeCSet ),
           fileNumToTaxIds_( fileNumToTaxIds ), testDB_( testDB ),
-          minWordLength_( minWordLength ) {}
+          minWordLength_( minWordLength ),
+          maxWordLength_( maxWordLength ) {}
 
     virtual ~IntervalHandlerMetagenome() {}
 
@@ -69,8 +71,8 @@ struct IntervalHandlerMetagenome : public IntervalHandlerBase
       const Range &thisRangeB,
       AlphabetFlag &propagateIntervalB );
 
-    vector<bool> intervalInSameTaxa( vector<uint> &sharedTaxIds, vector<unsigned short> &fileNumbers );
-    void getFileNumbersForRange( const int &pileNum, const ulong &bwtPosition, const uint &num, vector<unsigned short> &fileNumbers );
+    vector<bool> intervalInSameTaxa( vector<uint> &sharedTaxIds, vector<MetagFileNumRefType> &fileNumbers );
+    void getFileNumbersForRange( const int &pileNum, const ulong &bwtPosition, const uint &num, vector<MetagFileNumRefType> &fileNumbers );
 
     const LetterCountType minOcc_;
     //setC of the mering algorithm from Tony,
@@ -80,9 +82,10 @@ struct IntervalHandlerMetagenome : public IntervalHandlerBase
     vector< vector< int> > fileNumToTaxIds_;
 
     bool testDB_;
-    //minimal word Lenght. Not exactly needed but speeds the algorithm up,
+    //minimal word length. Not exactly needed but speeds the algorithm up,
     //because the fileNumbers and taxa do not have to be checked before the minimal wordLength is reached
     uint minWordLength_;
+    uint maxWordLength_;
 };
 
 

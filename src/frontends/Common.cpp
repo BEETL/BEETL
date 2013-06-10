@@ -75,6 +75,10 @@ string detectFileFormat( const string &inputFilename )
     {
         return fileFormatLabels[FILE_FORMAT_SEQ];
     }
+    else if ( endsWith( inputFilename, ".bcl" ) )
+    {
+        return fileFormatLabels[FILE_FORMAT_BCL];
+    }
     return "";
 }
 

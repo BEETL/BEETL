@@ -39,6 +39,10 @@ struct BwtWriterBase
     {
         sendRun( c, runLength );
     };
+    virtual char getLastChar()
+    {
+        assert( false && "virtual method needs implementing" );
+    }
     virtual bool isIncremental()
     {
         return false;
@@ -71,10 +75,9 @@ struct BwtWriterASCII : public BwtWriterFile
     virtual void operator()( const char *p, int numChars );
 
     virtual void sendRun( char c, int runLength );
+    virtual char getLastChar();
 
-
-
-    //  FILE* pFile_;
+    char lastChar_;
 };
 
 
@@ -97,6 +100,7 @@ struct BwtWriterRunLength : public BwtWriterFile
     void encodeRun( char c, uint runLength );
 
     virtual void sendRun( char c, int runLength );
+    virtual char getLastChar();
 
     uint runLength_;
     uchar buf_[ReadBufferSize];

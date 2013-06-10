@@ -50,4 +50,7 @@ const LetterCountType matchMask( ~matchFlag );
 const string taxLevel[] = {"superkingdom", "phylum", "class", "order", "family", "genus", "species", "strain"};
 const uint taxLevelSize = 8;
 
+typedef unsigned int MetagFileNumRefType;
+//typedef unsigned short MetagFileNumRefType;
+
 #endif

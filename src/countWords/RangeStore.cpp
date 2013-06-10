@@ -18,6 +18,8 @@
 #include "RangeStore.hh"
 
 #include <cstring>
+#include <inttypes.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -56,8 +58,9 @@ bool RangeStoreRAM::getRange( Range &thisRange )
 
 
 void RangeStoreRAM::addRange( int pileNum, int portionNum, const string &seq,
-                              LetterCountType pos, LetterCountType num )
+                              LetterCountType pos, LetterCountType num, const string &subset )
 {
+    assert( subset.empty() && "todo" );
     ( *pNext )[pileNum][portionNum].push_back( Range( seq, pos, num ) );
 #ifdef DEBUG
     cout << "add range: " << alphabet[pileNum] << " " << alphabet[portionNum]
@@ -102,60 +105,94 @@ void RangeState::clear( void )
 
 void RangeState::addSeq( const string &seq )
 {
+    //#define COMPRESS_SEQ
+#ifdef COMPRESS_SEQ
     if ( wordLast_[0] != notInAlphabet )
     {
-        const char *pSeq( seq.c_str() ), *pLast( wordLast_ );
-        while ( *pSeq == *pLast )
+        const char *pSeq( seq.c_str() );
+        assert( seq.size() < 65536 );
+        uint16_t pSeqLen = seq.size();
+        char *pLast( wordLast_ );
+        while ( *pSeq == *pLast && pSeqLen > 0 )
         {
             ++pSeq;
+            --pSeqLen;
             ++pLast;
         }
 #ifdef DEBUG
         cout << "FF " << wordLast_ << " " << seq << " " << pSeq << endl;
 #endif
-        fprintf( pFile_, "%s\n", pSeq );
-        //    fprintf(pFile_,"%s\n",pSeq);
+        //        fprintf( pFile_, "%s\n", pSeq );
+        assert( pSeqLen < 256 );
+        fwrite( &pSeqLen, sizeof( uint16_t ), 1, pFile_ );
+        fwrite( pSeq, pSeqLen, 1, pFile_ );
 
-        strcpy( wordLast_, seq.c_str() );
-        //      strcpy(wordLast_,pSeq);
+        strcpy( pLast, pSeq );
     }
     else
-        fprintf( pFile_, "%s\n", seq.c_str() );
+    {
+#endif //ifdef COMPRESS_SEQ
+        //        fprintf( pFile_, "%s\n", seq.c_str() );
+        assert( seq.size() < 65536 );
+        uint16_t seqLen = seq.size();
+        fwrite( &seqLen, sizeof( uint16_t ), 1, pFile_ );
+        fwrite( seq.c_str(), seqLen, 1, pFile_ );
+
+#ifdef COMPRESS_SEQ
+        strcpy( wordLast_, seq.c_str() );
+    }
+#endif //ifdef COMPRESS_SEQ
 }
 
 void RangeState::getSeq( string &word )
 {
+#ifdef COMPRESS_SEQ
     if ( wordLast_[0] != notInAlphabet )
     {
-        word = wordLast_;
 #ifdef DEBUG
         cout << "FF " << word;
 #endif
+        word = wordLast_;
+        unsigned int wordLen = strlen( wordLast_ ); //word.size();
 
-        if ( fgets( wordLast_, 256, pFile_ ) == NULL )
+        uint16_t seqLen;
+        fread( &seqLen, sizeof( uint16_t ), 1, pFile_ );
+        assert( seqLen < 256 );
+        assert( seqLen <= wordLen );
+        if ( seqLen == 0 || fread( wordLast_ + ( wordLen - seqLen ), seqLen, 1, pFile_ ) != 1 )
         {
             cerr << "Could not get valid data from file. Aborting." << endl;
             exit( -1 );
         }
+        //        wordLast_[ seqLen ] = 0;
 
-        wordLast_[strlen( wordLast_ ) - 1] = '\0';
-        for ( unsigned int i( 0 ); i < strlen( wordLast_ ); i++ )
-            word[word.size() - strlen( wordLast_ ) + i] = wordLast_[i];
+        unsigned int wordLastLen = seqLen; //strlen( wordLast_ );
+        //wordLast_[ wordLastLen - 1] = '\0';
+        //--wordLastLen;
+        //        for ( unsigned int i( 0 ); i < wordLastLen; i++ )
+        //            word[wordLen - wordLastLen + i] = wordLast_[i];
+        word = wordLast_;
 #ifdef DEBUG
         cout << " -> " << word << endl;
 #endif
     }
     else
     {
-        if ( fgets( wordLast_, 256, pFile_ ) == NULL )
+#endif //ifdef COMPRESS_SEQ
+        uint16_t seqLen;
+        fread( &seqLen, sizeof( uint16_t ), 1, pFile_ );
+        assert( seqLen < 256 );
+        if ( fread( wordLast_, seqLen, 1, pFile_ ) != 1 )
         {
             cerr << "Could not get valid data from file. Aborting." << endl;
             exit( -1 );
         }
+        wordLast_[ seqLen ] = 0;
 
-        wordLast_[strlen( wordLast_ ) - 1] = '\0';
         word = wordLast_;
+#ifdef COMPRESS_SEQ
     }
+#endif //ifdef COMPRESS_SEQ
 }
 
 void RangeState::addNum( LetterCountType num )
@@ -163,26 +200,29 @@ void RangeState::addNum( LetterCountType num )
 #ifdef DEBUG
     cout << "AN: send " << num << endl;
 #endif
-    NumberFrag *pFrag( fragBuf_ + fragBufSize );
-    do
+    if ( ( num >> 60 ) != 0 )
     {
-        pFrag--;
-        *pFrag = ( NumberFrag )( num & letterCountMask );
-        num >>= bitsPerFrag;
-#ifdef DEBUG
-        cout << "AN: " << *pFrag << endl;
-#endif
+        cerr << "Overflow in RangeState::addNum. Aborting." << endl;
+        exit( -1 );
     }
-    while ( num != 0 );
-    fragBuf_[fragBufSize - 1] |= needAnotherFrag;
-    const unsigned int toWrite( ( fragBuf_ + fragBufSize ) - pFrag );
-#ifdef DEBUG
-    cout << "AN: sent " << toWrite << endl;
-#endif
-    if ( fwrite( pFrag, sizeof( NumberFrag ), toWrite,
-                 pFile_ ) != toWrite )
+    num <<= 4;
+    LetterCountType num2 = num >> 8;
+    unsigned char extraByteCount = 0;
+    while ( num2 != 0 )
     {
-        cerr << "Could not write " << toWrite
+        ++extraByteCount;
+        num2 >>= 8;
+    }
+    if ( extraByteCount > 15 )
+    {
+        cerr << "Overflow(2) in RangeState::addNum. Aborting." << endl;
+        exit( -1 );
+    }
+    num |= extraByteCount;
+
+    if ( fwrite( &num, 1 + extraByteCount, 1, pFile_ ) != 1 )
+    {
+        cerr << "Could not write " << extraByteCount
              << " chars to file. Aborting." << endl;
         exit( -1 );
     }
@@ -190,33 +230,29 @@ void RangeState::addNum( LetterCountType num )
 
 bool RangeState::getNum( LetterCountType &num )
 {
-
     num = 0;
-    if ( fread( fragBuf_, sizeof( NumberFrag ), 1, pFile_ ) != 1 )
+    if ( fread( &num, 1, 1, pFile_ ) != 1 )
         return false;
 #ifdef DEBUG
-    cout << "AN: got " << fragBuf_[0] << endl;
+    cout << "AN: got " << num << endl;
 #endif
-    while ( ( fragBuf_[0]&needAnotherFrag ) == 0 )
+    int count = num & 0xF;
+    if ( count > 0 && fread( ( ( char * )&num ) + 1, count, 1, pFile_ ) != 1 )
     {
-        num |= ( LetterCountType )fragBuf_[0];
-        num <<= bitsPerFrag;
-
-        if ( fread( fragBuf_, sizeof( NumberFrag ), 1, pFile_ ) != 1 )
+        cerr << "Could not read " << count << " chars from file " << fileno( pFile_ ) << " pos " << ftell( pFile_ ) << " . Aborting." << endl;
+        cerr << "Press any key to exit" << endl;
+        for ( ;; )
         {
-            cerr << "Could not read chars from file(" << pFile_ << "). Aborting." << endl;
-            exit( -1 );
+            sleep( 1 );
+            if ( getchar() == '\n' )
+                break;
         }
+        exit( -1 );
+    }
+    num >>= 4;
 
 #ifdef DEBUG
-        cout << "AN: get " << fragBuf_[0] << endl;
-#endif
-    } // ~while
-
-    fragBuf_[0] &= fragMask;
-    num |= ( LetterCountType )fragBuf_[0];
-#ifdef DEBUG
-    cout << "AN: decoded " << fragBuf_[0] << endl;
+    cout << "AN: decoded " << num << endl;
 #endif
     return true;
 }
@@ -284,7 +320,7 @@ void RangeStoreExternal::setPortion( int pileNum, int portionNum )
 #ifdef DEBUG
     cout << "Made input file name " << fileName << endl;
 #endif
-    stateIn_.pFile_ = fopen( fileName.c_str(), "r" );
+    stateIn_.pFile_ = TemporaryRamFile::fopen( fileName.c_str(), "rb" );
 #ifdef DEBUG
     if ( stateIn_.pFile_ == NULL )
     {
@@ -313,6 +349,8 @@ bool RangeStoreExternal::getRange( Range &thisRange )
     }
     else
     {
+        thisRange.pos_ = ( ( thisRange.pos_ & 1 ) << 63 ) | ( thisRange.pos_ >> 1 );
+
         //      assert(fread(&thisRange.num_,sizeof(LetterCountType),1,
         //     stateIn_.pFile_)==1);
 
@@ -338,8 +376,21 @@ bool RangeStoreExternal::getRange( Range &thisRange )
 } // ~getRange
 
 void RangeStoreExternal::addRange( int pileNum, int portionNum, const string &seq,
-                                   LetterCountType pos, LetterCountType num )
+                                   LetterCountType pos, LetterCountType num, const string &subset )
 {
+    if ( !subset.empty() )
+    {
+        if ( seq.size() >= subset.size() )
+        {
+            if ( !hasSuffix( seq, subset ) )
+                return;
+        }
+        else
+        {
+            if ( !hasSuffix( subset, seq ) )
+                return;
+        }
+    }
 #ifdef DEBUG
     cout << "set range: " << fileStemIn_ << " " << alphabet[pileNum] << " " << alphabet[portionNum]
          << " " << seq << " " << pos << " " << num << endl;
@@ -351,15 +402,13 @@ void RangeStoreExternal::addRange( int pileNum, int portionNum, const string &se
 #ifdef DEBUG
         cout << "Made output file name " << fileName << endl;
 #endif
-        stateOut_[pileNum][portionNum].pFile_ = fopen( fileName.c_str(), "w" );
-        readWriteCheck( fileName.c_str(), 1 );
-
+        stateOut_[pileNum][portionNum].pFile_ = TemporaryRamFile::fopen( fileName.c_str(), "wb", subset.empty() ? 0 : ( 32 * 1024 * 1024 ) ); // 32 MB * 64 files = 2GB, good for our cluster jobs
     } // ~if
     //    assert(fwrite(&pos,sizeof(LetterCountType),1,
     //   stateOut_[pileNum][portionNum].pFile_)==1);
     //    assert(fwrite(&num,sizeof(LetterCountType),1,
     //   stateOut_[pileNum][portionNum].pFile_)==1);
-    stateOut_[pileNum][portionNum].addNum( pos );
+    stateOut_[pileNum][portionNum].addNum( ( pos << 1 ) | ( ( pos >> 63 ) & 1 ) ); // Move the last bit flag to bit 0 for better downstream compression
     stateOut_[pileNum][portionNum].addNum( num );
 
 

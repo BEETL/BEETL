@@ -56,7 +56,7 @@ BwtWriterFile::~BwtWriterFile()
 // BwtWriterASCII member function definitions
 //
 
-BwtWriterASCII::BwtWriterASCII( const string &fileName ) : BwtWriterFile( fileName )
+BwtWriterASCII::BwtWriterASCII( const string &fileName ) : BwtWriterFile( fileName ), lastChar_( notInAlphabet )
 {
 #ifdef DEBUG
     cout << "BW ASCII ctor" << endl;
@@ -85,11 +85,23 @@ void BwtWriterASCII::operator()( const char *p, int numChars )
              << " chars. Aborting." << endl;
         exit( EXIT_FAILURE );
     }
+
+    if ( numChars > 0 )
+        lastChar_ = p[numChars - 1];
 } // ~operator()
 
 void BwtWriterASCII::sendRun( char c, int runLength )
 {
-    for ( int i( 0 ); i < runLength; i++ ) fprintf( pFile_, "%c", c );
+    if ( runLength )
+    {
+        for ( int i( 0 ); i < runLength; i++ ) fprintf( pFile_, "%c", c );
+        lastChar_ = c;
+    }
+}
+
+char BwtWriterASCII::getLastChar()
+{
+    return lastChar_;
 }
 
 //
@@ -254,6 +266,13 @@ void BwtWriterRunLength::sendRun( char c, int runLength )
     }
 } // ~sendRun
 #endif
+
+
+char BwtWriterRunLength::getLastChar()
+{
+    return lastChar_;
+}
+
 
 
 //

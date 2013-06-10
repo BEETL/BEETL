@@ -38,7 +38,7 @@ struct BackTracker
                  LetterCountType &currentPosA, LetterCountType &currentPosB,
                  RangeStoreExternal &rA, RangeStoreExternal &rB,
                  LetterCount &countsSoFarA, LetterCount &countsSoFarB,
-                 int minOcc );
+                 int minOcc, const int maxLength, const string &subset );
 
     void skipIfNecessary( const Range &thisRange,
                           LetterCountType &currentPos,
@@ -60,6 +60,8 @@ struct BackTracker
     LetterCount &countsSoFarB_;
 
     int minOcc_;
+    int maxLength_;
+    const string &subset_;
 
     LetterCountType numRanges_;
     LetterCountType numSingletonRanges_;
@@ -130,7 +132,8 @@ void BackTracker::operator()
 
                     rA_.addRange( l, i, thisWord,
                                   countsSoFarA_.count_[l],
-                                  countsThisRangeA.count_[l] );
+                                  countsThisRangeA.count_[l],
+                                  subset_ );
                 } // ~if
             } // ~for l
 
@@ -203,7 +206,8 @@ void BackTracker::operator()
 
                     rB_.addRange( l, i, thisWord,
                                   countsSoFarB_.count_[l],
-                                  countsThisRangeB.count_[l] );
+                                  countsThisRangeB.count_[l],
+                                  subset_ );
                 } // ~if
             } // ~for l
             if ( hasChild == false )
@@ -256,6 +260,7 @@ void BackTracker::operator()
             countsThisRangeB.print();
 #endif
 
+            assert( thisRangeA.word_.size() == thisRangeB.word_.size() );
             intervalHandler_.foundInBoth
             ( i,
               countsThisRangeA, countsThisRangeB,
@@ -290,13 +295,15 @@ void BackTracker::operator()
                         rA_.addRange( l, i, thisWord,
                                       ( countsSoFarA_.count_[l]
                                         | thisFlag ),
-                                      countsThisRangeA.count_[l] );
+                                      countsThisRangeA.count_[l],
+                                      subset_ );
                     // if (countsThisRangeB.count_[l]>0)
                     if ( propagateIntervalB_[l] == true )
                         rB_.addRange( l, i, thisWord,
                                       ( countsSoFarB_.count_[l]
                                         | thisFlag ),
-                                      countsThisRangeB.count_[l] );
+                                      countsThisRangeB.count_[l],
+                                      subset_ );
                 } // ~if
             } // ~for
 

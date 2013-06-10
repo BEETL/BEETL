@@ -20,6 +20,7 @@
 
 #include "Config.hh"
 #include "LetterCount.hh"
+#include "TemporaryFilesManager.hh"
 #include "Tools.hh"
 
 #include <string>
@@ -64,7 +65,7 @@ struct RangeStore
     virtual void setPortion( int pileNum, int portionNum ) = 0;
     virtual bool getRange( Range &thisRange ) = 0;
     virtual void addRange( int pileNum, int portionNum, const string &seq,
-                           LetterCountType pos, LetterCountType num ) = 0;
+                           LetterCountType pos, LetterCountType num, const string &subset ) = 0;
 
 
 }; // ~struct RangeStore
@@ -84,7 +85,7 @@ struct RangeStoreRAM : public RangeStore
 
     virtual bool getRange( Range &thisRange );
     virtual void addRange( int pileNum, int portionNum, const string &seq,
-                           LetterCountType pos, LetterCountType num );
+                           LetterCountType pos, LetterCountType num, const string &subset );
 
     // clear range store ready for next iter
     virtual void clear( void );
@@ -117,7 +118,7 @@ struct RangeState
     NumberFrag fragBuf_[fragBufSize];
     char wordLast_[256];
     LetterCountType posLast_;
-    FILE *pFile_;
+    TemporaryFile *pFile_;
 }; // ~struct RangeState
 
 
@@ -138,7 +139,7 @@ struct RangeStoreExternal : public RangeStore
 
     virtual bool getRange( Range &thisRange );
     virtual void addRange( int pileNum, int portionNum, const string &seq,
-                           LetterCountType pos, LetterCountType num );
+                           LetterCountType pos, LetterCountType num, const string &subset );
 
     virtual void clear( void );
 

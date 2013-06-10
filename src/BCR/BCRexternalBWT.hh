@@ -21,6 +21,7 @@
 #include "BWTCollection.hh"
 #include "BwtReader.hh"
 #include "parameters/ToolParameters.hh"
+#include "parameters/SearchParameters.hh"
 
 #include <fstream>
 #include <iostream>
@@ -64,21 +65,22 @@ public:
     dataTypeNChar findRankInBWTbyVector ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar );
     int rankInverseManyByVector ( char const * , char const * , dataTypeNSeq , uchar * );
     int backwardSearchManyBCR( char const * , char const *, char const *, vector<string>, dataTypelenSeq );
-    int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , dataTypelenSeq , vector <int> * );
+    int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , dataTypelenSeq , vector <int> & );
 private:
     void InsertNsymbols( uchar const *, dataTypelenSeq, uchar const *qual = NULL );
     void InsertNsymbols_parallelPile( uchar const *newSymb, dataTypelenSeq posSymb, uchar const *newQual, unsigned int parallelPile, dataTypeNSeq startIndex, dataTypeNSeq endIndex, vector< vector< sortElement > > &newVectTriplePerNewPile );
     void InsertFirstsymbols( uchar const *, uchar const *qual = NULL );
     int initializeUnbuildBCR( char const *, char const *, dataTypeNChar [] );
-    int computeNewPositonForBackSearch ( char const *, char const *, uchar );
-    int computeNewPositonForBackSearchByVector ( char const *, char const *, uchar );
-    int computeManyNewPositonForBackSearchByVector( char const * , char const * , uchar *, dataTypeNSeq );
+    int computeNewPositionForBackSearch ( char const *, char const *, uchar );
+    int computeNewPositionForBackSearchByVector ( char const *, char const *, uchar );
+    int computeManyNewPositionForBackSearchByVector( char const * , char const * , uchar *, dataTypeNSeq );
     int computeVectorUnbuildBCR( char const *, char const *, dataTypeNChar [] );
     int update_Pos_Pile( sortElement * );
     int update_Pos_Pile_Blocks( dataTypeNChar *, dataTypeNChar *, dataTypedimAlpha, uchar );
     int findBlockToRead( dataTypeNChar *, dataTypedimAlpha , dataTypeNChar *, dataTypeNChar * );
 
 private:
+    void pauseBetweenCyclesIfNeeded();
     void dumpRamFileToFile( const char *filenameIn, const char *filenameOut );
     void ReadFilesForCycle( const char *prefix, const dataTypelenSeq cycle, const dataTypeNSeq nText, uchar *newSymb, const bool processQualities, uchar *newQual );
     BwtReaderBase *instantiateBwtReaderForFirstCycle( const char *filenameIn );
@@ -89,6 +91,7 @@ private:
     ToolParameters *toolParams_;
     BwtParameters *bwtParams_;
     UnbwtParameters *unbwtParams_;
+    SearchParameters *searchParams_;
 };
 
 #endif

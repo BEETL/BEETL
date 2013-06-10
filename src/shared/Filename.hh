@@ -64,6 +64,13 @@ public:
         str_ = fn.str();
     }
 
+    Filename( const std::string &part1, const int part2, const std::string &part3, const int part4, const std::string &part5 = "" )
+    {
+        std::ostringstream fn;
+        fn << part1 << part2 << part3 << part4 << part5;
+        str_ = fn.str();
+    }
+
     // automatic cast operator to string
     operator std::string( void ) const
     {

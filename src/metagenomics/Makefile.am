@@ -8,6 +8,8 @@ makeBWTSkew_SOURCES = BuildChromosomeBwt.cpp
 makeBWTSkew_CXXFLAGS = ${SEQAN_CXXFLAGS}
 
 mergeBacteria_SOURCES = MergeBacteria.cpp
+mergeBacteria_CXXFLAGS = -I$(srcdir) -I$(top_srcdir)/src/shared 
+
 
 findTaxa_SOURCES = findCertainTaxLevel.cpp
 

@@ -129,16 +129,16 @@ public:
     virtual dataTypeNChar findRankInBWTbyVector ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar ) = 0;
     virtual int rankInverseManyByVector ( char const * , char const * , dataTypeNSeq , uchar * ) = 0;
     virtual int backwardSearchManyBCR( char const * , char const *, char const *, vector<string>, dataTypelenSeq ) = 0;
-    virtual int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , dataTypelenSeq, vector <int> * ) = 0;
+    virtual int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , dataTypelenSeq, vector <int> & ) = 0;
 private:
 
     virtual void InsertNsymbols( uchar const *, dataTypelenSeq, uchar const *qual = NULL ) = 0;
     virtual void InsertFirstsymbols( uchar const *, uchar const *qual = NULL ) = 0;
     virtual int initializeUnbuildBCR( char const *, char const *, dataTypeNChar [] ) = 0;
-    virtual int computeNewPositonForBackSearch ( char const *, char const *, uchar ) = 0;
-    virtual int computeNewPositonForBackSearchByVector ( char const *, char const *, uchar ) = 0;
+    virtual int computeNewPositionForBackSearch ( char const *, char const *, uchar ) = 0;
+    virtual int computeNewPositionForBackSearchByVector ( char const *, char const *, uchar ) = 0;
     virtual int computeVectorUnbuildBCR( char const *, char const *, dataTypeNChar [] ) = 0;
-    virtual int computeManyNewPositonForBackSearchByVector( char const * , char const * , uchar *, dataTypeNSeq ) = 0;
+    virtual int computeManyNewPositionForBackSearchByVector( char const * , char const * , uchar *, dataTypeNSeq ) = 0;
     virtual int update_Pos_Pile( sortElement * ) = 0;
     virtual int update_Pos_Pile_Blocks( dataTypeNChar *, dataTypeNChar *, dataTypedimAlpha, uchar ) = 0;
     virtual int findBlockToRead( dataTypeNChar *, dataTypedimAlpha , dataTypeNChar *, dataTypeNChar * ) = 0;

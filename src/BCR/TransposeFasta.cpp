@@ -87,12 +87,12 @@ bool TransposeFasta::convert( const string &input, const string &output )
     // create output files
     for ( dataTypelenSeq i = 0; i < cycleNum_; i++ )
     {
-        Filename fn( output, i, ".txt" );
+        Filename fn( output, i, "" );
         outputFiles_[i] = fopen( fn, "w" );
         TemporaryFilesManager::get().addFilename( fn );
         if ( processQualities_ )
         {
-            Filename fnQual( output + "qual.", i, ".txt" );
+            Filename fnQual( output + "qual.", i, "" );
             outputFilesQual[i] = fopen( fnQual, "w" );
             TemporaryFilesManager::get().addFilename( fnQual );
         }
@@ -222,7 +222,7 @@ bool TransposeFasta::inputCycFile( const string &cycPrefix )
     freq[int( 'Z' )] = 1;
 
     //2) Number of sequences
-    string cyc1Filename = cycPrefix + "1.txt";
+    string cyc1Filename = cycPrefix + "1";
     FILE *f = fopen( cyc1Filename.c_str(), "rb" );
     if ( !f )
     {
@@ -236,7 +236,7 @@ bool TransposeFasta::inputCycFile( const string &cycPrefix )
     //3) Length of the longest sequence
     for ( lengthRead = 1; ; ++lengthRead )
     {
-        Filename cycFilename( cycPrefix, lengthRead, ".txt" );
+        Filename cycFilename( cycPrefix, lengthRead, "" );
         FILE *f = fopen( cycFilename, "rb" );
         if ( f )
             fclose( f );
@@ -245,7 +245,7 @@ bool TransposeFasta::inputCycFile( const string &cycPrefix )
     }
 
     //4) qualities detection
-    string qual1Filename = cycPrefix + "qual.1.txt";
+    string qual1Filename = cycPrefix + "qual.1";
     f = fopen( qual1Filename.c_str(), "rb" );
     if ( f )
     {
@@ -275,14 +275,14 @@ bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPr
     //Open all cyc files
     for ( int i = 0; ; ++i )
     {
-        Filename fn( fileInputPrefix, i, ".txt" );
+        Filename fn( fileInputPrefix, i, "" );
         FILE *f = fopen( fn, "rb" );
         if ( !f ) break;
         inFilesCyc.push_back( f );
 
         if ( outputIsFastq )
         {
-            Filename fnQual( fileInputPrefix, i, ".qual.txt" );
+            Filename fnQual( fileInputPrefix, i, ".qual" );
             inFilesCycQual.push_back( fopen( fnQual, "rb" ) );
             if ( inFilesCycQual[i] == NULL )
             {
@@ -293,7 +293,7 @@ bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPr
     }
     if ( inFilesCyc.empty() )
     {
-        std::cerr << "TransposeFasta: could not open file " << fileInputPrefix << "0.txt" << std::endl;
+        std::cerr << "TransposeFasta: could not open file " << fileInputPrefix << "0" << std::endl;
         exit ( EXIT_FAILURE );
     }
     dataTypelenSeq lengthRead = inFilesCyc.size();

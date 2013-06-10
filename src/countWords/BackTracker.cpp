@@ -26,11 +26,11 @@ BackTracker::BackTracker( BwtReaderBase *inBwtA, BwtReaderBase *inBwtB,
                           LetterCountType &currentPosA, LetterCountType &currentPosB,
                           RangeStoreExternal &rA, RangeStoreExternal &rB,
                           LetterCount &countsSoFarA, LetterCount &countsSoFarB,
-                          int minOcc ) :
+                          int minOcc, const int maxLength, const string &subset ) :
     inBwtA_( inBwtA ), inBwtB_( inBwtB ),
     currentPosA_( currentPosA ), currentPosB_( currentPosB ),
     rA_( rA ), rB_( rB ), countsSoFarA_( countsSoFarA ), countsSoFarB_( countsSoFarB ),
-    minOcc_( minOcc ), numRanges_( 0 ), numSingletonRanges_( 0 )
+    minOcc_( minOcc ), maxLength_( maxLength ), subset_( subset ), numRanges_( 0 ), numSingletonRanges_( 0 )
 {}
 
 void BackTracker::skipIfNecessary( const Range &thisRange,
@@ -51,7 +51,7 @@ void BackTracker::skipIfNecessary( const Range &thisRange,
     } // ~if
     if ( thisRange.pos_ < currentPos )
     {
-        cerr << "thisRange is to low. Should be > " << currentPos << "." << endl;
+        cerr << "thisRange is too low. Should be > " << currentPos << "." << endl;
     }
 } // ~BackTracker::skipIfNecessary
 
@@ -276,13 +276,15 @@ void BackTracker::operator()
                         rA_.addRange(l,i,thisWord,
                                     (countsSoFarA_.count_[l]
                                      |thisFlag),
-                                    countsThisRangeA.count_[l]);
+                                     countsThisRangeA.count_[l],
+                                     subset_);
                     // if (countsThisRangeB.count_[l]>0)
                     if (propagateIntervalB_[l]==true)
                         rB_.addRange(l,i,thisWord,
                                     (countsSoFarB_.count_[l]
                                      |thisFlag),
-                                    countsThisRangeB.count_[l]);
+                                     countsThisRangeB.count_[l],
+                                     subset_);
                 } // ~if
             } // ~for
 

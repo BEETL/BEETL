@@ -42,7 +42,7 @@ int main ( int argc, char *argv[] )
         cerr << "This script takes an array of fasta files and a saving directory. This is the first step in generating a metagenome database for count words." << endl
              << "For each fasta file two single sequence files will be saved. One with the singe sequence from the file and one with the reverse complement. " << endl
              << "Plasmids will be omited through a header search. " << endl
-             << "Additional a file with the name headerFile.cvs will be created. There all new file numbers will be connected with their fata header" << endl << endl ;
+             << "Additional a file with the name headerFile.cvs will be created. There all new file numbers will be connected with their fasta header" << endl << endl ;
 
 
         cerr << "Ussage: " << endl
@@ -67,7 +67,9 @@ int main ( int argc, char *argv[] )
                 }
             }
             else if ( argv[i][1] == 's' )
+            {
                 savingDir = argv[i + 1];
+            }
         }
         createSingeSeqFilesPlusReference( inputFiles, savingDir );
     }

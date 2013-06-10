@@ -41,30 +41,30 @@ map< unsigned int, TaxInformation> TAXMAP;
 /*  @ int pileNum the number in which pile this suffix can be found. So it is known which pile can be used to look up the filenumbers
     @ ulong bwtPosition at this position the information in the file starts from which files the suffix came from
     @ unsigned int num Count of how many times the suffix is found in the database. This is the same number as fileNumber which have to read
-    @ vector<unsigned short> fileNumbers Vector to fill up with unique fileNumbers in which the suffix can be found.
+    @ vector<MetagFileNumRefType> fileNumbers Vector to fill up with unique fileNumbers in which the suffix can be found.
     If the size of the vector is the same as the num the suffix occours only once in each file
     Returns nothing, but fills up teh fileNumbers vector
     get the fileNumbers in a certain Range
 */
-void IntervalHandlerMetagenome::getFileNumbersForRange( const int &pileNum, const ulong &bwtPosition, const unsigned int &num, vector<unsigned short> &fileNumbers )
+void IntervalHandlerMetagenome::getFileNumbersForRange( const int &pileNum, const ulong &bwtPosition, const unsigned int &num, vector<MetagFileNumRefType> &fileNumbers )
 {
     //fast fix because merged genomes should have no pile 6
     if ( pileNum == 6 )
         return;
     //go to the position in the File where the fileNumbers for each Bwt positions are indicated
-    fseek( mergeCSet_[pileNum] , ( ( bwtPosition & matchMask ) * sizeof( unsigned short ) ), SEEK_SET );
+    fseek( mergeCSet_[pileNum] , ( ( bwtPosition & matchMask ) * sizeof( MetagFileNumRefType ) ), SEEK_SET );
     //reserve the space for the fileNumbers. there are as many fileNumbers as the suffix count
-    unsigned short *fileNum = ( unsigned short * ) malloc ( num * ( sizeof( unsigned short ) ) );
+    MetagFileNumRefType *fileNum = ( MetagFileNumRefType * ) malloc ( num * ( sizeof( MetagFileNumRefType ) ) );
     //read out the fileNumbers which are corresponding to this BWT-postion
     fread( fileNum, sizeof( unsigned short ), num, mergeCSet_[pileNum] );
 
     //to test if the suffix is a singleton in each of the different files the found fileNumbers
     //will be added to an vector, only if the fileNumber is not already there
     fileNumbers.push_back( fileNum[0] );
-    for ( unsigned int i( 1 ); i < num; i++ )
+    for ( unsigned int i( 1 ); i < num; ++i )
     {
         bool alreadyAdded( false );
-        for ( unsigned int j( 0 ); j < fileNumbers.size() ; j++ )
+        for ( unsigned int j( 0 ); j < fileNumbers.size() ; ++j )
         {
             //if the fileNumber is already in the vector this means this suffix was found twice in one file and is no singleton
             //late on the size of the fileNumbers and the range number can be tested
@@ -92,7 +92,7 @@ void IntervalHandlerMetagenome::getFileNumbersForRange( const int &pileNum, cons
 
    TODO: could be made easier with just giving back the sharedTaxIds and a zero in the vector for each return value taxlevel where there is no shared taxa
 */
-vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int> &sharedTaxIds, vector<unsigned short> &fileNumbers )
+vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int> &sharedTaxIds, vector<MetagFileNumRefType> &fileNumbers )
 {
     //first get the matching fileNumbers out of the file with the file numbers corresponding to bwt positions of the merging.
     vector<bool> taxSame;
@@ -105,7 +105,7 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
         // to remove outlier, first count all taxas
         map<int, int> taxaCount;
         //for each taxa for each level count how many where found
-        for ( unsigned int j( 0 ); j < fileNumbers.size(); j++ )
+        for ( unsigned int j( 0 ); j < fileNumbers.size(); ++j )
         {
             if ( fileNumToTaxIds_[j][i] == -1 )
             {
@@ -203,9 +203,6 @@ void IntervalHandlerMetagenome::foundInBoth
   const Range &thisRangeA, const Range &thisRangeB,
   AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB )
 {
-
-
-
     //propagate A only if the Range also exists in B
     //print only if the word can't be propagated anymore,
     //or the start of the read is reached
@@ -214,14 +211,19 @@ void IntervalHandlerMetagenome::foundInBoth
     //for example if the propagation A and C in the database is possible and in the reads the propagation A G is possible
     //print the taxonomic information because the different propagation between C and G could be a breakpoint between taxas
     bool differentProp( false );
-    bool endOfRead( false );
+    bool belowMinDepthBecauseOfEndOfReads( false );
+    //    bool endOfRead( false );
     for ( int l ( 1 ); l < alphabetSize; l++ )
     {
         //if word is a singleton in the reference files don't propagate anymore
         if ( countsThisRangeB.count_[l] > 0 )
         {
             propagateIntervalB[l] = true;
-            propagateIntervalA[l] = countsThisRangeA.count_[l] > minOcc_;
+            const bool propA = countsThisRangeA.count_[l] > minOcc_;
+            propagateIntervalA[l] = propA;
+            // If k-mer is not propagated because it slowly falls below threshold due to end-of-reads, we set this flag to output it
+            if ( !propA && countsThisRangeA.count_[l] + countsThisRangeA.count_[0] >= minOcc_ )
+                belowMinDepthBecauseOfEndOfReads = true;
         }
         else
         {
@@ -233,13 +235,13 @@ void IntervalHandlerMetagenome::foundInBoth
             propagateIntervalA[l] = false;
         }
     }
-    //if at least one read reached the end print the taxonomic information
-    if ( countsThisRangeA.count_[0] >= minOcc_ )
-        endOfRead = true;
-    //flag indicating if information about the databse should be given
+    //if at least one read reached the end print the taxonomic information (end of read detected by count['$']>0)
+    //    if ( countsThisRangeA.count_[0] > 0 )
+    //        endOfRead = true;
+    //flag indicating if information about the database should be given
     if ( testDB_ )
     {
-        //if the database should be tested propagate hte intervalls in B as long as they can be propagated
+        //if the database should be tested propagate the intervals in B as long as they can be propagated
         //this should have been done anyway with the normal propagation, this is just to make sure
         for ( int l( 1 ); l < alphabetSize; l++ )
         {
@@ -254,7 +256,7 @@ void IntervalHandlerMetagenome::foundInBoth
     //only look the fileNumbers up if the word can't be propagatet anymore.
     //so for each BWT Position only the longest word will be taken into account.
     //unique file numbers from which the suffixes came from
-    vector<unsigned short > fileNumbers;
+    vector<MetagFileNumRefType> fileNumbers;
     //shared taxa between the files, for each taxonomic level there should be one shared taxonomic id indicating if the
     vector<unsigned int> sharedTaxa;
     sharedTaxa.resize( taxLevelSize );
@@ -297,7 +299,7 @@ void IntervalHandlerMetagenome::foundInBoth
 
 
     //if the database should not be tested on its own the normal comparison between the two datasets takes place
-    //the suffix of the range can only be once in each file if the amount of suffixe is smaller than all possible files. so start testing if it is smaller
+    //the suffix of the range can only be once in each file if the amount of suffixes is smaller than all possible files. so start testing if it is smaller
     else if ( ( thisRangeB.num_ < fileNumToTaxIds_.size() )
               //test file numbers and print information only if the suffix is longer than a certain minimal length chosen from the user
               //this reduces the amount of output and speeds up the count word algorithm because the filenumbers don't need to be looked at
@@ -307,10 +309,10 @@ void IntervalHandlerMetagenome::foundInBoth
     {
 
         sharedTaxa.resize( taxLevelSize );
-        //get the unique file number for the files where the suffix can be found in
-        getFileNumbersForRange( pileNum, thisRangeB.pos_, thisRangeB.num_, fileNumbers );
         //put back breackpoint information, if
-        if ( differentProp || endOfRead )
+        const bool printBKPT = true;
+        const bool printBKPTdetails = false;
+        if ( printBKPT && ( differentProp || belowMinDepthBecauseOfEndOfReads ) )
         {
             printf(
                 "BKPT %s %llu:%llu:%llu:%llu:%llu:%llu %llu:%llu:%llu:%llu:%llu:%llu %llu ",
@@ -328,48 +330,58 @@ void IntervalHandlerMetagenome::foundInBoth
                 countsThisRangeB.count_[4],
                 countsThisRangeB.count_[5],
                 ( thisRangeB.pos_ & matchMask ) );
-            for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
-                cout << fileNumbers[f] << ":";
+            if ( printBKPTdetails )
+                for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
+                    cout << fileNumbers[f] << ":";
             cout << endl;
         }
 
-
-        //only get taxonomic information if the word is a singleton in each file
-        //unique file numbers must be the same as the numbers of suffixe, so that each file has exactly one suffix
-        if ( thisRangeB.num_ <= fileNumbers.size() )
+        assert( thisRangeA.word_.size() == thisRangeB.word_.size() );
+        bool maxLengthReached = ( thisRangeA.word_.size() >= maxWordLength_ + 1 );
+        if ( differentProp || belowMinDepthBecauseOfEndOfReads || maxLengthReached )
         {
-            vector<bool> sameTaxa = intervalInSameTaxa( sharedTaxa, fileNumbers );
-            //print the information about a shared superkingdom only if a wordlength higher than 50 is reached
-            //printing this information about shorter words inflates the output increadibly without giving much of usefull information
-            int smallestTaxLevel = ( thisRangeB.word_.length() > 50 ) ? 0 : 1;
-            //if there are shared taxonomic ids between the files where this suffic can be found
-            //print the information about the deepest tax level
-            for ( int i( taxLevelSize - 1 ) ; i >= smallestTaxLevel; i-- )
+            //get the unique file number for the files where the suffix can be found in
+            getFileNumbersForRange( pileNum, thisRangeB.pos_, thisRangeB.num_, fileNumbers );
+
+            //only get taxonomic information if the word is a singleton in each file
+            //unique file numbers must be the same as the numbers of suffixes, so that each file has exactly one suffix
+            if ( thisRangeB.num_ <= fileNumbers.size() )
             {
-                if ( sameTaxa[i] && sharedTaxa[i] != 0 )
+                vector<bool> sameTaxa = intervalInSameTaxa( sharedTaxa, fileNumbers );
+                //print the information about a shared superkingdom only if a wordlength higher than 50 is reached
+                //printing this information about shorter words inflates the output incredibly without giving much of useful information
+                int smallestTaxLevel = ( thisRangeB.word_.length() > 50 ) ? 0 : 1;
+                //if there are shared taxonomic ids between the files where this suffix can be found
+                //print the information about the deepest tax level
+                for ( int i( taxLevelSize - 1 ) ; i >= smallestTaxLevel; i-- )
                 {
-                    cout << "MTAXA " << i <<  " " << sharedTaxa[i] << " " << thisRangeB.word_ ;
-                    cout << " " << ( thisRangeB.pos_ & matchMask ) << " " ;
-                    printf( "%llu:%llu:%llu:%llu:%llu:%llu %llu:%llu:%llu:%llu:%llu:%llu ",
-                            countsThisRangeA.count_[0],
-                            countsThisRangeA.count_[1],
-                            countsThisRangeA.count_[2],
-                            countsThisRangeA.count_[3],
-                            countsThisRangeA.count_[4],
-                            countsThisRangeA.count_[5],
-                            countsThisRangeB.count_[0],
-                            countsThisRangeB.count_[1],
-                            countsThisRangeB.count_[2],
-                            countsThisRangeB.count_[3],
-                            countsThisRangeB.count_[4],
-                            countsThisRangeB.count_[5]
-                          );
-                    for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
-                        cout << fileNumbers[f] << ":";
-                    cout << endl;
-                    break;
-                }//~if shared taxa
-            }//~for loop for the taxonomic levels
+                    if ( sameTaxa[i] && sharedTaxa[i] != 0 )
+                    {
+                        //                        if ( !( differentProp || belowMinDepthBecauseOfEndOfReads ) )
+                        //                            cout << "ending"; // == This MTAXA is due to maxLengthReached
+                        cout << "MTAXA " << i <<  " " << sharedTaxa[i] << " " << thisRangeB.word_ ;
+                        cout << " " << ( thisRangeB.pos_ & matchMask ) << " " ;
+                        printf( "%llu:%llu:%llu:%llu:%llu:%llu %llu:%llu:%llu:%llu:%llu:%llu ",
+                                countsThisRangeA.count_[0],
+                                countsThisRangeA.count_[1],
+                                countsThisRangeA.count_[2],
+                                countsThisRangeA.count_[3],
+                                countsThisRangeA.count_[4],
+                                countsThisRangeA.count_[5],
+                                countsThisRangeB.count_[0],
+                                countsThisRangeB.count_[1],
+                                countsThisRangeB.count_[2],
+                                countsThisRangeB.count_[3],
+                                countsThisRangeB.count_[4],
+                                countsThisRangeB.count_[5]
+                              );
+                        for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
+                            cout << fileNumbers[f] << ":";
+                        cout << endl;
+                        break;
+                    }//~if shared taxa
+                }//~for loop for the taxonomic levels
+            }
         }//~test on singletons in files
     }//~ if matches printing criteria
 }
@@ -407,7 +419,7 @@ void IntervalHandlerMetagenome::foundInBOnly
             //not sure why this happended a few times
             if ( thisRangeB.num_ > 0 )
             {
-                vector<unsigned short > fileNumbers;
+                vector<MetagFileNumRefType> fileNumbers;
                 vector<unsigned int> sharedTaxa;
                 sharedTaxa.resize( taxLevelSize );
                 //get the file numbers in which the suffix can be found

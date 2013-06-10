@@ -19,9 +19,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <queue>
 #include <vector>
+
+#include "Types.hh"
 
 using namespace std;
 
@@ -54,7 +57,7 @@ long getFileSize( FILE *file )
 struct SuffixInfo
 {
     // FILE* pFile_;
-    unsigned short fileNum_;
+    MetagFileNumRefType fileNum_;
     unsigned char bwtSymbol_;
     const char *pSeq_;
     unsigned loc_;
@@ -108,12 +111,28 @@ void readFastaFile( const char *name, vector<char> &data )
     data.push_back( '\0' );
 } // ~readFastaFile
 
+void readFileList( const char *fileName, std::vector<string> &files )
+{
+    ifstream fileList( fileName, ios::in );
+    if ( ! fileList.is_open() )
+    {
+        cerr << "Cannot open " << fileName << " for reading." << endl;
+        exit( EXIT_FAILURE );
+    }
+    string line, csvFileNum, csvFileName;
+    while ( getline( fileList, line ) )
+    {
+        files.push_back( line );
+    }
+    fileList.close();
+}
+
 
 int main ( int numArgs, const char *args[] )
 {
-    if ( numArgs < 4 )
+    if ( numArgs != 4 )
     {
-        cerr << "Usage: " << args[0] << " pileNum outputPrefix files" << endl;
+        cerr << "Usage: " << args[0] << " pileNum outputPrefix fileList" << endl;
         exit( EXIT_FAILURE );
     }
 
@@ -122,9 +141,9 @@ int main ( int numArgs, const char *args[] )
     //assert((pileNum>=0)&&(pileNum<alphabetSize));
 
     cerr << "Output file will be named " << args[2] << endl;
+    cerr << "Retrieving list of BWT files from " << args[3] << endl;
 
     vector<vector<char> > chromSeqs;
-
     vector<queue<unsigned> > suffixArrays;
     //  vector<vector<unsigned>::iterator> suffixArraysEnd;
     vector<queue<char> > bwts;
@@ -162,19 +181,26 @@ int main ( int numArgs, const char *args[] )
     priority_queue<SuffixInfo, vector<SuffixInfo> > pq;
     ofstream fileCounter( "filecounter.csv", ios::out );
     int fileN( 0 );
-    for ( int i( 3 ); i < numArgs; i++ )
+    vector<string> files;
+    readFileList( args[3], files );
+    cerr << "Collected " << files.size() << " files" << endl;
+
+    for ( int i( 0 ); i < files.size(); ++i )
     {
         //      cout << i <<endl;
         //read the fasta file in
         chromSeqs.push_back( vector<char>() );
-        readFastaFile( args[i], chromSeqs.back() );
+        readFastaFile( files[i].c_str(), chromSeqs.back() );
+        //readFastaFile( args[i], chromSeqs.back() );
+        //readFastaFile( args[i], chromSeqs.back() );
 
         //cerr << "Sequence is of length " << chromSeqs.back().size() << endl;
         if ( i % 20 == 0 )
         {
             cerr << "Sequence " << i <<  " has length " << chromSeqs.back().size() << endl;
         }
-        fileNameStem = "bwt_" + ( string )args[i];
+        //fileNameStem = "bwt_" + ( string )args[i];
+        fileNameStem = "bwt_" + files[i];
         getFileName( fileNameStem, 'A', pileNum, fileName );
         //      cerr << "Will open suffix array file " << fileName << endl;
         //read in the whole suffix array
@@ -189,7 +215,8 @@ int main ( int numArgs, const char *args[] )
             //allocate the space
             unsigned *arrayBuf = new unsigned[fileSize / 4];
             assert( ( int )fread( arrayBuf, 4, fileSize / 4, arrayInputStream ) == ( fileSize / 4 ) );
-            fileCounter << fileN << "," << args[i] << endl;
+            fileCounter << fileN << "," << files[i] << endl;
+            //fileCounter << fileN << "," << args[i] << endl;
             fileN++;
             //      cout << "read suffix\n";
             for ( int k( 0 ) ; k < ( fileSize / 4 ); k++ )
