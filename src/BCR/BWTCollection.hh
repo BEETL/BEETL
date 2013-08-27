@@ -66,22 +66,22 @@ public:
     //ulong posN;  //contains the position of the last inserted symbol of the sequence seqN[i]
     //uchar pileN; //contains the number of the pile of the last inserted symbol of the sequence seqN[i]
 
-    dataTypeNSeq nText;  //number total of texts in filename1
-    //dataTypeNSeq middle; // number of sequence in filename1
-    //dataTypeNChar middleLength; //text[middleLength] = the first letter of the second database (filename2)
-    dataTypelenSeq lengthRead; //number of char in each text + $
-    dataTypeNChar lengthTot;   //length of the all texts without $
-    dataTypeNChar lengthTot_plus_eof; //length of the BWT
-    dataTypeNChar **tableOcc; //contains the number of occurrences of each symbol
+    SequenceNumber nText;  //number total of texts in filename1
+    //SequenceNumber middle; // number of sequence in filename1
+    //LetterNumber middleLength; //text[middleLength] = the first letter of the second database (filename2)
+    SequenceLength lengthRead; //number of char in each text + $
+    LetterNumber lengthTot;   //length of the all texts without $
+    LetterNumber lengthTot_plus_eof; //length of the BWT
+    LetterNumber **tableOcc; //contains the number of occurrences of each symbol
     LetterCountEachPile tableOcc_; // replace tableOcc
-    dataTypedimAlpha alpha[256]; //Corresponding between the alphabet, the piles and tableOcc
-    dataTypedimAlpha sizeAlpha;  //number of the different symbols in the input texts
-    dataTypedimAlpha *alphaInverse;  //Corresponding between alpha[i] and the symbol as char
+    AlphabetSymbol alpha[256]; //Corresponding between the alphabet, the piles and tableOcc
+    AlphabetSymbol sizeAlpha;  //number of the different symbols in the input texts
+    AlphabetSymbol *alphaInverse;  //Corresponding between alpha[i] and the symbol as char
 
-    vector< vector< vector<dataTypeNChar> > > vectorOcc;
-    vector <dataTypeNChar> numBlocksInPartialBWT;
+    vector< vector< vector<LetterNumber> > > vectorOcc;
+    vector <LetterNumber> numBlocksInPartialBWT;
 
-    //dataTypeNChar*** vectorOcc;
+    //LetterNumber*** vectorOcc;
     vector<sortElement> FirstVector, LastVector;
 
     CompressionFormatType outputCompression_;
@@ -113,35 +113,35 @@ public:
     virtual int RecoverNsymbolsReverse( char const *, char const *, uchar *, uchar *newQual = 0 ) = 0;
     virtual int RecoverNsymbolsReverseByVector( char const *file1, char const *fileOutBwt, uchar *newSymb, uchar *newQual = 0 ) = 0;
     virtual int Recover1symbolReverse( char const * , char const * , uchar *, sortElement * ) = 0;
-    virtual dataTypeNSeq recover1SequenceForward( char const * , char const * , sortElement , uchar *, dataTypelenSeq * ) = 0 ;
-    virtual vector <int> recoverNSequenceForward( char const * , char const *, dataTypeNSeq ) = 0;
-    virtual int recoverNSequenceForwardSequentially( char const * , char const *, dataTypeNSeq ) = 0;
+    virtual SequenceNumber recover1SequenceForward( char const * , char const * , sortElement , uchar *, SequenceLength * ) = 0 ;
+    virtual vector <int> recoverNSequenceForward( char const * , char const *, SequenceNumber ) = 0;
+    virtual int recoverNSequenceForwardSequentially( char const * , char const *, SequenceNumber ) = 0;
     virtual void storeBWT( uchar const *, uchar const *qual = NULL ) = 0;
     virtual void storeEntireBWT( const char * ) = 0;
-    virtual void storeSA( dataTypelenSeq ) = 0;
+    virtual void storeSA( SequenceLength ) = 0;
     virtual void storeEntirePairSA( const char * ) = 0;
     virtual void storeEntireSAfromPairSA( const char * ) = 0;
     virtual void storeBWTandLCP( uchar const * ) = 0;
     virtual void storeEntireLCP( const char * ) = 0;
-    virtual dataTypeNChar rankManySymbols( FILE &, dataTypeNChar *, dataTypeNChar, uchar * ) = 0;
-    virtual dataTypeNChar rankManySymbolsByVector( FILE & , dataTypeNChar *, dataTypeNChar, uchar *, uchar *foundQual = 0, FILE *InFileBWTQual = 0 ) = 0;
-    virtual dataTypeNChar findRankInBWT ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar ) = 0;
-    virtual dataTypeNChar findRankInBWTbyVector ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar ) = 0;
-    virtual int rankInverseManyByVector ( char const * , char const * , dataTypeNSeq , uchar * ) = 0;
-    virtual int backwardSearchManyBCR( char const * , char const *, char const *, vector<string>, dataTypelenSeq ) = 0;
-    virtual int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , dataTypelenSeq, vector <int> & ) = 0;
+    virtual LetterNumber rankManySymbols( FILE &, LetterNumber *, LetterNumber, uchar * ) = 0;
+    virtual LetterNumber rankManySymbolsByVector( FILE & , LetterNumber *, LetterNumber, uchar *, uchar *foundQual = 0, FILE *InFileBWTQual = 0 ) = 0;
+    virtual LetterNumber findRankInBWT ( char const *, char const *, AlphabetSymbol, LetterNumber, uchar ) = 0;
+    virtual LetterNumber findRankInBWTbyVector ( char const *, char const *, AlphabetSymbol, LetterNumber, uchar ) = 0;
+    virtual int rankInverseManyByVector ( char const * , char const * , SequenceNumber , uchar * ) = 0;
+    virtual int backwardSearchManyBCR( char const * , char const *, char const *, vector<string>, SequenceLength ) = 0;
+    virtual int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , SequenceLength, vector <int> & ) = 0;
 private:
 
-    virtual void InsertNsymbols( uchar const *, dataTypelenSeq, uchar const *qual = NULL ) = 0;
-    virtual void InsertFirstsymbols( uchar const *, uchar const *qual = NULL ) = 0;
-    virtual int initializeUnbuildBCR( char const *, char const *, dataTypeNChar [] ) = 0;
+    virtual void InsertNsymbols( uchar const *, SequenceLength, uchar const *qual = NULL ) = 0;
+    virtual void InsertFirstsymbols( uchar const *, uchar const *qual = NULL, const int cycle = 0 ) = 0;
+    virtual int initializeUnbuildBCR( char const *, char const *, LetterNumber [] ) = 0;
     virtual int computeNewPositionForBackSearch ( char const *, char const *, uchar ) = 0;
     virtual int computeNewPositionForBackSearchByVector ( char const *, char const *, uchar ) = 0;
-    virtual int computeVectorUnbuildBCR( char const *, char const *, dataTypeNChar [] ) = 0;
-    virtual int computeManyNewPositionForBackSearchByVector( char const * , char const * , uchar *, dataTypeNSeq ) = 0;
+    virtual int computeVectorUnbuildBCR( char const *, char const *, LetterNumber [] ) = 0;
+    virtual int computeManyNewPositionForBackSearchByVector( char const * , char const * , uchar *, SequenceNumber ) = 0;
     virtual int update_Pos_Pile( sortElement * ) = 0;
-    virtual int update_Pos_Pile_Blocks( dataTypeNChar *, dataTypeNChar *, dataTypedimAlpha, uchar ) = 0;
-    virtual int findBlockToRead( dataTypeNChar *, dataTypedimAlpha , dataTypeNChar *, dataTypeNChar * ) = 0;
+    virtual int update_Pos_Pile_Blocks( LetterNumber *, LetterNumber *, AlphabetSymbol, uchar ) = 0;
+    virtual int findBlockToRead( LetterNumber *, AlphabetSymbol , LetterNumber *, LetterNumber * ) = 0;
 protected:
     // Protected constructor; call the static function InitBWTCollection().
     BWTCollection() { };

@@ -18,48 +18,29 @@
 #include "BeetlCompare.hh"
 
 #include "Common.hh"
-#include "Logger.hh"
-#include "TemporaryFilesManager.hh"
 #include "config.h"
 #include "countWords/CountWords.hh"
 #include "parameters/CompareParameters.hh"
+#include "libzoo/cli/Common.hh"
+#include "libzoo/util/Logger.hh"
+#include "libzoo/util/TemporaryFilesManager.hh"
 
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <string.h>
 #include <unistd.h>
 
 using namespace std;
 using namespace BeetlCompareParameters;
 
 
+CompareParameters params;
+
 void printUsage()
 {
-    cout << "Parameters:" << endl;
-    cout << "    --inputA (-a)            Input filename prefix for Set A (such as \"prefix-B0[0-6]\" are Set A's BWT files)" << endl;
-    cout << "    --inputB (-b)            Input filename prefix for Set B (such as \"prefix-B0[0-6]\" are Set B's BWT files)" << endl;
-    cout << "    --mode (-m)              [split|reference|metagenomics] (See \"Mode\" note below)" << endl;
-    cout << endl;
-    cout << "Options:" << endl;
-    cout << "    --output (-o)            =\"\"          Output filename prefix" << endl;
-    cout << "    --max-length (-k)        = 100        Maximal length (number of analysis cycles)" << endl;
-    cout << "    --min-occ (-n)           = 1          Minimum number of occurrences (coverage)" << endl;
-    cout << "    --inputA-format          = autodetect [bwt_ascii|bwt_rle]" << endl;
-    cout << "    --inputB-format          = autodetect [bwt_ascii|bwt_rle]" << endl;
-    cout << "    --subset                 = \"\"       Restrict computation to this suffix - Used for distributed computing" << endl;
-    cout << "    --temp-directory (-T)    = \".\"      Path for temporary files (hint: choose a fast drive)" << endl;
-    cout << "    --verbosity              = normal [quiet|normal|verbose|very-verbose|debug] or [0|1|2|3|4]" << endl;
-    cout << "    -v / -vv                 Shortcuts to --verbosity = verbose / very-verbose" << endl;
-    cout << "    --help (-h)              Help" << endl;
-    cout << endl;
-    cout << "Metagenomics mode parameters:" << endl;
-    cout << "    --genome-metadata (-c)   (= \"${inputB}-C0\") Input filename \"extended\" prefix for Set B's metadata (for files \"prefix[0-6]\")" << endl;
-    cout << "    --taxonomy (-t)          Input filename for Set B's taxonomy information" << endl;
-    cout << endl;
-    cout << "Metagenomics mode options:" << endl;
-    cout << "    --min-kmer-length (-w)   = 50   Minimum length k-mer" << endl;
-    cout << "    --report-min-length (-d) = off  [on|off] Report the minimal needed word length for the different taxa in the database" << endl;
-    cout << endl;
+    params.printUsage();
+
     cout << "Notes:" << endl;
     cout << "    Mode = split       : Set B are reads of a reference" << endl;
     cout << "    Mode = reference   : Set B is a reference genome" << endl;
@@ -67,33 +48,10 @@ void printUsage()
     cout << endl;
 }
 
-struct BeetlCompareArguments
-{
-    string argInputA;
-    string argInputB;
-    string argOutput;
-    int argMaxLength;
-    int argMinOcc;
-    string argSubset;
-    string argTempPath;
-    string argVerbosityLevel;
-
-    // metagenomics mode
-    string argInputC;
-    string argTaxonomy;
-    int argMinKmerLength;
-
-    BeetlCompareArguments()
-        : argMaxLength( 100 )
-        , argMinOcc( 1 )
-        , argMinKmerLength( 50 )
-    {}
-};
-
-void launchBeetlCompare( CompareParameters &compareParams, const BeetlCompareArguments &args )
+void launchBeetlCompare()
 {
     char whichHandler = 'X';
-    switch ( compareParams.getValue( COMPARE_OPTION_MODE ) )
+    switch ( params["mode"] )
     {
         case MODE_SPLIT:
             whichHandler = 's';
@@ -106,120 +64,105 @@ void launchBeetlCompare( CompareParameters &compareParams, const BeetlCompareArg
             break;
     }
 
-    vector<string> setA;
-    vector<string> setB;
-    vector<string> setC;
-    for ( unsigned i = 0; i < 10; ++i )
-    {
-        stringstream fileA;
-        fileA << args.argInputA << "-B0" << i;
-        clog << "Probing " << fileA.str() << "..." << endl;
-        if ( access( fileA.str().c_str(), R_OK ) == -1 )
-            break;
-        setA.push_back( fileA.str() );
-        clog << "Discovered " << fileA.str() << endl;
+    vector<string> setA_filenames;
+    vector<string> setB_filenames;
+    vector<string> setB_C_filenames;
+    bool setA_isBwtCompressed;
+    bool setB_isBwtCompressed;
+    string setA_availableFileLetters;
+    string setB_availableFileLetters;
+    detectInputBwtProperties( params["input setA"], setA_filenames, setA_isBwtCompressed, setA_availableFileLetters );
+    detectInputBwtProperties( params["input setB"], setB_filenames, setB_isBwtCompressed, setB_availableFileLetters );
 
-        stringstream fileB;
-        fileB << args.argInputB << "-B0" << i;
-        if ( access( fileB.str().c_str(), R_OK ) == -1 )
-        {
-            cerr << "Error opening " << fileB.str() << endl;
-            exit( -1 );
-        }
-        setB.push_back( fileB.str() );
-        clog << "Discovered " << fileB.str() << endl;
-
-        if ( compareParams.getValue( COMPARE_OPTION_MODE ) == MODE_METAGENOMICS )
-        {
-            stringstream fileC;
-            if ( args.argInputC.empty() )
-                fileC << args.argInputB << "-C0" << i;
-            else
-                fileC << args.argInputC << i;
-            if ( access( fileC.str().c_str(), R_OK ) == -1 )
-            {
-                cerr << "Error opening " << fileC.str() << endl;
-                exit( -1 );
-            }
-            setC.push_back( fileC.str() );
-            clog << "Discovered " << fileC.str() << endl;
-        }
-    }
-    assert( setA.size() == setB.size() );
-    if ( compareParams.getValue( COMPARE_OPTION_MODE ) == MODE_METAGENOMICS )
-        assert( setA.size() == setC.size() );
-    if ( setA.size() < 2 )
+    if ( setA_filenames.size() < 2 )
     {
-        cerr << "Error: too few input files detected (all those detected have been reported above)" << endl;
+        cerr << "Error: too few input files detected (run with -vv for more details)" << endl;
         exit( -1 );
     }
 
-    // Try to guess if run-length-encoded based on first few bytes
-    bool inputACompressed = false;
-    bool inputBCompressed = false;
-    if ( setA.size() > 1 )
+    assert( setA_filenames.size() == setB_filenames.size() );
+    if ( params["mode"] == MODE_METAGENOMICS )
     {
-        ifstream setAFile2( setA[1].c_str() );
-        ifstream setBFile2( setB[1].c_str() );
-
-        for ( int i = 0; i < 10; ++i )
+        assert( strchr( setB_availableFileLetters.c_str(), 'C' ) && "{inputB}-C0x files cannot be found" );
+        setB_C_filenames = setB_filenames;
+        for ( unsigned int i = 0; i < setB_C_filenames.size(); ++i )
         {
-            char c = 'A';
-            setAFile2.get( c );
-            switch ( toupper( c ) )
-            {
-                case 'A':
-                case 'C':
-                case 'G':
-                case 'T':
-                case 'N':
-                    break;
-                default:
-                    inputACompressed = true;
-            }
+            int pos = setB_C_filenames[i].size() - 3;
+            assert( setB_C_filenames[i][pos] == 'B' );
+            setB_C_filenames[i][pos] = 'C';
+        }
 
-            c = 'A';
-            setBFile2.get( c );
-            switch ( toupper( c ) )
+        // Check that the 'C' files are encoded as ints and not anymore as shorts,
+        // by checking that the first few 32-bit non-zero values are <65535 (unsigned short encoding would lead to large ints)
+        ifstream fileC0( setB_C_filenames[0].c_str() );
+        uint32_t intVal;
+        for ( unsigned int i = 0; i < 10; ++i )
+        {
+            if ( !fileC0.read( ( char * )&intVal, 4 ) )
+                break;
+            if ( intVal > 65535 )
             {
-                case 'A':
-                case 'C':
-                case 'G':
-                case 'T':
-                case 'N':
-                    break;
-                default:
-                    inputBCompressed = true;
+                cerr << "Error: inputSetB-C0x files seem to be encoded as 2-bytes values. This version of BEETL expects 4 bytes per value.\nYou can use the tool scripts/misc/shortToInt.pl provided with BEETL source code to convert your files." << endl;
+                exit( -1 );
             }
         }
     }
-    if ( inputACompressed )
-        clog << "Set A detected as RLE compressed" << endl;
-    else
-        clog << "Set A detected as ASCII" << endl;
-    if ( inputBCompressed )
-        clog << "Set B detected as RLE compressed" << endl;
-    else
-        clog << "Set B detected as ASCII" << endl;
 
-    bool reportMinLength = ( compareParams.getValue( COMPARE_OPTION_REPORT_MINLENGTH ) == REPORT_MINLENGTH_ON );
+    if ( !params["inputA format"].isSet() )
+    {
+        if ( setA_isBwtCompressed )
+        {
+            clog << "Set A detected as RLE compressed" << endl;
+            params["inputA format"] = "BWT_RLE";
+        }
+        else
+        {
+            clog << "Set A detected as ASCII" << endl;
+            params["inputA format"] = "BWT_ASCII";
+        }
+    }
+    if ( !params["inputB format"].isSet() )
+    {
+        if ( setB_isBwtCompressed )
+        {
+            clog << "Set B detected as RLE compressed" << endl;
+            params["inputB format"] = "BWT_RLE";
+        }
+        else
+        {
+            clog << "Set B detected as ASCII" << endl;
+            params["inputB format"] = "BWT_ASCII";
+        }
+    }
 
-    // Initialise temporary directory
-    TemporaryFilesManager::get().setTempPath( args.argTempPath );
+    // Use default parameter values where needed
+    params.commitDefaultValues();
 
-    clog << "Launching CountWords with "
-         << "handler=" << whichHandler
-         << ", minOcc=" << args.argMinOcc
-         << ", maxLength=" << args.argMaxLength
-         << ", #files=" << setA.size()
-         << ", reportMinLength=" << reportMinLength
-         << ", minKmerLength=" << args.argMinKmerLength
-         << ", subset=" << args.argSubset
-         << endl;
+    // Update variable with optinal user values
+    setA_isBwtCompressed = ( params["inputA format"] == INPUT_FORMAT_BWT_RLE );
+    setB_isBwtCompressed = ( params["inputB format"] == INPUT_FORMAT_BWT_RLE );
 
-    Algorithm *pcountWords = new CountWords( inputACompressed,
-            inputBCompressed, whichHandler, args.argMinOcc,
-            args.argMaxLength, setA, setB, setC, args.argTaxonomy, reportMinLength, args.argMinKmerLength, args.argOutput, args.argSubset );
+    bool reportMinLength = ( params["report min length"] == REPORT_MINLENGTH_ON );
+
+    Logger::out( LOG_ALWAYS_SHOW ) << "\nLaunching the following configuration of Beetl-compare:" << endl;
+    params.print( Logger::out( LOG_ALWAYS_SHOW ), false );
+    Logger::out( LOG_ALWAYS_SHOW ) << endl;
+
+    Algorithm *pcountWords = new CountWords( setA_isBwtCompressed, setB_isBwtCompressed
+            , whichHandler
+            , params["min occ"]
+            , params["max length"]
+            , setA_filenames, setB_filenames
+            , setB_C_filenames
+            , params["taxonomy"]
+            , reportMinLength
+            , params["min kmer length"]
+            , params["output filename prefix"]
+            , params["subset"]
+            , params["generate seq num A"]
+            , params["generate seq num B"]
+            , params["no comparison skip"]
+                                           );
 
     // run the "main" method
     pcountWords->run();
@@ -248,74 +191,29 @@ int main( const int argc, const char **argv )
     }
     cout << "\n" << endl;
 
-    // Todo: reduce these 2 structures to 1
-    BeetlCompareArguments args;
-    CompareParameters params;
-
-    for ( int i = 1; i < argc; ++i )
+    if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
-        if ( isNextArgument( "-h", "--help", argc, argv, i ) )
-        {
-            printUsage();
-            exit( 0 );
-        }
-        else if ( isNextArgument   ( "-a", "--inputA"              , argc, argv, i, &args.argInputA                          ) ) {}
-        else if ( isNextArgument   ( "-b", "--inputB"              , argc, argv, i, &args.argInputB                          ) ) {}
-        else if ( isNextArgument   ( "-o", "--output"              , argc, argv, i, &args.argOutput                          ) ) {}
-        else if ( parseNextArgument( "-m", "--mode"                , argc, argv, i, params, COMPARE_OPTION_MODE              ) ) {}
-        else if ( isNextArgumentInt( "-k", "--max-length"          , argc, argv, i, &args.argMaxLength                          ) ) {}
-        else if ( isNextArgumentInt( "-n", "--min-occ"             , argc, argv, i, &args.argMinOcc                          ) ) {}
-
-        else if ( isNextArgument   ( "-c", "--genome-metadata"     , argc, argv, i, &args.argInputC                          ) ) {}
-        else if ( isNextArgument   ( "-t", "--taxonomy"            , argc, argv, i, &args.argTaxonomy                        ) ) {}
-        else if ( isNextArgumentInt( "-w", "--min-kmer-length"     , argc, argv, i, &args.argMinKmerLength                   ) ) {}
-        else if ( parseNextArgument( "-d", "--report-min-length"   , argc, argv, i, params, COMPARE_OPTION_REPORT_MINLENGTH  ) ) {}
-        else if ( isNextArgument   ( ""  , "--subset"              , argc, argv, i, &args.argSubset                          ) ) {}
-        else if ( isNextArgument   ( "-T", "--temp-directory"      , argc, argv, i, &args.argTempPath                        ) ) {}
-        else if ( isNextArgument   ( ""  , "--verbosity"           , argc, argv, i, &args.argVerbosityLevel                  ) )
-        {
-            Logger::setVerbosity( args.argVerbosityLevel );
-        }
-        else if ( isNextArgument   ( "-v"  , ""                    , argc, argv, i ) )
-        {
-            Logger::setVerbosity   ( "verbose" );
-        }
-        else if ( isNextArgument   ( "-vv" , ""                    , argc, argv, i ) )
-        {
-            Logger::setVerbosity( "very-verbose" );
-        }
-        else
-        {
-            cerr << "Error: Invalid parameter: " << argv[i] << "\n" << endl;
-            printUsage();
-            exit( 1 );
-        }
-    }
-
-    // Checking for required parameters
-    if ( args.argInputA.empty()
-         || args.argInputB.empty()
-         || params.getValue( COMPARE_OPTION_MODE ) == MULTIPLE_OPTIONS
-       )
-    {
-        cerr << "Error: Missing arguments: All parameters below are required\n" << endl;
         printUsage();
         exit( 1 );
     }
 
-    if ( params.getValue( COMPARE_OPTION_MODE ) == MODE_METAGENOMICS
-         && (
-             args.argTaxonomy.empty()
-         )
-       )
+    // Checking for extra parameters required in metagenomics mode
+    if ( params["mode"] == MODE_METAGENOMICS && !params["taxonomy"].isSet() )
     {
-        cerr << "Error: Missing Metagenomics-specific parameters:\n" << endl;
+        cerr << "Error: Missing Metagenomics-specific parameter: --taxonomy\n" << endl;
         printUsage();
         exit( 1 );
     }
+
+    // Auto-detection of missing arguments
+    if ( !params["memory limit MB"].isSet() )
+    {
+        params["memory limit MB"] = detectMemoryLimitInMB();
+    }
+    TemporaryFilesManager::get().setRamLimit( params["memory limit MB"] );
 
     // Launch
-    launchBeetlCompare( params, args );
+    launchBeetlCompare();
 
     return 0;
 }

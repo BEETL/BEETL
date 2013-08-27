@@ -42,7 +42,7 @@
 
 /*   static struct _CompareFloatField */
 /*   { */
-/*     bool operator() (const vector<dataTypeNSeq>& left, int right) */
+/*     bool operator() (const vector<SequenceNumber>& left, int right) */
 /*     { */
 /*       return left[1]<right; */
 /*     } */
@@ -61,7 +61,7 @@ public:
         idx = i;
     }
 
-    bool operator() ( const vector<dataTypeNSeq> &left, dataTypeNSeq right )
+    bool operator() ( const vector<SequenceNumber> &left, SequenceNumber right )
     {
         return left[idx] < right;
     }
@@ -76,8 +76,8 @@ public:
     ~Rank();
 
     // set methods
-    bool setAlpha( dataTypedimAlpha *alpha, const int &s );
-    bool setAlphaInverse( dataTypedimAlpha *alphaInverse, const int &s );
+    bool setAlpha( AlphabetSymbol *alpha, const int &s );
+    bool setAlphaInverse( AlphabetSymbol *alphaInverse, const int &s );
     void setCharCount( const int &cnt )
     {
         charCount_ = cnt;
@@ -88,21 +88,21 @@ public:
 
     // Given character x and a number n, get the blockID that contains
     // the n-th occurrence of x
-    dataTypeNChar getInverseRank( const char &c, const dataTypeNChar &n );
+    LetterNumber getInverseRank( const char &c, const LetterNumber &n );
 
 private:
     FILE *ifsBWT; // input file streamn of BWT
 
-    vector<dataTypedimAlpha> alpha_;
-    vector<dataTypedimAlpha> alphaInverse_;
+    vector<AlphabetSymbol> alpha_;
+    vector<AlphabetSymbol> alphaInverse_;
     bool alphaInitialized_;
     bool alphaInverseInitialized_;
     int charCount_;
     int blockSize_;
 
     // holding the actual counts
-    vector< vector<dataTypeNSeq> > occ_; // addressing: occ_[blockID][char]
-    vector< map<dataTypedimAlpha, dataTypedimAlpha> > mapCountToBlock_; // adressing mapCountToBlock_[char][countToFind]==blockID
+    vector< vector<SequenceNumber> > occ_; // addressing: occ_[blockID][char]
+    vector< map<AlphabetSymbol, AlphabetSymbol> > mapCountToBlock_; // adressing mapCountToBlock_[char][countToFind]==blockID
     vector< StaticOccComparison > compareObjects_;
 
 };

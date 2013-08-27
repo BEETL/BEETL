@@ -52,5 +52,5 @@ void Logger::setVerbosity( const string &verbosityString )
         currentVerbosity = 1;
     }
 
-    Logger::out( LOG_SHOW_IF_VERBOSE ) << "Setting logging to level " << currentVerbosity << endl;
+    Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Setting logging to level " << currentVerbosity << endl;
 }

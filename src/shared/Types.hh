@@ -18,39 +18,58 @@
 #ifndef DEFINED_TYPES_HH
 #define DEFINED_TYPES_HH
 
+#include <stdint.h>
 #include <string>
 
 using std::string;
 
 
-/* Standard data types */
+// Standard data types
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
 
-// used for huffman encoder
+// Type to represent: Number of sequences
+// below limits to 4 billion reads max - change to uint64_t for more
+typedef uint32_t SequenceNumber;
+
+// Type to represent: Sequence length (in biologic case 100)
+typedef uint32_t SequenceLength;
+
+// Type to represent: character position or number of characters in BWT
+// Should work for BWT of up to 2^64 characters in size
+typedef uint64_t LetterNumber;
+const LetterNumber maxLetterNumber( static_cast<LetterNumber>( -1 ) );
+
+
+// For Countwords
+const LetterNumber matchFlag( ( ( LetterNumber )1 ) << ( ( 8 * sizeof( LetterNumber ) ) - 1 ) );
+const LetterNumber matchMask( ~matchFlag );
+
+// For Metagenomics
+const string taxLevel[] = {"superkingdom", "phylum", "class", "order", "family", "genus", "species", "strain"};
+const uint taxLevelSize = 8;
+typedef uint32_t MetagFileNumRefType;
+
+// For generalized suffix array (GSA): Definition of each element
+struct ElementType
+{
+    SequenceLength sa;          //It is the position in the sequence, so it goes from 0 a length read
+    SequenceNumber numSeq;  //It is the number of the sequence.
+};
+
+// For Huffman encoder
 union BitBuffer
 {
     unsigned int ui;
     unsigned long long ull;
 };
 
-// below limits to 4 billion reads max - change to unsigned long for more
-typedef unsigned int SequenceNumberType;
+// USE_ATTRIBUTE_PACKED: if set, set __attribute__((packed)) for the
+// struct sortElement in Sorting.hh; reduces the memory consumption from
+// 24 to 17 bytes per input base
+#define USE_ATTRIBUTE_PACKED 1
 
-// Should work for BWT of up to 2^64 characters in size
-typedef unsigned long long LetterCountType;
-
-const LetterCountType maxLetterCountType( static_cast<LetterCountType>( -1 ) );
-
-const LetterCountType matchFlag( ( ( LetterCountType )1 ) << ( ( 8 * sizeof( LetterCountType ) ) - 1 ) );
-const LetterCountType matchMask( ~matchFlag );
-
-const string taxLevel[] = {"superkingdom", "phylum", "class", "order", "family", "genus", "species", "strain"};
-const uint taxLevelSize = 8;
-
-typedef unsigned int MetagFileNumRefType;
-//typedef unsigned short MetagFileNumRefType;
 
 #endif

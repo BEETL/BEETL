@@ -64,7 +64,7 @@ struct LetterCount
     } // ~clear
 
     //  LetterCountData count_;
-    LetterCountType count_[alphabetSize];
+    LetterNumber count_[alphabetSize];
 }; // ~LetterCount
 
 struct LetterCountEachPile : public vector<LetterCount>
@@ -74,9 +74,9 @@ struct LetterCountEachPile : public vector<LetterCount>
         resize( alphabetSize );
         clear();
     }  // ~ctor
-    void clear( void )
+    void clear( const int startIndex = 0 )
     {
-        for ( int i( 0 ); i < alphabetSize; i++ ) ( *this )[i].clear();
+        for ( int i( startIndex ); i < alphabetSize; i++ ) ( *this )[i].clear();
     } // ~clear
 
     void print( void )

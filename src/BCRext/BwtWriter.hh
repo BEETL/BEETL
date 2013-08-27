@@ -32,10 +32,10 @@ struct BwtWriterBase
 {
     virtual ~BwtWriterBase() {};
 
-    virtual void operator()( const char *p, int numChars ) = 0;
+    virtual void operator()( const char *p, LetterNumber numChars ) = 0;
 
-    virtual void sendRun( char c, int runLength ) = 0;
-    virtual void sendRunOfPreExistingData( char c, int runLength, int fileNum, size_t posInRamFile, int remainingRunLength )
+    virtual void sendRun( char c, LetterNumber runLength ) = 0;
+    virtual void sendRunOfPreExistingData( char c, LetterNumber runLength, int fileNum, size_t posInRamFile, LetterNumber remainingRunLength )
     {
         sendRun( c, runLength );
     };
@@ -47,6 +47,10 @@ struct BwtWriterBase
     {
         return false;
     }
+    virtual void flush()
+    {
+        assert( false && "virtual method needs implementing" );
+    }
 }; // ~BwtWriterBase
 
 struct BwtWriterFile : public BwtWriterBase
@@ -55,10 +59,7 @@ struct BwtWriterFile : public BwtWriterBase
 
     virtual ~BwtWriterFile();
 
-    //  virtual void operator()( const char* p, int numChars ) =0;
-
-
-    //  virtual void sendRun( char c, int runLength ) =0;
+    virtual void flush();
 
 
     FILE *pFile_;
@@ -72,9 +73,9 @@ struct BwtWriterASCII : public BwtWriterFile
 
     virtual ~BwtWriterASCII();
 
-    virtual void operator()( const char *p, int numChars );
+    virtual void operator()( const char *p, LetterNumber numChars );
 
-    virtual void sendRun( char c, int runLength );
+    virtual void sendRun( char c, LetterNumber runLength );
     virtual char getLastChar();
 
     char lastChar_;
@@ -93,24 +94,28 @@ struct BwtWriterRunLength : public BwtWriterFile
 
     virtual ~BwtWriterRunLength();
 
-    virtual void operator()( const char *p, int numChars );
+    virtual void operator()( const char *p, LetterNumber numChars );
 
     void sendChar( char c );
 
-    void encodeRun( char c, uint runLength );
+    void encodeRun( char c, LetterNumber runLength );
 
-    virtual void sendRun( char c, int runLength );
+    virtual void sendRun( char c, LetterNumber runLength );
     virtual char getLastChar();
+    virtual void flush();
 
-    uint runLength_;
+    LetterNumber runLength_;
     uchar buf_[ReadBufferSize];
     uchar *pBuf_;
     const uchar *pBufMax_;
     uchar lastChar_;
 #ifdef REPORT_COMPRESSION_RATIO
-    LetterCountType charsReceived_;
-    LetterCountType bytesWritten_;
+    LetterNumber charsReceived_;
+    LetterNumber bytesWritten_;
 #endif
+
+protected:
+    virtual void flushBuffer();
 }; // ~BwtWriterRunLength
 
 struct BwtWriterIncrementalRunLength : public BwtWriterFile
@@ -119,28 +124,28 @@ struct BwtWriterIncrementalRunLength : public BwtWriterFile
 
     virtual ~BwtWriterIncrementalRunLength();
 
-    virtual void operator()( const char *p, int numChars );
+    virtual void operator()( const char *p, LetterNumber numChars );
 
     void terminateLastInsertion();
     void sendChar( unsigned char c, unsigned char metadata );
 
-    void encodeRun( char c, uint runLength );
+    void encodeRun( char c, LetterNumber runLength );
 
-    virtual void sendRun( char c, int runLength );
-    virtual void sendRunOfPreExistingData( char c, int runLength, int fileNum, size_t posInRamFile, int remainingRunLength );
+    virtual void sendRun( char c, LetterNumber runLength );
+    virtual void sendRunOfPreExistingData( char c, LetterNumber runLength, int fileNum, size_t posInRamFile, LetterNumber remainingRunLength );
     virtual bool isIncremental()
     {
         return true;
     }
 
-    uint runLength_;
+    LetterNumber runLength_;
     uchar buf_[ReadBufferSize];
     uchar *pBuf_;
     const uchar *pBufMax_;
     uchar lastChar_;
 #ifdef REPORT_COMPRESSION_RATIO
-    LetterCountType charsReceived_;
-    LetterCountType bytesWritten_;
+    LetterNumber charsReceived_;
+    LetterNumber bytesWritten_;
 #endif
 
 private:
@@ -148,7 +153,7 @@ private:
     static uint nextFileNum_;
     uint fileNumInReader_;
     size_t filePosInReader_;
-    int remainingRunLengthInReader_;
+    LetterNumber remainingRunLengthInReader_;
     bool lastFileReturnNeeded_;
     unsigned char onHoldUntilNextReturn_letter_;
     unsigned char onHoldUntilNextReturn_runLength_;
@@ -177,13 +182,13 @@ struct BwtWriterHuffman : public BwtWriterFile
             symBuf[i] = 0;
         }
     }
-    void sendToken( unsigned long long code, uint length );
+    void sendToken( unsigned long long code, LetterNumber length );
 
-    virtual void operator()( const char *p, int numChars );
+    virtual void operator()( const char *p, LetterNumber numChars );
 
-    virtual void sendRun( char c, int runLength );
+    virtual void sendRun( char c, LetterNumber runLength );
 
-    void sendNum( uint runLength );
+    void sendNum( LetterNumber runLength );
 
     void emptyBuffer( void );
 
@@ -196,13 +201,13 @@ struct BwtWriterHuffman : public BwtWriterFile
     BitBuffer numBuf_;
     int bitsUsed_;
     char lastChar_;
-    uint runLength_;
+    LetterNumber runLength_;
     uint huffmanBufferPos;
     uchar symBuf[huffmanWriterBufferSize];
 
 #ifdef REPORT_COMPRESSION_RATIO
-    LetterCountType charsReceived_;
-    LetterCountType bytesWritten_;
+    LetterNumber charsReceived_;
+    LetterNumber bytesWritten_;
 #endif
 }; // ~BwtWriterHuffman
 
@@ -214,9 +219,9 @@ struct BwtWriterImplicit : public BwtWriterBase
 
     virtual ~BwtWriterImplicit();
 
-    virtual void operator()( const char *p, int numChars );
+    virtual void operator()( const char *p, LetterNumber numChars );
 
-    virtual void sendRun( char c, int runLength );
+    virtual void sendRun( char c, LetterNumber runLength );
 
     void flushSAP( void );
 
@@ -226,7 +231,7 @@ struct BwtWriterImplicit : public BwtWriterBase
     BwtWriterBase *pWriter_;
 
     char lastChar_;
-    int lastRun_;
+    LetterNumber lastRun_;
 
 
     bool inSAP_;

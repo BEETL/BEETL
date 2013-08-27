@@ -53,12 +53,12 @@ bool Rank::initialize( const string &fn, const int &blockSize )
 
     blockSize_ = blockSize;
 
-    dataTypeNChar noOfBlocks = ( dataTypeNChar )bwtLength / blockSize + 1; // + 1 to hold the fraction of bases
+    LetterNumber noOfBlocks = ( LetterNumber )bwtLength / blockSize + 1; // + 1 to hold the fraction of bases
     // resize occ_
     cerr << "Resizing occ_ to hold " << noOfBlocks << " blocks of size " << charCount_ << "." << endl;
     cerr << "character count = " << charCount_ << endl;
     occ_.resize( noOfBlocks );
-    for ( dataTypeNChar i = 0; i < noOfBlocks; i++ )
+    for ( LetterNumber i = 0; i < noOfBlocks; i++ )
     {
         occ_[i].resize( charCount_ );
     }
@@ -75,7 +75,7 @@ bool Rank::initialize( const string &fn, const int &blockSize )
     int blockIdx = 0;
 
     // parse the current block
-    vector<dataTypeNSeq> curBlock( charCount_ );
+    vector<SequenceNumber> curBlock( charCount_ );
 
     while ( !feof( ifsBWT ) )
     {
@@ -123,7 +123,7 @@ Rank::~Rank()
 }
 
 
-bool Rank::setAlpha( dataTypedimAlpha *alpha, const int &s )
+bool Rank::setAlpha( AlphabetSymbol *alpha, const int &s )
 {
     // resize internally
     alpha_.resize( s, 0 );
@@ -139,7 +139,7 @@ bool Rank::setAlpha( dataTypedimAlpha *alpha, const int &s )
 }
 
 
-bool Rank::setAlphaInverse( dataTypedimAlpha *alphaInverse, const int &s )
+bool Rank::setAlphaInverse( AlphabetSymbol *alphaInverse, const int &s )
 {
     // resize internally
     alphaInverse_.resize( s, 0 );
@@ -156,22 +156,22 @@ bool Rank::setAlphaInverse( dataTypedimAlpha *alphaInverse, const int &s )
 
 
 
-dataTypeNChar Rank::getInverseRank( const char &c, const dataTypeNChar &n )
+LetterNumber Rank::getInverseRank( const char &c, const LetterNumber &n )
 {
 
     // use STL lower_bound to get the first element that does not
     // violate the ordering
     int mappedIdx = ( int )alpha_[( int )c];
 
-    //  vector< vector<dataTypeNSeq> >::iterator it = lower_bound( occ_.begin(),occ_.end(),n,OccComparison::CompareOcc );
-    vector< vector<dataTypeNSeq> >::iterator it = lower_bound( occ_.begin(), occ_.end(), n, compareObjects_[mappedIdx] );
+    //  vector< vector<SequenceNumber> >::iterator it = lower_bound( occ_.begin(),occ_.end(),n,OccComparison::CompareOcc );
+    vector< vector<SequenceNumber> >::iterator it = lower_bound( occ_.begin(), occ_.end(), n, compareObjects_[mappedIdx] );
 
     // calculate position within the block
-    dataTypeNChar blockIdx = it - occ_.begin();
+    LetterNumber blockIdx = it - occ_.begin();
 
     // seek to position blockIdx*blockSize_
-    dataTypeNChar bwtPos = blockIdx * blockSize_;
-    dataTypeNChar characterCount = ( *it )[mappedIdx];
+    LetterNumber bwtPos = blockIdx * blockSize_;
+    LetterNumber characterCount = ( *it )[mappedIdx];
 
     fseek( ifsBWT, bwtPos, SEEK_SET ); // TODO, move to the end!!
 

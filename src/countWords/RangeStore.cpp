@@ -17,12 +17,36 @@
 
 #include "RangeStore.hh"
 
+#include "libzoo/util/Logger.hh"
+
 #include <cstring>
 #include <inttypes.h>
 #include <unistd.h>
 
 using namespace std;
 
+
+bool RangeStore::isSubsetValid( const string &subset, const int cycle, const int pileNum, const int portionNum, const string &seq )
+{
+    switch ( subset.size() )
+    {
+        case 0:
+            return true;
+
+        case 1:
+            if ( cycle == 1 && subset[subset.size() - cycle] != alphabet[portionNum] )
+                return false;
+            return true;
+
+        default:
+            if ( cycle < ( int )subset.size() && cycle >= 1 )
+            {
+                if ( subset[subset.size() - cycle - 1] != alphabet[pileNum] || subset[subset.size() - cycle] != alphabet[portionNum] )
+                    return false;
+            }
+    }
+    return true;
+}
 
 //
 // RangeStoreRAM - hold BWT intervals in guess where
@@ -57,15 +81,13 @@ bool RangeStoreRAM::getRange( Range &thisRange )
 }  // ~getRange
 
 
-void RangeStoreRAM::addRange( int pileNum, int portionNum, const string &seq,
-                              LetterCountType pos, LetterCountType num, const string &subset )
+void RangeStoreRAM::addRange( const int pileNum, const int portionNum, const string &seq,
+                              const LetterNumber pos, const LetterNumber num, const bool flags, const string &subset, const int cycle )
 {
     assert( subset.empty() && "todo" );
     ( *pNext )[pileNum][portionNum].push_back( Range( seq, pos, num ) );
-#ifdef DEBUG
-    cout << "add range: " << alphabet[pileNum] << " " << alphabet[portionNum]
-         << " " << seq << " " << pos << " " << num << endl;
-#endif
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "add range: " << alphabet[pileNum] << " " << alphabet[portionNum]
+            << " " << seq << " " << pos << " " << num << endl;
 } // ~addRange
 
 // clear range store ready for next iter
@@ -98,7 +120,8 @@ void RangeState::clear( void )
     //  wordLast_+=notInAlphabet;
     wordLast_[0] = notInAlphabet;
     wordLast_[1] = '\0';
-    posLast_ = 0;
+    //    posLast_ = 0;
+    lastProcessedPos_ = 0;
     if ( pFile_ != NULL ) fclose( pFile_ );
     pFile_ = NULL;
 } // ~clear
@@ -119,10 +142,7 @@ void RangeState::addSeq( const string &seq )
             --pSeqLen;
             ++pLast;
         }
-#ifdef DEBUG
-        cout << "FF " << wordLast_ << " " << seq << " " << pSeq << endl;
-#endif
-        //        fprintf( pFile_, "%s\n", pSeq );
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "FF " << wordLast_ << " " << seq << " " << pSeq << endl;
         assert( pSeqLen < 256 );
         fwrite( &pSeqLen, sizeof( uint16_t ), 1, pFile_ );
         fwrite( pSeq, pSeqLen, 1, pFile_ );
@@ -149,9 +169,7 @@ void RangeState::getSeq( string &word )
 #ifdef COMPRESS_SEQ
     if ( wordLast_[0] != notInAlphabet )
     {
-#ifdef DEBUG
-        cout << "FF " << word;
-#endif
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "FF " << word;
         word = wordLast_;
         unsigned int wordLen = strlen( wordLast_ ); //word.size();
 
@@ -172,9 +190,7 @@ void RangeState::getSeq( string &word )
         //        for ( unsigned int i( 0 ); i < wordLastLen; i++ )
         //            word[wordLen - wordLastLen + i] = wordLast_[i];
         word = wordLast_;
-#ifdef DEBUG
-        cout << " -> " << word << endl;
-#endif
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << " -> " << word << endl;
     }
     else
     {
@@ -195,18 +211,16 @@ void RangeState::getSeq( string &word )
 #endif //ifdef COMPRESS_SEQ
 }
 
-void RangeState::addNum( LetterCountType num )
+void RangeState::addNum( LetterNumber num )
 {
-#ifdef DEBUG
-    cout << "AN: send " << num << endl;
-#endif
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "AN: send " << num << endl;
     if ( ( num >> 60 ) != 0 )
     {
         cerr << "Overflow in RangeState::addNum. Aborting." << endl;
         exit( -1 );
     }
     num <<= 4;
-    LetterCountType num2 = num >> 8;
+    LetterNumber num2 = num >> 8;
     unsigned char extraByteCount = 0;
     while ( num2 != 0 )
     {
@@ -222,21 +236,20 @@ void RangeState::addNum( LetterCountType num )
 
     if ( fwrite( &num, 1 + extraByteCount, 1, pFile_ ) != 1 )
     {
-        cerr << "Could not write " << extraByteCount
-             << " chars to file. Aborting." << endl;
+        cerr << "Could not write " << ( int )extraByteCount
+             << "+1 chars to file. Aborting." << endl;
         exit( -1 );
     }
 }
 
-bool RangeState::getNum( LetterCountType &num )
+bool RangeState::getNum( LetterNumber &num )
 {
     num = 0;
     if ( fread( &num, 1, 1, pFile_ ) != 1 )
         return false;
-#ifdef DEBUG
-    cout << "AN: got " << num << endl;
-#endif
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "AN: got " << num << endl;
     int count = num & 0xF;
+    assert( count < ( int )sizeof( LetterNumber ) );
     if ( count > 0 && fread( ( ( char * )&num ) + 1, count, 1, pFile_ ) != 1 )
     {
         cerr << "Could not read " << count << " chars from file " << fileno( pFile_ ) << " pos " << ftell( pFile_ ) << " . Aborting." << endl;
@@ -251,10 +264,24 @@ bool RangeState::getNum( LetterCountType &num )
     }
     num >>= 4;
 
-#ifdef DEBUG
-    cout << "AN: decoded " << num << endl;
-#endif
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "AN: decoded " << num << endl;
     return true;
+}
+
+void RangeState::addFlag( bool flag )
+{
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "AN: send " << flag << endl;
+    if ( fwrite( &flag, 1, 1, pFile_ ) != 1 )
+    {
+        cerr << "Could not write 1 char to file. Aborting." << endl;
+        exit( -1 );
+    }
+}
+
+bool RangeState::getFlag( bool &flag )
+{
+    flag = 0;
+    return ( fread( &flag, 1, 1, pFile_ ) == 1 );
 }
 
 
@@ -275,18 +302,14 @@ RangeStoreExternal::RangeStoreExternal( const string fileStemIn,
             // stateOut_[i][j].pFile_=NULL;
             // (*pThis)[i][j].clear();
             getFileName( fileStemIn_, i, j, fileName );
-            if ( remove( fileName.c_str() ) == 0 )
+            if ( TemporaryRamFile::remove( fileName.c_str() ) == 0 )
             {
-#ifdef DEBUG
-                cerr << "Removed " << fileName << endl;
-#endif
+                Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "Removed " << fileName << endl;
             }
             getFileName( fileStemOut_, i, j, fileName );
-            if ( remove( fileName.c_str() ) == 0 )
+            if ( TemporaryRamFile::remove( fileName.c_str() ) == 0 )
             {
-#ifdef DEBUG
-                cerr << "Removed " << fileName << endl;
-#endif
+                Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "Removed " << fileName << endl;
             }
         } // ~for j
     } // ~for i
@@ -296,130 +319,166 @@ RangeStoreExternal::~RangeStoreExternal() {}
 
 void RangeStoreExternal::swap( void )
 {
-#ifdef DEBUG
-    cout << "swap" << endl;
-    cout << fileStemIn_ << " " << fileStemOut_ << endl;
-#endif
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "swap " << fileStemIn_ << " " << fileStemOut_ << endl;
     string temp = fileStemIn_;
     fileStemIn_ = fileStemOut_;
     fileStemOut_ = temp;
-#ifdef DEBUG
-    cout << fileStemIn_ << " " << fileStemOut_ << endl;
-#endif
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << fileStemIn_ << " " << fileStemOut_ << endl;
 } // ~swap
 
 void RangeStoreExternal::setPortion( int pileNum, int portionNum )
 {
-#ifdef DEBUG
-    cout << "set portion " << alphabet[pileNum] << alphabet[portionNum] << endl;
-#endif
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "set portion " << alphabet[pileNum] << alphabet[portionNum] << endl;
     stateIn_.clear();
     //    if (stateIn_.pFile_!=NULL) fclose(stateIn_.pFile_);
     string fileName;
     getFileName( fileStemIn_, pileNum, portionNum, fileName );
-#ifdef DEBUG
-    cout << "Made input file name " << fileName << endl;
-#endif
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "Made input file name " << fileName << endl;
     stateIn_.pFile_ = TemporaryRamFile::fopen( fileName.c_str(), "rb" );
-#ifdef DEBUG
     if ( stateIn_.pFile_ == NULL )
     {
-        cerr << "Warning: no file " << fileName
-             << " found, presuming no ranges of interest in this region"
-             << endl;
-    } // ~if
-#endif
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "Warning: no file " << fileName
+                << " found, presuming no ranges of interest in this region"
+                << endl;
+    }
+    stateIn_.lastProcessedPos_ = 0;
 }
 
-bool RangeStoreExternal::getRange( Range &thisRange )
+bool RangeStoreExternal::getRange( RangeState &stateFileIn, Range &thisRange )
 {
-#ifdef DEBUG
-    cout << "get range: " << fileStemIn_ << endl;
-#endif
-    if ( stateIn_.pFile_ == NULL )
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "get range: " << fileStemIn_ << endl;
+    LetterNumber offsetAndFlags;
+    if ( stateFileIn.pFile_ == NULL || feof( stateFileIn.pFile_ ) )
         return false;
-    //    else if (fread(&thisRange.pos_,sizeof(LetterCountType),1,
-    //     stateIn_.pFile_)!=1)
-    else if ( stateIn_.getNum( thisRange.pos_ ) == false )
+    else if ( stateFileIn.getNum( offsetAndFlags ) == false )
     {
-        fclose( stateIn_.pFile_ );
-        stateIn_.pFile_ = NULL;
         return false;
-
     }
     else
     {
-        thisRange.pos_ = ( ( thisRange.pos_ & 1 ) << 63 ) | ( thisRange.pos_ >> 1 );
+        bool flag2 = offsetAndFlags & 1;
+        bool flag1 = ( offsetAndFlags >> 1 ) & 1;
+        LetterNumber posWithoutBit63 = ( offsetAndFlags >> 2 ) + stateFileIn.lastProcessedPos_;
 
-        //      assert(fread(&thisRange.num_,sizeof(LetterCountType),1,
-        //     stateIn_.pFile_)==1);
+        thisRange.pos_ = ( ( ( LetterNumber )flag1 ) << 63 ) | posWithoutBit63;
+        thisRange.isBkptExtension_ = flag2;
 
-        if ( !stateIn_.getNum( thisRange.num_ ) )
+        if ( !stateFileIn.getNum( thisRange.num_ ) )
         {
             cerr << "getNum did not return true. Aborting." << endl;
         }
 
+        stateFileIn.lastProcessedPos_ = posWithoutBit63 + thisRange.num_;
+
 #ifdef PROPAGATE_PREFIX
-        stateIn_.getSeq( thisRange.word_ );
+        stateFileIn.getSeq( thisRange.word_ );
 #endif
-        //      assert(fgets(buf_,256,stateIn_.pFile_)!=NULL);
+        //      assert(fgets(buf_,256,stateFileIn.pFile_)!=NULL);
         //  buf_[strlen(buf_)-1]='\0';
         //  thisRange.word_=buf_;
 
+        //stateFileIn.getFlag( thisRange.isBkptExtension_ );
 
-#ifdef DEBUG
-        cout << "got range: " << fileStemIn_ << " " << thisRange.word_ << " " << thisRange.pos_
-             << " " << thisRange.num_ << endl;
+
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "got range: " << fileStemIn_
+#ifdef PROPAGATE_PREFIX
+                << " " << thisRange.word_
 #endif
+                << " " << thisRange.pos_
+                << " " << thisRange.num_ << " " << thisRange.isBkptExtension_ << endl;
         return true;
     }
 } // ~getRange
 
-void RangeStoreExternal::addRange( int pileNum, int portionNum, const string &seq,
-                                   LetterCountType pos, LetterCountType num, const string &subset )
+bool RangeStoreExternal::getRange( Range &thisRange )
 {
-    if ( !subset.empty() )
+    return getRange( stateIn_, thisRange );
+}
+
+bool RangeStoreExternal::isRangeKnown( const int pileNum, const int portionNum, const string &seq,
+                                       const LetterNumber pos, const LetterNumber num, const bool flags, const string &subset, const int cycle )
+{
+    if ( !isSubsetValid( subset, cycle, pileNum, portionNum, seq ) )
+        return false;
+
+    // Checks whether the interval already existed at the previous cycle
+    if ( stateInForComparison_[pileNum][portionNum].pFile_ == NULL )
     {
-        if ( seq.size() >= subset.size() )
+        string fileName;
+        getFileName( fileStemIn_, pileNum, portionNum, fileName );
+        stateInForComparison_[pileNum][portionNum].pFile_ = TemporaryRamFile::fopen( fileName.c_str(), "rb" );
+        stateInForComparison_[pileNum][portionNum].lastProcessedPos_ = 0;
+
+        lastRangeReadForComparison_[pileNum][portionNum].pos_ = 0;
+        lastRangeReadForComparison_[pileNum][portionNum].num_ = 0;
+    }
+    if ( stateInForComparison_[pileNum][portionNum].pFile_ )
+    {
+        while ( lastRangeReadForComparison_[pileNum][portionNum].pos_ < pos )
         {
-            if ( !hasSuffix( seq, subset ) )
-                return;
+            if ( !getRange( stateInForComparison_[pileNum][portionNum], lastRangeReadForComparison_[pileNum][portionNum] ) )
+                lastRangeReadForComparison_[pileNum][portionNum].pos_ = maxLetterNumber;
         }
-        else
+        if ( pos == lastRangeReadForComparison_[pileNum][portionNum].pos_ &&
+             num == lastRangeReadForComparison_[pileNum][portionNum].num_ )
         {
-            if ( !hasSuffix( subset, seq ) )
-                return;
+            Logger_if( LOG_SHOW_IF_VERBOSE )
+            {
+                Logger::out() << "Range detected as already processed: " << seq << " " << pos << " " << num << endl;
+            }
+            return false;
         }
     }
-#ifdef DEBUG
-    cout << "set range: " << fileStemIn_ << " " << alphabet[pileNum] << " " << alphabet[portionNum]
-         << " " << seq << " " << pos << " " << num << endl;
-#endif
+    return true;
+}
+
+void RangeStoreExternal::addRange( const int pileNum, const int portionNum, const string &seq,
+                                   const LetterNumber pos, const LetterNumber num, const bool flags, const string &subset, const int cycle )
+{
+    if ( !isSubsetValid( subset, cycle, pileNum, portionNum, seq ) )
+        return;
+
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+    {
+        Logger::out() << "set range: " << fileStemOut_ << " " << alphabet[pileNum] << " " << alphabet[portionNum] << " " << seq << " " << pos << " " << num << endl;
+    }
+
     if ( stateOut_[pileNum][portionNum].pFile_ == NULL )
     {
         string fileName;
         getFileName( fileStemOut_, pileNum, portionNum, fileName );
-#ifdef DEBUG
-        cout << "Made output file name " << fileName << endl;
-#endif
-        stateOut_[pileNum][portionNum].pFile_ = TemporaryRamFile::fopen( fileName.c_str(), "wb", subset.empty() ? 0 : ( 32 * 1024 * 1024 ) ); // 32 MB * 64 files = 2GB, good for our cluster jobs
-    } // ~if
-    //    assert(fwrite(&pos,sizeof(LetterCountType),1,
-    //   stateOut_[pileNum][portionNum].pFile_)==1);
-    //    assert(fwrite(&num,sizeof(LetterCountType),1,
-    //   stateOut_[pileNum][portionNum].pFile_)==1);
-    stateOut_[pileNum][portionNum].addNum( ( pos << 1 ) | ( ( pos >> 63 ) & 1 ) ); // Move the last bit flag to bit 0 for better downstream compression
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "Made output file name " << fileName << endl;
+
+        stateOut_[pileNum][portionNum].pFile_ = TemporaryRamFile::fopen( fileName.c_str(), "wb", static_cast<uint64_t>( TemporaryFilesManager::get().ramLimitMB_ * 1024 * ( 1024 / 64 ) * 0.5 ) ); // Reserves half of the available RAM for temporary files
+        stateOut_[pileNum][portionNum].lastProcessedPos_ = 0;
+    }
+
+    LetterNumber &lastProcessedPosOut = stateOut_[pileNum][portionNum].lastProcessedPos_;
+
+    // Decode pos with its bit63 flag, and re-encode pos offset and flags together
+    //  + move the flag bits to bit 0 for better downstream compression
+    LetterNumber posWithoutBit63 = pos & 0x7FFFFFFFFFFFFFFFull;
+    bool flag1 = pos >> 63;
+    bool flag2 = flags;
+    assert( posWithoutBit63 >= lastProcessedPosOut );
+    LetterNumber offsetAndFlags = ( ( posWithoutBit63 - lastProcessedPosOut ) << 2 ) | ( flag1 << 1 ) | flag2;
+
+    stateOut_[pileNum][portionNum].addNum( offsetAndFlags );
     stateOut_[pileNum][portionNum].addNum( num );
 
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "set range: " << fileStemOut_ << " " << alphabet[pileNum] << " " << alphabet[portionNum]
+            << " seq=" << seq << " pos=" << posWithoutBit63 << " length=" << num << " flag1=" << flag1 << " flag2=" << flag2 << " lastProcessedPosOut=" << lastProcessedPosOut << endl;
 
-#ifdef DEBUG
-    cout << "add seq " << seq.c_str() << " " << strlen( seq.c_str() ) << endl;
-#endif
+    lastProcessedPosOut = posWithoutBit63 + num;
+
+#ifdef PROPAGATE_PREFIX
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "add seq " << seq.c_str() << " " << strlen( seq.c_str() ) << endl;
     //    fputs(seq.c_str(),fileOut_[pileNum][portionNum]);
     //    fprintf(stateOut_[pileNum][portionNum].pFile_,"%s\n",seq.c_str());
-#ifdef PROPAGATE_PREFIX
     stateOut_[pileNum][portionNum].addSeq( seq );
 #endif
+
+    //    stateOut_[pileNum][portionNum].addFlag( flags );
 }
 
 void RangeStoreExternal::clear( void )
@@ -435,18 +494,18 @@ void RangeStoreExternal::clear( void )
             //  fclose( stateOut_[i][j].pFile_ );
             // stateOut_[i][j].pFile_=NULL;
             stateOut_[i][j].clear();
+            stateInForComparison_[i][j].clear();
 
             getFileName( fileStemIn_, i, j, fileName );
-            if ( remove( fileName.c_str() ) != 0 )
+            if ( TemporaryRamFile::remove( fileName.c_str() ) != 0 )
             {
-#ifdef DEBUG
-                cerr << "Could not remove " << fileName << endl;
-#endif
+                Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "Could not remove " << fileName << endl;
             }
 
             // (*pThis)[i][j].clear();
         } // ~for j
     } // ~for i
+    //    stateIn_.lastProcessedPos_ = 0;
 } // ~clear
 
 void RangeStoreExternal::getFileName( const string &stem, const int pile, const int portion,

@@ -19,11 +19,13 @@
 
 #include "BwtReader.hh"
 #include "BwtWriter.hh"
-#include "Common.hh"
+#include "libzoo/cli/Common.hh"
+#include "libzoo/io/Bcl.hh"
 #include "LetterCount.hh"
 #include "SeqReader.hh"
 #include "TransposeFasta.hh"
 #include "config.h"
+#include "parameters/ConvertParameters.hh"
 
 #include <algorithm>
 #include <cassert>
@@ -33,97 +35,121 @@
 #include <sstream>
 #include <sys/stat.h>
 
-using namespace std;
+#include "../redist/gzstream.hh"
 
+using namespace std;
+using namespace BeetlConvertParameters;
+
+
+ConvertParameters params;
+static const char binToBase[4] = { 'A', 'C', 'G', 'T' };
 
 void printUsage()
 {
-    cout << "Parameters:" << endl;
-    cout << "    --input (-i)             Input file name or prefix" << endl;
-    cout << "    --output (-o)            Output file name or prefix" << endl;
-    cout << endl;
-    cout << "Options:" << endl;
-    cout << "    --input-format           = autodetect [fastq|fasta|seq|cyc|bcl|bwt_ascii|bwt_rle]" << endl;
-    cout << "    --output-format          = autodetect [fastq|fasta|seq|cyc|bwt_ascii|bwt_rle]" << endl;
-    cout << "    --help (-h)              Help" << endl;
-    cout << endl;
+    params.printUsage();
+
     cout << "Formats:" << endl;
     cout << "    FASTQ     : 4 lines per read ('@'read name, nucleotides, '+', bases)" << endl;
     cout << "    FASTA     : 2 lines per read ('>'read name, nucleotides)" << endl;
     cout << "    seq       : 1 line  per read (nucleotides)" << endl;
     cout << "    cyc       : 1 file per cycle (byte K in file cycN  = Nth nucleotide of Kth read)" << endl;
     cout << "    BCL       : Conversion of a single cycle corresponding to 1 BCL file - only works with output-format=cyc" << endl;
+    cout << "    RunFolder : Illumina Run Folder containing BCL files" << endl;
     cout << "    BWT_ASCII : ASCII sequence of BWT-reordered nucleotides" << endl;
     cout << "    BWT_RLE   : Run-length-encoded version of BWT_ASCII, where bits 0-3 = binary-encoded nucleotide and bits 4-7 = count-1" << endl;
     cout << endl;
 }
 
-struct BeetlConvertArguments
+void outputSequenceConstrainedWithSequenceLength( ofstream &outputStream, string &str2, const ParameterEntry &sequenceLength )
 {
-    string argInput;
-    string argOutput;
-    string argInputFormat;
-    string argOutputFormat;
+    // Warning: may modify str2
+    if ( sequenceLength.isSet() && str2.size() != sequenceLength )
+    {
+        if ( str2.size() < sequenceLength )
+            outputStream << string( sequenceLength - str2.size(), 'N' ); // pre-pad with 'N'
+        else
+            str2.erase( sequenceLength );
+    }
+    outputStream << str2 << '\n';
+}
 
-    BeetlConvertArguments() {}
-};
-
-
-void convert( const BeetlConvertArguments &args )
+void outputLineUsingMissingDataFrom( ofstream &outputStream, ifstream &missingDataFile, ostringstream &ss )
 {
-    cout << "Conversion from " << args.argInputFormat << " to " << args.argOutputFormat << " (" << args.argInput << " -> " << args.argOutput << ")" << endl;
+    string str;
+    if ( missingDataFile.good() && getline( missingDataFile, str ) )
+        outputStream << str << '\n';
+    else
+        outputStream << ss.str() << '\n';
+}
 
-    if ( args.argInputFormat == args.argOutputFormat )
+void skipLineInMissingDataFile( ifstream &missingDataFile )
+{
+    string str;
+    if ( missingDataFile.good() )
+        getline( missingDataFile, str );
+}
+
+void launchBeetlConvert()
+{
+    cout << "Conversion from " << params.getStringValue( "input format" ) << " to " << params.getStringValue( "output format" ) << " (" << params.getStringValue( "input filename" ) << " -> " << params.getStringValue( "output filename" ) << ")" << endl;
+
+    ifstream missingDataFile;
+    if ( params["use missing data from"].isSet() )
+    {
+        missingDataFile.open( params.getStringValue( "use missing data from" ).c_str() );
+    }
+
+    if ( params.getStringValue( "input format" ) == params.getStringValue( "output format" ) )
     {
         cerr << "Error: same input and output formats" << endl;
         exit ( 1 );
     }
-    else if ( args.argInputFormat == "fasta" )
+    else if ( params["input format"] == INPUT_FORMAT_FASTA )
     {
-        if ( args.argOutputFormat == "fastq" )
+        if ( params["output format"] == OUTPUT_FORMAT_FASTQ )
         {
             // FASTA -> FASTQ
             cerr << "Error: fasta->fastq needs extra qualities" << endl;
             exit ( 2 );
         }
-        else if ( args.argOutputFormat == "seq" )
+        else if ( params["output format"] == OUTPUT_FORMAT_SEQ )
         {
             // FASTA -> SEQ
-            ifstream inputStream( args.argInput.c_str() );
-            ofstream outputStream( args.argOutput.c_str() );
+            ifstream inputStream( params.getStringValue( "input filename" ).c_str() );
+            ofstream outputStream( params.getStringValue( "output filename" ).c_str() );
             string str1, str2;
             while ( getline( inputStream, str1 ) &&
                     getline( inputStream, str2 ) )
             {
                 assert( !str1.empty() && str1[0] == '>' );
-                outputStream << str2 << "\n";
+                outputStream << str2 << '\n';
             }
             return;
         }
-        else if ( args.argOutputFormat == "cyc" )
+        else if ( params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // FASTA -> CYC
-            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( args.argInput.c_str(), "rb" ) ) );
+            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
             TransposeFasta trasp;
             trasp.init( pReader );
-            trasp.convert( args.argInput, args.argOutput );
+            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
             delete pReader;
             return;
         }
-        else if ( args.argOutputFormat == "bwt_ascii" || args.argOutputFormat == "bwt_rle" )
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII || params["output format"] == OUTPUT_FORMAT_BWT_RLE )
         {
             // FASTA -> BWT_*
             cerr << "Error: This is not a simple file conversion. Try \"beetl bwt\"" << endl;
             exit ( 1 );
         }
     }
-    else if ( args.argInputFormat == "fastq" )
+    else if ( params["input format"] == INPUT_FORMAT_FASTQ )
     {
-        if ( args.argOutputFormat == "fasta" )
+        if ( params["output format"] == OUTPUT_FORMAT_FASTA )
         {
             // FASTQ -> FASTA
-            ifstream inputStream( args.argInput.c_str() );
-            ofstream outputStream( args.argOutput.c_str() );
+            ifstream inputStream( params.getStringValue( "input filename" ).c_str() );
+            ofstream outputStream( params.getStringValue( "output filename" ).c_str() );
             string str1, str2, str3, str4;
             while ( getline( inputStream, str1 ) &&
                     getline( inputStream, str2 ) &&
@@ -131,16 +157,16 @@ void convert( const BeetlConvertArguments &args )
                     getline( inputStream, str4 ) )
             {
                 assert( !str1.empty() && str1[0] == '@' );
-                outputStream << ">" << str1.substr( 1 ) << "\n";
-                outputStream << str2 << "\n";
+                outputStream << ">" << str1.substr( 1 ) << '\n';
+                outputSequenceConstrainedWithSequenceLength( outputStream, str2, params["sequence length"] );
             }
             return;
         }
-        else if ( args.argOutputFormat == "seq" )
+        else if ( params["output format"] == OUTPUT_FORMAT_SEQ )
         {
             // FASTQ -> SEQ
-            ifstream inputStream( args.argInput.c_str() );
-            ofstream outputStream( args.argOutput.c_str() );
+            ifstream inputStream( params.getStringValue( "input filename" ).c_str() );
+            ofstream outputStream( params.getStringValue( "output filename" ).c_str() );
             string str1, str2, str3, str4;
             while ( getline( inputStream, str1 ) &&
                     getline( inputStream, str2 ) &&
@@ -148,87 +174,120 @@ void convert( const BeetlConvertArguments &args )
                     getline( inputStream, str4 ) )
             {
                 assert( !str1.empty() && str1[0] == '@' );
-                outputStream << str2 << "\n";
+                outputSequenceConstrainedWithSequenceLength( outputStream, str2, params["sequence length"] );
             }
             return;
         }
-        else if ( args.argOutputFormat == "cyc" )
+        else if ( params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // FASTQ -> CYC
-            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( args.argInput.c_str(), "rb" ) ) );
+            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
             TransposeFasta trasp;
             trasp.init( pReader );
-            trasp.convert( args.argInput, args.argOutput );
+            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
             delete pReader;
             return;
         }
-        else if ( args.argOutputFormat == "bwt_ascii" || args.argOutputFormat == "bwt_rle" )
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII || params["output format"] == OUTPUT_FORMAT_BWT_RLE )
         {
             // FASTQ -> BWT_*
             cerr << "Error: This is not a simple file conversion. Try \"beetl bwt\"" << endl;
             exit ( 1 );
         }
     }
-    else if ( args.argInputFormat == "seq" )
+    else if ( params["input format"] == INPUT_FORMAT_SEQ )
     {
-        if ( args.argOutputFormat == "fasta" )
+        if ( params["output format"] == OUTPUT_FORMAT_FASTA )
         {
             // SEQ -> FASTA
-            ifstream inputStream( args.argInput.c_str() );
-            ofstream outputStream( args.argOutput.c_str() );
+            ifstream inputStream( params.getStringValue( "input filename" ).c_str() );
+            ofstream outputStream( params.getStringValue( "output filename" ).c_str() );
             int seqNum = 0;
             string str;
             while ( getline( inputStream, str ) )
             {
-                outputStream << ">seq" << seqNum++ << "\n";
-                outputStream << str << "\n";
+                // line 1
+                ostringstream ss;
+                ss << ">seq" << seqNum++;
+                outputLineUsingMissingDataFrom( outputStream, missingDataFile, ss );
+
+                // line 2
+                outputStream << str << '\n';
+                skipLineInMissingDataFile( missingDataFile );
             }
             return;
         }
-        else if ( args.argOutputFormat == "fastq" )
+        else if ( params["output format"] == OUTPUT_FORMAT_FASTQ )
         {
             // SEQ -> FASTQ
-            cerr << "Error: seq->fastq needs extra qualities" << endl;
-            exit ( 2 );
+            if ( !params["use missing data from"].isSet() )
+            {
+                cerr << "Error: seq->fastq needs extra qualities (see --use-missing-data-from)" << endl;
+                exit( 2 );
+            }
+            ifstream inputStream( params.getStringValue( "input filename" ).c_str() );
+            ofstream outputStream( params.getStringValue( "output filename" ).c_str() );
+            int seqNum = 0;
+            string str;
+            while ( getline( inputStream, str ) )
+            {
+                // line 1
+                ostringstream ss1;
+                ss1 << ">seq" << seqNum++;
+                outputLineUsingMissingDataFrom( outputStream, missingDataFile, ss1 );
+
+                // line 2
+                outputStream << str << '\n';
+                skipLineInMissingDataFile( missingDataFile );
+
+                // line 3
+                outputStream << "+\n";
+                skipLineInMissingDataFile( missingDataFile );
+
+                // line 4
+                ostringstream ss4; // empty as we don't know the qualities
+                outputLineUsingMissingDataFrom( outputStream, missingDataFile, ss4 );
+            }
+            return;
         }
-        else if ( args.argOutputFormat == "cyc" )
+        else if ( params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // SEQ -> CYC
-            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( args.argInput.c_str(), "rb" ) ) );
+            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
             TransposeFasta trasp;
             trasp.init( pReader );
-            trasp.convert( args.argInput, args.argOutput );
+            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
             delete pReader;
             return;
         }
-        else if ( args.argOutputFormat == "bwt_ascii" || args.argOutputFormat == "bwt_rle" )
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII || params["output format"] == OUTPUT_FORMAT_BWT_RLE )
         {
             // SEQ -> BWT_*
             cerr << "Error: This is not a simple file conversion. Try \"beetl bwt\"" << endl;
             exit ( 1 );
         }
     }
-    else if ( args.argInputFormat == "cyc" )
+    else if ( params["input format"] == INPUT_FORMAT_CYC )
     {
-        if ( args.argOutputFormat == "fasta" )
+        if ( params["output format"] == OUTPUT_FORMAT_FASTA )
         {
             // CYC -> FASTA
             TransposeFasta trasp;
-            trasp.convertFromCycFileToFastaOrFastq( args.argInput, args.argOutput );
+            trasp.convertFromCycFileToFastaOrFastq( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
             return;
         }
-        else if ( args.argOutputFormat == "fastq" )
+        else if ( params["output format"] == OUTPUT_FORMAT_FASTQ )
         {
             // CYC -> FASTQ
             TransposeFasta trasp;
-            trasp.convertFromCycFileToFastaOrFastq( args.argInput, args.argOutput );
+            trasp.convertFromCycFileToFastaOrFastq( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
             return;
         }
-        else if ( args.argOutputFormat == "seq" )
+        else if ( params["output format"] == OUTPUT_FORMAT_SEQ )
         {
             // CYC -> SEQ
         }
-        if ( args.argOutputFormat == "bcl" )
+        if ( params["output format"] == OUTPUT_FORMAT_BCL )
         {
             // CYC -> BCL
             // Single file conversion if the file exists, or multiple if %d appears in the middle
@@ -238,11 +297,11 @@ void convert( const BeetlConvertArguments &args )
             {
                 // Open input file
                 char inputFilename[1024];
-                assert( args.argInput.size() < 1020 && "Input filename too long" );
+                assert( params.getStringValue( "input filename" ).size() < 1020 && "Input filename too long" );
                 if ( cycleNum == -1 )
-                    strcpy( inputFilename, args.argInput.c_str() );
+                    strcpy( inputFilename, params.getStringValue( "input filename" ).c_str() );
                 else
-                    sprintf( inputFilename, args.argInput.c_str(), cycleNum );
+                    sprintf( inputFilename, params.getStringValue( "input filename" ).c_str(), cycleNum );
                 ifstream is( inputFilename, ios_base::binary );
                 if ( !is.good() )
                 {
@@ -261,11 +320,11 @@ void convert( const BeetlConvertArguments &args )
 
                 // Open output file
                 char outputFilename[1024];
-                assert( args.argOutput.size() < 1020 && "Output filename too long" );
+                assert( params.getStringValue( "output filename" ).size() < 1020 && "Output filename too long" );
                 if ( cycleNum == -1 )
-                    strcpy( outputFilename, args.argOutput.c_str() );
+                    strcpy( outputFilename, params.getStringValue( "output filename" ).c_str() );
                 else
-                    sprintf( outputFilename, args.argOutput.c_str(), cycleNum + 1 );
+                    sprintf( outputFilename, params.getStringValue( "output filename" ).c_str(), cycleNum + 1 );
                 ofstream os( outputFilename, ios_base::binary );
 
                 // Write header bytes
@@ -298,32 +357,61 @@ void convert( const BeetlConvertArguments &args )
             }
             return;
         }
-        else if ( args.argOutputFormat == "bwt_ascii" || args.argOutputFormat == "bwt_rle" )
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII || params["output format"] == OUTPUT_FORMAT_BWT_RLE )
         {
             // CYC -> BWT_*
             cerr << "Error: This is not a simple file conversion. Try \"beetl bwt\"" << endl;
             exit ( 1 );
         }
     }
-    else if ( args.argInputFormat == "bcl" )
+    else if ( params["input format"] == INPUT_FORMAT_BCL || params["input format"] == INPUT_FORMAT_BCL_GZ )
     {
-        if ( args.argOutputFormat == "cyc" )
+        if ( params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // BCL -> CYC
-            string tileName = args.argInput.substr( 1 + args.argInput.find_last_of( "/" ) );
-            tileName.erase( tileName.find_last_of( ".bcl" ) - 3 );
+            string tileName = params.getStringValue( "input filename" ).substr( 1 + params.getStringValue( "input filename" ).rfind( "/" ) );
 
-            string filterFilename = args.argInput;
-            try
+            // Convert names like s_1_xx.bcl to s_1_00xx.bcl
+            int parsedLaneNum = 0;
+            int parsedTileNum = 0;
+            if ( sscanf( tileName.c_str(), "s_%d_%d.bcl", &parsedLaneNum, &parsedTileNum ) == 2 )
             {
-                filterFilename.erase( filterFilename.find_last_of( "/" ) );
-                filterFilename.erase( filterFilename.find_last_of( "/" ) + 1 );
+                char buf[100];
+                sprintf( buf, "s_%d_%04d", parsedLaneNum, parsedTileNum );
+                tileName = string( buf );
             }
-            catch ( const std::exception &e )
+            else
             {
-                // Ignore... the file will get ignored anyway
+                // otherwise just remove the extension
+                tileName.erase( tileName.rfind( ".bcl" ) );
             }
-            filterFilename += tileName + ".filter";
+
+            string filterPath = params.getStringValue( "input filename" );
+            string filterFilename;
+            for ( int subdirdepth = 0; subdirdepth <= 2; ++subdirdepth )
+            {
+                try
+                {
+                    size_t lastSlashPos = filterPath.rfind( "/" );
+                    if ( filterPath == "" || filterPath == "." )
+                        filterPath = "..";
+                    else if ( filterPath == "/" )
+                        filterPath = "/";
+                    else if ( lastSlashPos == 0 )
+                        filterPath = "/";
+                    else if ( lastSlashPos == string::npos )
+                        filterPath = "";
+                    else
+                        filterPath.erase( lastSlashPos );
+                }
+                catch ( const std::exception &e )
+                {
+                    // Ignore... the file will get ignored anyway
+                }
+                filterFilename = ( filterPath.empty() ? "" : ( filterPath + "/" ) ) + tileName + ".filter";
+                if ( readWriteCheck( filterFilename.c_str(), false, false ) )
+                    break;
+            }
 
             clog << "Converting tile " << tileName << " + " << filterFilename << endl;
 
@@ -334,13 +422,22 @@ void convert( const BeetlConvertArguments &args )
             {
                 // Open input file
                 char inputFilename[1024];
-                assert( args.argInput.size() < 1020 && "Input filename too long" );
+                assert( params.getStringValue( "input filename" ).size() < 1020 && "Input filename too long" );
                 if ( cycleNum == -1 )
-                    strcpy( inputFilename, args.argInput.c_str() );
+                    strcpy( inputFilename, params.getStringValue( "input filename" ).c_str() );
                 else
-                    sprintf( inputFilename, args.argInput.c_str(), cycleNum + 1 );
-                ifstream is( inputFilename, ios_base::binary );
-                if ( !is.good() )
+                    sprintf( inputFilename, params.getStringValue( "input filename" ).c_str(), cycleNum + 1 );
+
+                istream *is;
+                if ( params["input format"] == INPUT_FORMAT_BCL_GZ )
+                {
+                    is = new igzstream( inputFilename );
+                }
+                else
+                {
+                    is = new ifstream( inputFilename, ios_base::binary );
+                }
+                if ( !is->good() )
                 {
                     if ( cycleNum == -1 )
                     {
@@ -353,7 +450,7 @@ void convert( const BeetlConvertArguments &args )
 
                 // Open output file
                 ostringstream oss;
-                oss << args.argOutput;
+                oss << params.getStringValue( "output filename" );
                 if ( cycleNum >= 0 )
                     oss << "." << cycleNum;
                 string outputFilename = oss.str();
@@ -361,7 +458,7 @@ void convert( const BeetlConvertArguments &args )
 
                 // Open output quality file
                 ostringstream ossQual;
-                ossQual << args.argOutput << ".qual";
+                ossQual << params.getStringValue( "output filename" ) << ".qual";
                 if ( cycleNum >= 0 )
                     ossQual << "." << cycleNum;
                 string outputFilenameQual = ossQual.str();
@@ -373,7 +470,7 @@ void convert( const BeetlConvertArguments &args )
                 // Skip header bytes of each file
                 unsigned int buf4a, buf4b;
                 filterFile.read( reinterpret_cast<char *>( &buf4a ), 4 );
-                is.read( reinterpret_cast<char *>( &buf4b ), 4 );
+                is->read( reinterpret_cast<char *>( &buf4b ), 4 );
                 if ( buf4a != buf4b )
                 {
                     // Try to read an extra 8 bytes, corresponding to a different version of the .filter format
@@ -389,8 +486,7 @@ void convert( const BeetlConvertArguments &args )
                 // Convert
                 clog << "Converting: " << inputFilename << " -> " << outputFilename << " + " << outputFilenameQual << endl;
                 char c, filterVal;
-                const char binToBase[4] = { 'A', 'C', 'G', 'T' };
-                while ( is.get( c ) )
+                while ( is->get( c ) )
                 {
                     if ( !filterFile.get( filterVal ) || filterVal != '\0' )
                     {
@@ -407,13 +503,75 @@ void convert( const BeetlConvertArguments &args )
             return;
         }
     }
-    else if ( args.argInputFormat == "bwt_ascii" )
+    else if ( params["input format"] == INPUT_FORMAT_RUNFOLDER )
     {
-        if ( args.argOutputFormat == "bwt_rle" )
+        if ( params["output format"] == OUTPUT_FORMAT_CYC )
+        {
+            // RunFolder -> CYC
+            BclRunFolder bclRunFolder( params.getStringValue( "input filename" ), "", "" );
+            uint cycleCount = bclRunFolder.getCycleCount();
+
+            // Open output files
+            vector<ofstream *> outCyc, outCycQual;
+            for ( uint i = 0; i < cycleCount; ++i )
+            {
+                int cycleNum = i;
+
+                // Open output bases file
+                ostringstream oss;
+                oss << params.getStringValue( "output filename" ) << "." << cycleNum;
+                string outputFilename = oss.str();
+                outCyc.push_back( new ofstream( outputFilename.c_str(), ios_base::binary ) );
+
+                // Open output quality file
+                ostringstream ossQual;
+                ossQual << params.getStringValue( "output filename" ) << ".qual" << "." << cycleNum;
+                string outputFilenameQual = ossQual.str();
+                outCycQual.push_back( new ofstream( outputFilenameQual.c_str(), ios_base::binary ) );
+            }
+
+            string nextLane;
+            string nextTile;
+            while ( bclRunFolder.getNextLaneAndTileNames( nextLane, nextTile ) )
+            {
+                cout << "Processing lane " << nextLane << " tile " << nextTile << endl;
+                bclRunFolder.initReader( nextLane, nextTile, 1, cycleCount );
+                vector< unsigned int > bclValues;
+                int count = 0;
+                while ( bclRunFolder.getRead( bclValues ) )
+                {
+                    //                    cout << "value: " << bclValues[0] << endl;
+                    ++count;
+                    for ( uint i = 0; i < cycleCount; ++i )
+                    {
+                        char c = bclValues[i];
+                        outCyc[i]->put( binToBase[c & 3] );
+                        outCycQual[i]->put( 33 + ( ( ( unsigned char )c ) >> 2 ) );
+                    }
+                }
+                cout << "processed " << count << " reads" << endl;
+            }
+
+            // Closing all files
+            for ( uint i = 0; i < cycleCount; ++i )
+            {
+                delete outCyc[i];
+                delete outCycQual[i];
+            }
+            outCyc.clear();
+            outCycQual.clear();
+
+            cout << "done" << endl;
+            return;
+        }
+    }
+    else if ( params["input format"] == INPUT_FORMAT_BWT_ASCII )
+    {
+        if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE )
         {
             // BWT_ASCII -> BWT_RLE
-            BwtReaderBase *pReader = new BwtReaderASCII( args.argInput );
-            BwtWriterBase *pWriter = new BwtWriterRunLength( args.argOutput );
+            BwtReaderBase *pReader = new BwtReaderASCII( params.getStringValue( "input filename" ) );
+            BwtWriterBase *pWriter = new BwtWriterRunLength( params.getStringValue( "output filename" ) );
 
             while ( pReader->readAndSend( *pWriter, 1000000000 ) > 0 ) {}
 
@@ -421,20 +579,20 @@ void convert( const BeetlConvertArguments &args )
             delete pWriter;
             return;
         }
-        else if ( args.argOutputFormat == "fasta" || args.argOutputFormat == "fastq" || args.argOutputFormat == "seq" || args.argOutputFormat == "cyc" )
+        else if ( params["output format"] == OUTPUT_FORMAT_FASTA || params["output format"] == OUTPUT_FORMAT_FASTQ || params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // BWT_ASCII -> FASTA|FASTQ|SEQ|CYC
             cerr << "Error: This is not a simple file conversion. Try \"beetl unbwt\"" << endl;
             exit ( 1 );
         }
     }
-    else if ( args.argInputFormat == "bwt_rle" )
+    else if ( params["input format"] == INPUT_FORMAT_BWT_RLE )
     {
-        if ( args.argOutputFormat == "bwt_ascii" )
+        if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII )
         {
             // BWT_RLE -> BWT_ASCII
-            BwtReaderBase *pReader = new BwtReaderRunLength( args.argInput );
-            BwtWriterBase *pWriter = new BwtWriterASCII( args.argOutput );
+            BwtReaderBase *pReader = new BwtReaderRunLength( params.getStringValue( "input filename" ) );
+            BwtWriterBase *pWriter = new BwtWriterASCII( params.getStringValue( "output filename" ) );
 
             while ( pReader->readAndSend( *pWriter, 1000000000 ) > 0 ) {}
 
@@ -442,7 +600,7 @@ void convert( const BeetlConvertArguments &args )
             delete pWriter;
             return;
         }
-        else if ( args.argOutputFormat == "fasta" || args.argOutputFormat == "fastq" || args.argOutputFormat == "seq" || args.argOutputFormat == "cyc" )
+        else if ( params["output format"] == OUTPUT_FORMAT_FASTA || params["output format"] == OUTPUT_FORMAT_FASTQ || params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // BWT_RLE -> FASTA|FASTQ|SEQ|CYC
             cerr << "Error: This is not a simple file conversion. Try \"beetl unbwt\"" << endl;
@@ -473,55 +631,55 @@ int main( const int argc, const char **argv )
     }
     cout << "\n" << endl;
 
-    BeetlConvertArguments args;
-
-    for ( int i = 1; i < argc; ++i )
+    if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
-        if ( isNextArgument( "-h", "--help", argc, argv, i ) )
-        {
-            printUsage();
-            exit( 0 );
-        }
-        else if ( isNextArgument( "-i", "--input"                  , argc, argv, i, &args.argInput               ) ) {}
-        else if ( isNextArgument( ""  , "--input-format"           , argc, argv, i, &args.argInputFormat         ) ) {}
-        else if ( isNextArgument( "-o", "--output"                 , argc, argv, i, &args.argOutput              ) ) {}
-        else if ( isNextArgument( ""  , "--output-format"          , argc, argv, i, &args.argOutputFormat        ) ) {}
-        else
-        {
-            cerr << "Error: Invalid parameter: " << argv[i] << endl;
-            printUsage();
-            exit( 1 );
-        }
-    }
-
-    // Checking for required parameters
-    if ( args.argInput.empty() || args.argOutput.empty() )
-    {
-        cerr << "Error: Missing arguments: --input and --output are required.\n" << endl;
         printUsage();
         exit( 1 );
     }
 
     // Auto-detection of missing arguments
-    if ( args.argInputFormat.empty() )
+    if ( !params["input format"].isSet() )
     {
-        args.argInputFormat = detectFileFormat( args.argInput );
+        const string &filename = params.getStringValue( "input filename" );
+        string fileFormat = detectFileFormat( filename );
+        if ( fileFormat.empty() )
+        {
+            cerr << "Error: file format not recognised for " << filename << endl;
+            exit( -1 );
+        }
+        params["input format"] = fileFormat;
     }
-    checkFileFormat( args.argInput, args.argInputFormat );
+    checkFileFormat( params.getStringValue( "input filename" ), params["input format"] );
 
-    if ( args.argOutputFormat.empty() )
+    if ( !params["output format"].isSet() )
     {
-        args.argOutputFormat = detectFileFormat( args.argOutput );
+        const string &filename = params.getStringValue( "output filename" );
+        string fileFormat = detectFileFormat( filename );
+        if ( fileFormat.empty() )
+        {
+            cerr << "Error: file format not recognised for " << filename << endl;
+            exit( -1 );
+        }
+        params["output format"] = fileFormat;
     }
-    checkFileFormat( args.argOutput, args.argOutputFormat );
+    checkFileFormat( params.getStringValue( "output filename" ), params["output format"] );
 
-    //    checkIfAlreadyExistingFile( args.argOutput );
+    // Use default parameter values where needed
+    params.commitDefaultValues();
 
-    // Convert args to lower case
-    std::transform( args.argInputFormat.begin(), args.argInputFormat.end(), args.argInputFormat.begin(), ::tolower );
-    std::transform( args.argOutputFormat.begin(), args.argOutputFormat.end(), args.argOutputFormat.begin(), ::tolower );
+    //    checkIfAlreadyExistingFile( params.getStringValue("output filename") );
 
-    convert( args );
+    // Check for unsupported cases
+    if ( params["sequence length"].isSet() )
+    {
+        if ( ! ( params["input format"] == INPUT_FORMAT_FASTQ && ( params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_FASTA ) ) )
+        {
+            cerr << "Error: --sequence-length is currently only implemented for FASTQ->SEQ and FASTQ->FASTA conversions." << endl;
+            exit( 1 );
+        }
+    }
+
+    launchBeetlConvert();
 
     return 0;
 }

@@ -57,17 +57,17 @@ BwtReaderBase::~BwtReaderBase()
 
 
 
-unsigned int BwtReaderBase::readAndCount( LetterCount &c )
+LetterNumber BwtReaderBase::readAndCount( LetterCount &c )
 {
     // will call the relevant virtual function
-    return readAndCount( c, maxLetterCountType );
-} // ~readAndCount
+    return readAndCount( c, maxLetterNumber );
+}
 
-unsigned int BwtReaderBase::readAndSend( BwtWriterBase &writer )
+LetterNumber BwtReaderBase::readAndSend( BwtWriterBase &writer )
 {
     // will call the relevant virtual function
-    return readAndSend( writer,  2000000000 ); // TBD numChars->LetterCountType
-} // ~readAndCount
+    return readAndSend( writer, maxLetterNumber );
+}
 
 
 //
@@ -80,19 +80,19 @@ void BwtReaderASCII::rewindFile( void )
     currentPos_ = 0;
 } // ~rewindFile
 
-LetterCountType BwtReaderASCII::tellg( void ) const
+LetterNumber BwtReaderASCII::tellg( void ) const
 {
     return currentPos_;
 } // ~tellg
 
 
 
-unsigned int BwtReaderASCII::readAndCount( LetterCount &c, const LetterCountType numChars )
+LetterNumber BwtReaderASCII::readAndCount( LetterCount &c, const LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR ASCII readAndCount " << numChars << " chars " << endl;
 #endif
-    LetterCountType charsLeft( numChars ), charsToRead, charsRead;
+    LetterNumber charsLeft( numChars ), charsToRead, charsRead;
     while ( charsLeft > 0 )
     {
         charsToRead = ( ( charsLeft > ReadBufferSize ) ? ReadBufferSize : charsLeft );
@@ -100,7 +100,7 @@ unsigned int BwtReaderASCII::readAndCount( LetterCount &c, const LetterCountType
 #ifdef DEBUG
         std::cout << "Reading " << charsRead << " chars ";
 #endif
-        for ( LetterCountType i( 0 ); i < charsRead; i++ )
+        for ( LetterNumber i( 0 ); i < charsRead; i++ )
         {
 #ifdef DEBUG
             std::cout << buf_[i];
@@ -121,26 +121,26 @@ unsigned int BwtReaderASCII::readAndCount( LetterCount &c, const LetterCountType
     } // ~while
     currentPos_ += numChars;
     return numChars;
-} // ~int BwtReaderASCII::readAndCount( LetterCount& c, const int numChars )
+} // ~int BwtReaderASCII::readAndCount( LetterCount& c, const LetterNumber numChars )
 
-unsigned int BwtReaderASCII::readAndSend( BwtWriterBase &writer, const int numChars )
+LetterNumber BwtReaderASCII::readAndSend( BwtWriterBase &writer, const LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR ASCII readAndSend " << numChars << " chars " << endl;
 #endif
 
-    unsigned int totalRead = 0;
+    LetterNumber totalRead = 0;
     // read readbufferzise bytes, if there are less bytes
     // ordered only fetch the last missing bytes
-    unsigned int readNextPass =
+    LetterNumber readNextPass =
         ( ( numChars - totalRead ) < ReadBufferSize ) ? ( numChars - totalRead ) : ReadBufferSize;
 
     // std::cout << "Reading " << numChars << " chars " << endl;
 
 
-    while ( totalRead < ( unsigned int )numChars )
+    while ( totalRead < ( LetterNumber )numChars )
     {
-        unsigned int numRead = 0;
+        LetterNumber numRead = 0;
 
         // try to read buffersize byte from file
         numRead = fread( buf_, sizeof ( uchar ), readNextPass, pFile_ );
@@ -154,9 +154,9 @@ unsigned int BwtReaderASCII::readAndSend( BwtWriterBase &writer, const int numCh
         //    writer( buf_, numRead );
 #define XXX 1
 #ifdef XXX
-        unsigned int charsLeft = numRead;
+        LetterNumber charsLeft = numRead;
 
-        for ( unsigned int counter = 0; counter < charsLeft; counter++ )
+        for ( LetterNumber counter = 0; counter < charsLeft; counter++ )
         {
             if ( buf_[counter] == lastChar_ )
             {
@@ -181,9 +181,9 @@ unsigned int BwtReaderASCII::readAndSend( BwtWriterBase &writer, const int numCh
 #endif
     return totalRead;
 
-} // ~int BwtReaderASCII::readAndSend( BwtWriterBase& writer, const int numChars )
+} // ~LetterNumber BwtReaderASCII::readAndSend( BwtWriterBase& writer, const LetterNumber numChars )
 
-int BwtReaderASCII::operator()( char *p, int numChars )
+LetterNumber BwtReaderASCII::operator()( char *p, LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR ASCII () " << numChars << " chars " << endl;
@@ -202,7 +202,8 @@ BwtReaderRunLength::BwtReaderRunLength( const string &fileName ):
     BwtReaderBase( fileName ), runLength_( 0 ),
     pBuf_( buf_ + ReadBufferSize ), pBufMax_( buf_ + ReadBufferSize ),
     lastChar_( notInAlphabet ),
-    finished_( false )
+    finished_( false ),
+    currentPos_( 0 )
 {
     unsigned int j;
     for ( unsigned int i( 0 ); i < 256; i++ )
@@ -225,13 +226,13 @@ void BwtReaderRunLength::rewindFile( void )
     finished_ = false;
 } // ~rewindFile
 
-LetterCountType BwtReaderRunLength::tellg( void ) const
+LetterNumber BwtReaderRunLength::tellg( void ) const
 {
     return currentPos_;
 } // ~tellg
 
 
-unsigned int BwtReaderRunLength::readAndCount( LetterCount &c, const LetterCountType numChars )
+LetterNumber BwtReaderRunLength::readAndCount( LetterCount &c, const LetterNumber numChars )
 {
 #ifdef DEBUG_RAC
     std::cout << "BR RL readAndCount " << numChars << " chars " << endl;
@@ -239,7 +240,7 @@ unsigned int BwtReaderRunLength::readAndCount( LetterCount &c, const LetterCount
     c.print();
 #endif
 
-    LetterCountType charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     while ( charsLeft > runLength_ )
     {
         // Below is not great design, at first call of this function it accesses an
@@ -269,15 +270,15 @@ unsigned int BwtReaderRunLength::readAndCount( LetterCount &c, const LetterCount
 #endif
 
     return numChars;
-} // ~BwtReaderRunLength::readAndCount( LetterCount& c, const int numChars )
+} // ~BwtReaderRunLength::readAndCount( LetterCount& c, const LetterNumber numChars )
 
 
-unsigned int BwtReaderRunLength::readAndSend( BwtWriterBase &writer, const int numChars )
+LetterNumber BwtReaderRunLength::readAndSend( BwtWriterBase &writer, const LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR RL readAndSend " << numChars << " chars " << endl;
 #endif
-    unsigned int charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     while ( charsLeft > runLength_ )
     {
         //      int fred(whichPile[lastChar_]);
@@ -297,15 +298,15 @@ unsigned int BwtReaderRunLength::readAndSend( BwtWriterBase &writer, const int n
     runLength_ -= charsLeft;
     currentPos_ += numChars;
     return numChars;
-} //~BwtReaderRunLength::readAndSend(BwtWriterBase& writer, const int numChars)
+} //~BwtReaderRunLength::readAndSend(BwtWriterBase& writer, const LetterNumber numChars)
 
-int BwtReaderRunLength::operator()( char *p, int numChars )
+LetterNumber BwtReaderRunLength::operator()( char *p, LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR RL () :  asked for " << numChars << " " << lastChar_ << " "
               << runLength_ << " " << pFile_ << std::endl;
 #endif
-    unsigned int charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     //    return fread( p, sizeof(char), numChars, pFile_ );
     while ( charsLeft > runLength_ )
     {
@@ -362,7 +363,7 @@ bool BwtReaderRunLength::getRun( void )
         }
         else
         {
-            unsigned int numRead( fread( buf_, sizeof( uchar ),
+            LetterNumber numRead( fread( buf_, sizeof( uchar ),
                                          ReadBufferSize, pFile_ ) );
             if ( numRead == 0 )
             {
@@ -412,7 +413,7 @@ void BwtReaderRunLengthIndex::rewindFile( void )
 } // ~rewindFile
 
 
-unsigned int BwtReaderRunLengthIndex::readAndCount( LetterCount &c, const LetterCountType numChars )
+LetterNumber BwtReaderRunLengthIndex::readAndCount( LetterCount &c, const LetterNumber numChars )
 {
 #ifdef DEBUG_RAC
     std::cout << "BR RLI readAndCount " << numChars << " chars " << endl;
@@ -422,7 +423,7 @@ unsigned int BwtReaderRunLengthIndex::readAndCount( LetterCount &c, const Letter
     current_.print();
 #endif
     // bool needToShift(false);
-    LetterCountType charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
 
     temp_ = current_;
 
@@ -451,11 +452,11 @@ unsigned int BwtReaderRunLengthIndex::readAndCount( LetterCount &c, const Letter
             currentIndex_ += next_;
 
             isNextIndex_ =
-                ( fread( &nextPos_, sizeof( LetterCountType ), 1, pIndexFile_ ) == 1 );
+                ( fread( &nextPos_, sizeof( LetterNumber ), 1, pIndexFile_ ) == 1 );
             if ( isNextIndex_ )
             {
                 assert
-                ( fread( &nextFilePos_, sizeof( LetterCountType ), 1, pIndexFile_ ) == 1 );
+                ( fread( &nextFilePos_, sizeof( LetterNumber ), 1, pIndexFile_ ) == 1 );
                 assert
                 ( fread( &next_, sizeof( LetterCount ), 1, pIndexFile_ ) == 1 );
 #ifdef DEBUG_RAC
@@ -497,7 +498,7 @@ unsigned int BwtReaderRunLengthIndex::readAndCount( LetterCount &c, const Letter
 
 
     return charsLeft;
-} // ~BwtReaderRunLengthIndex::readAndCount( LetterCount& c, const int numChars )
+} // ~BwtReaderRunLengthIndex::readAndCount( LetterCount& c, const LetterNumber numChars )
 
 
 
@@ -509,7 +510,7 @@ void BwtReaderRunLengthIndex::buildIndex
     const int runsPerChunk( indexBinSize );
     int runsThisChunk( 0 );
     LetterCount countsThisChunk;
-    LetterCountType runsSoFar( 0 );
+    LetterNumber runsSoFar( 0 );
     currentPos_ = 0;
 
 
@@ -527,10 +528,10 @@ void BwtReaderRunLengthIndex::buildIndex
             countsThisChunk.print();
 
             assert
-            ( fwrite( &currentPos_, sizeof( LetterCountType ), 1, pIndexFile ) == 1 );
+            ( fwrite( &currentPos_, sizeof( LetterNumber ), 1, pIndexFile ) == 1 );
 
             assert
-            ( fwrite( &runsSoFar, sizeof( LetterCountType ), 1, pIndexFile ) == 1 );
+            ( fwrite( &runsSoFar, sizeof( LetterNumber ), 1, pIndexFile ) == 1 );
 
             assert
             ( fwrite( &countsThisChunk, sizeof( LetterCount ), 1, pIndexFile ) == 1 );
@@ -556,11 +557,11 @@ void BwtReaderRunLengthIndex::initIndex( const LetterCount &current )
     if ( pIndexFile_ != NULL )
     {
         isNextIndex_ =
-            ( fread( &nextPos_, sizeof( LetterCountType ), 1, pIndexFile_ ) == 1 );
+            ( fread( &nextPos_, sizeof( LetterNumber ), 1, pIndexFile_ ) == 1 );
         if ( isNextIndex_ )
         {
             assert
-            ( fread( &nextFilePos_, sizeof( LetterCountType ), 1, pIndexFile_ ) == 1 );
+            ( fread( &nextFilePos_, sizeof( LetterNumber ), 1, pIndexFile_ ) == 1 );
             assert
             ( fread( &next_, sizeof( LetterCount ), 1, pIndexFile_ ) == 1 );
         } // ~if
@@ -614,17 +615,17 @@ void BwtReaderIncrementalRunLength::rewindFile( void )
     finished_ = false;
 } // ~rewindFile
 
-LetterCountType BwtReaderIncrementalRunLength::tellg( void ) const
+LetterNumber BwtReaderIncrementalRunLength::tellg( void ) const
 {
     return currentPos_;
 } // ~tellg
 
-uint BwtReaderIncrementalRunLength::readAndCount( LetterCount &c, const LetterCountType numChars )
+LetterNumber BwtReaderIncrementalRunLength::readAndCount( LetterCount &c, const LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR RL readAndCount " << numChars << " chars " << endl;
 #endif
-    LetterCountType charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     while ( charsLeft > runLength_ )
     {
         // Below is not great design, at first call of this function it accesses an
@@ -643,15 +644,15 @@ uint BwtReaderIncrementalRunLength::readAndCount( LetterCount &c, const LetterCo
     runLength_ -= charsLeft;
     currentPos_ += numChars;
     return numChars;
-} // ~BwtReaderIncrementalRunLength::readAndCount( LetterCount& c, const int numChars )
+} // ~BwtReaderIncrementalRunLength::readAndCount( LetterCount& c, const LetterNumber numChars )
 
-uint BwtReaderIncrementalRunLength::readAndSend( BwtWriterBase &writer, const int numChars )
+LetterNumber BwtReaderIncrementalRunLength::readAndSend( BwtWriterBase &writer, const LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR RL readAndSend " << numChars << " chars " << endl;
 #endif
     bool isWriterIncremental = writer.isIncremental();
-    uint charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     while ( charsLeft > runLength_ )
     {
         if ( !isWriterIncremental )
@@ -672,15 +673,15 @@ uint BwtReaderIncrementalRunLength::readAndSend( BwtWriterBase &writer, const in
     else
         writer.sendRunOfPreExistingData( lastChar_, charsLeft, fileNum_, posInRamFile_, runLength_ );
     return numChars;
-} //~BwtReaderIncrementalRunLength::readAndSend(BwtWriterBase& writer, const int numChars)
+} //~BwtReaderIncrementalRunLength::readAndSend(BwtWriterBase& writer, const LetterNumber numChars)
 
-int BwtReaderIncrementalRunLength::operator()( char *p, int numChars )
+LetterNumber BwtReaderIncrementalRunLength::operator()( char *p, LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR RL () :  asked for " << numChars << " " << lastChar_ << " "
               << runLength_ << " " << pFile_ << std::endl;
 #endif
-    uint charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     //    return fread( p, sizeof(char), numChars, pFile_ );
     while ( charsLeft > runLength_ )
     {
@@ -792,8 +793,8 @@ again:
         }
         else
         {
-            uint numRead( fread( buf_, sizeof( uchar ),
-                                 ReadBufferSize, pFile_ ) );
+            LetterNumber numRead( fread( buf_, sizeof( uchar ),
+                                         ReadBufferSize, pFile_ ) );
             if ( numRead == 0 )
             {
                 runLength_ = 0;
@@ -989,15 +990,15 @@ void BwtReaderHuffman::rewindFile( void )
     }
 } // ~rewindFile
 
-LetterCountType BwtReaderHuffman::tellg( void ) const
+LetterNumber BwtReaderHuffman::tellg( void ) const
 {
     return currentPos_;
 } // ~tellg
 
-unsigned int BwtReaderHuffman::readAndCount( LetterCount &c, const LetterCountType numChars )
+LetterNumber BwtReaderHuffman::readAndCount( LetterCount &c, const LetterNumber numChars )
 {
 
-    LetterCountType charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     while ( charsLeft > runLength_ )
     {
         // Below is not great design, at first call of this function it accesses an
@@ -1015,16 +1016,16 @@ unsigned int BwtReaderHuffman::readAndCount( LetterCount &c, const LetterCountTy
     runLength_ -= charsLeft;
     currentPos_ += numChars;
     return numChars;
-} // ~BwtReaderHuffman::readAndCount( LetterCount& c, const int numChars )
+} // ~BwtReaderHuffman::readAndCount( LetterCount& c, const LetterNumber numChars )
 
-unsigned int BwtReaderHuffman::readAndSend( BwtWriterBase &writer, const int numChars )
+LetterNumber BwtReaderHuffman::readAndSend( BwtWriterBase &writer, const LetterNumber numChars )
 {
     if ( numChars == 0 )
     {
         return numChars;   // exit directy
     }
 
-    unsigned int charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     while ( charsLeft > runLength_ )
     {
 
@@ -1041,7 +1042,7 @@ unsigned int BwtReaderHuffman::readAndSend( BwtWriterBase &writer, const int num
     runLength_ -= charsLeft;
     currentPos_ += numChars;
     return numChars;
-} //~BwtReaderHuffman::readAndSend(BwtWriterBase& writer, const int numChars)
+} //~BwtReaderHuffman::readAndSend(BwtWriterBase& writer, const LetterNumber numChars)
 
 
 bool BwtReaderHuffman::getRun( void )
@@ -1237,7 +1238,7 @@ unsigned int BwtReaderHuffman::getNum( int &i )
 } // ~getNum
 
 // just deprecated code to make everything compile
-int BwtReaderHuffman::operator()( char *p, int numChars )
+LetterNumber BwtReaderHuffman::operator()( char *p, LetterNumber numChars )
 {
     assert( 1 == 0 );
     return -1;

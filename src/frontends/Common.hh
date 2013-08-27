@@ -15,43 +15,9 @@
  **
  **/
 
-#include "parameters/ToolParameters.hh"
-
-#include <string>
-
-using std::string;
-
-
-// options: file format
-
-enum FileFormat
-{
-    FILE_FORMAT_FASTA,
-    FILE_FORMAT_FASTQ,
-    FILE_FORMAT_SEQ,
-    FILE_FORMAT_CYC,
-    FILE_FORMAT_BCL,
-    FILE_FORMAT_COUNT
-};
-
-const string fileFormatLabels[] =
-{
-    "fasta",
-    "fastq",
-    "seq",
-    "cyc",
-    "bcl",
-    "" // end marker
-};
-
-
-bool beginsWith( const string &s, const string &prefix );
-bool endsWith( const string &s, const string &suffix );
-string detectFileFormat( const string &inputFilename );
-void checkFileFormat( const string &inputFilename, const string &fileFormat );
-bool isNextArgument( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, string *argValue = 0 );
-bool isNextArgumentInt( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, int *argValue = 0 );
-bool parseNextArgument( const string shortPrefix, const string longPrefix, const int argc, const char **argv, int &i, ToolParameters &, const unsigned toolParamKey );
-void launchBeetl( const string &params );
+#ifndef FRONTENDS_COMMON_HH
+#define FRONTENDS_COMMON_HH
 
 int detectMemoryLimitInMB();
+
+#endif // FRONTENDS_COMMON_HH

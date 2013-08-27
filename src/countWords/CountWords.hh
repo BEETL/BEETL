@@ -40,8 +40,12 @@ class CountWords : public Algorithm
 {
 
 public:
-    CountWords( bool, bool, char, int, int, const vector<string> &, const vector<string> &,
-                const vector<string> &, const string &, bool testDB, uint minWord, string prefix, string subset );
+    CountWords( bool, bool, char, int, int, const vector<string> &, const vector<string> &
+                , const vector<string> &, const string &, bool testDB, uint minWord, string prefix, string subset
+                , const bool doesPropagateBkptToSeqNumInSetA = false
+                        , const bool doesPropagateBkptToSeqNumInSetB = false
+                                , const bool noComparisonSkip = true
+              );
 
     virtual ~CountWords() {}
     void run( void );
@@ -77,6 +81,9 @@ private:
     //minimal word Lenght. Not exactly needed but speeds the algorithm up,
     //because the fileNumbers and taxa do not have to be checked before the minimal wordLength is reached
     //uint minWordLength_;
-    string subset_; // Compute only the results that have this string as a suffix' suffix
+    const string subset_; // Compute only the results that have this string as a suffix' suffix
+    const bool doesPropagateBkptToSeqNumInSetA_;
+    const bool doesPropagateBkptToSeqNumInSetB_;
+    const bool noComparisonSkip_;
 };
 #endif

@@ -20,8 +20,8 @@
 
 #include "Config.hh"
 #include "LetterCount.hh"
-#include "TemporaryFilesManager.hh"
 #include "Tools.hh"
+#include "libzoo/util/TemporaryFilesManager.hh"
 
 #include <string>
 
@@ -30,22 +30,23 @@ typedef unsigned short NumberFrag;
 const int bitsPerFrag( ( 8 * sizeof( NumberFrag ) ) - 1 );
 const NumberFrag needAnotherFrag( 1 << bitsPerFrag );
 const NumberFrag fragMask( ( unsigned short ) ~needAnotherFrag );
-const LetterCountType letterCountMask( ( LetterCountType )fragMask );
+const LetterNumber letterCountMask( ( LetterNumber )fragMask );
 const int fragBufSize( 8 );
 
 struct Range
 {
-    Range( const string &word, LetterCountType pos, LetterCountType num ) :
+    Range( const string &word, const LetterNumber pos, const LetterNumber num, const bool isBkptExtension = false ) :
 #ifdef PROPAGATE_PREFIX
         word_( word ),
 #endif
-        pos_( pos ), num_( num ) {}
-    Range( void )  {}
+        pos_( pos ), num_( num ), isBkptExtension_( isBkptExtension ) {}
+    Range( void ) : pos_( 0 ), num_( 0 ), isBkptExtension_( false ) {}
 #ifdef PROPAGATE_PREFIX
     string word_;
 #endif
-    LetterCountType pos_;
-    LetterCountType num_;
+    LetterNumber pos_;
+    LetterNumber num_;
+    bool isBkptExtension_;
 };
 
 struct AllRanges: public vector<vector<vector<Range> > >
@@ -64,10 +65,13 @@ struct RangeStore
     virtual void swap( void ) = 0;
     virtual void setPortion( int pileNum, int portionNum ) = 0;
     virtual bool getRange( Range &thisRange ) = 0;
-    virtual void addRange( int pileNum, int portionNum, const string &seq,
-                           LetterCountType pos, LetterCountType num, const string &subset ) = 0;
+    virtual void addRange( const int pileNum, const int portionNum, const string &seq,
+                           const LetterNumber pos, const LetterNumber num, const bool flags, const string &subset, const int cycle ) = 0;
+    virtual bool isRangeKnown( const int pileNum, const int portionNum, const string &seq,
+                               LetterNumber pos, LetterNumber num, const bool flags, const string &subset, const int cycle ) = 0;
 
-
+protected:
+    bool isSubsetValid( const string &subset, const int cycle, const int pileNum, const int portionNum, const string &seq );
 }; // ~struct RangeStore
 
 //
@@ -84,8 +88,13 @@ struct RangeStoreRAM : public RangeStore
     virtual void setPortion( int pileNum, int portionNum );
 
     virtual bool getRange( Range &thisRange );
-    virtual void addRange( int pileNum, int portionNum, const string &seq,
-                           LetterCountType pos, LetterCountType num, const string &subset );
+    virtual void addRange( const int pileNum, const int portionNum, const string &seq,
+                           const LetterNumber pos, const LetterNumber num, const bool flags, const string &subset, const int cycle );
+    virtual bool isRangeKnown( const int pileNum, const int portionNum, const string &seq,
+                               const LetterNumber pos, const LetterNumber num, const bool flags, const string &subset, const int cycle )
+    {
+        return true;
+    }
 
     // clear range store ready for next iter
     virtual void clear( void );
@@ -112,13 +121,17 @@ struct RangeState
     void addSeq( const string &seq );
     void getSeq( string &word );
 
-    void addNum( LetterCountType num );
-    bool getNum( LetterCountType &num );
+    void addNum( LetterNumber num );
+    bool getNum( LetterNumber &num );
+
+    void addFlag( bool flag );
+    bool getFlag( bool &flag );
 
     NumberFrag fragBuf_[fragBufSize];
     char wordLast_[256];
-    LetterCountType posLast_;
+    //    LetterNumber posLast_;
     TemporaryFile *pFile_;
+    LetterNumber lastProcessedPos_;
 }; // ~struct RangeState
 
 
@@ -138,8 +151,10 @@ struct RangeStoreExternal : public RangeStore
     virtual void setPortion( int pileNum, int portionNum );
 
     virtual bool getRange( Range &thisRange );
-    virtual void addRange( int pileNum, int portionNum, const string &seq,
-                           LetterCountType pos, LetterCountType num, const string &subset );
+    virtual void addRange( const int pileNum, const int portionNum, const string &seq,
+                           const LetterNumber pos, const LetterNumber num, const bool flags, const string &subset, const int cycle );
+    virtual bool isRangeKnown( const int pileNum, const int portionNum, const string &seq,
+                               const LetterNumber pos, const LetterNumber num, const bool flags, const string &subset, const int cycle );
 
     virtual void clear( void );
 
@@ -152,6 +167,12 @@ struct RangeStoreExternal : public RangeStore
     RangeState stateIn_;
     RangeState stateOut_[alphabetSize][alphabetSize];
     char buf_[256]; // get rid, not nice
+
+private:
+    bool getRange( RangeState &stateFile, Range &thisRange );
+
+    RangeState stateInForComparison_[alphabetSize][alphabetSize];
+    Range lastRangeReadForComparison_[alphabetSize][alphabetSize];
 
 }; // ~struct RangeStoreExternal
 

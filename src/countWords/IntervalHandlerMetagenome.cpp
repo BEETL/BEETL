@@ -18,6 +18,7 @@
 #include "IntervalHandlerMetagenome.hh"
 
 #include "LetterCount.hh"
+#include "libzoo/util/Logger.hh"
 
 #include <map>
 
@@ -28,12 +29,12 @@ struct TaxInformation
 {
     unsigned short taxLevel_;
     vector<int> files_;
-    vector < vector <unsigned long> > bwtPositions_;
+    vector < vector <LetterNumber> > bwtPositions_;
     vector < vector <double> > wordCounts_;
     vector < vector <unsigned short> >wordLengths_;
     vector <vector <bool> > genomeSingletons_;
     unsigned int parentId_;
-    unsigned long seqLengthSum_;
+    LetterNumber seqLengthSum_;
 };
 
 map< unsigned int, TaxInformation> TAXMAP;
@@ -46,7 +47,7 @@ map< unsigned int, TaxInformation> TAXMAP;
     Returns nothing, but fills up teh fileNumbers vector
     get the fileNumbers in a certain Range
 */
-void IntervalHandlerMetagenome::getFileNumbersForRange( const int &pileNum, const ulong &bwtPosition, const unsigned int &num, vector<MetagFileNumRefType> &fileNumbers )
+void IntervalHandlerMetagenome::getFileNumbersForRange( const int &pileNum, const LetterNumber &bwtPosition, const unsigned int &num, vector<MetagFileNumRefType> &fileNumbers )
 {
     //fast fix because merged genomes should have no pile 6
     if ( pileNum == 6 )
@@ -56,7 +57,7 @@ void IntervalHandlerMetagenome::getFileNumbersForRange( const int &pileNum, cons
     //reserve the space for the fileNumbers. there are as many fileNumbers as the suffix count
     MetagFileNumRefType *fileNum = ( MetagFileNumRefType * ) malloc ( num * ( sizeof( MetagFileNumRefType ) ) );
     //read out the fileNumbers which are corresponding to this BWT-postion
-    fread( fileNum, sizeof( unsigned short ), num, mergeCSet_[pileNum] );
+    assert( fread( fileNum, sizeof( MetagFileNumRefType ), num, mergeCSet_[pileNum] ) == num );
 
     //to test if the suffix is a singleton in each of the different files the found fileNumbers
     //will be added to an vector, only if the fileNumber is not already there
@@ -80,13 +81,13 @@ void IntervalHandlerMetagenome::getFileNumbersForRange( const int &pileNum, cons
     }
     //free memory
     delete fileNum;
-    ///  cout << "got fileNumbers" <<endl;
+    ///  Logger::out( LOG_ALWAYS_SHOW ) << "got fileNumbers" <<endl;
 }
 
 /*
    @vector<unsigned int> sharedTaxIds vector of length taxLevelSize to fill up with the taxIds which are the same between file Numbers
    will contain one taxId for each level of the taxonomy, or nothing on the taxonomic levels if the files have no common taxa
-   @vector<unsigned short >fileNumbers file numbers where a suffix was found
+   @vector<MetagFileNumRefType> fileNumbers file numbers where a suffix was found
    Returns vector<bool> intervalInSameTaxa vector of length taxLevelSize, contains true or false for each taxonomic Level,
    depending if the file numbers have a shared taxonomy
 
@@ -99,7 +100,7 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
     taxSame.resize( taxLevelSize );
     //look if the files have at each point of the taxonomic tree different tax level or if they are the same
     bool sameTaxa( false );
-    //  cout << "intervalInSame " << fileNumbers.size() <<endl;
+    //  Logger::out( LOG_ALWAYS_SHOW ) << "intervalInSame " << fileNumbers.size() <<endl;
     for ( int i = taxLevelSize - 1  ;  i >= 0 ; i-- )
     {
         // to remove outlier, first count all taxas
@@ -120,10 +121,10 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
             }
         }
 #ifdef MET_DEBUG
-        cout << i << endl;
+        Logger::out( LOG_ALWAYS_SHOW ) << i << endl;
         for ( map<int, int>::iterator it = taxaCount.begin(); it != taxaCount.end(); it++ )
-            cout << ( *it ).first << " " << ( *it ).second << endl;
-        cout << i << " taxa " << taxaCount.size() << endl;
+            Logger::out( LOG_ALWAYS_SHOW ) << ( *it ).first << ' ' << ( *it ).second << endl;
+        Logger::out( LOG_ALWAYS_SHOW ) << i << " taxa " << taxaCount.size() << endl;
 #endif
         taxSame[i] = sameTaxa;
         //if there was only one possible taxa no outliner is possible
@@ -152,7 +153,7 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
                 }
                 //}
             }
-            //    cout << i << " remaining taxa " << taxaCount.size() <<endl;
+            //    Logger::out( LOG_ALWAYS_SHOW ) << i << " remaining taxa " << taxaCount.size() <<endl;
             //if this leaves only one remaining taxa use that
             if ( biggestTaxa.size() == 1 && biggestTaxa[0] != -1 )
             {
@@ -177,20 +178,20 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
             if ( fileNumToTaxIds_[fileNumbers[0]][i] != -1 )
             {
                 taxSame[i] = true;
-                //      cout << "FileNumbers size 1 " << fileNumbers[0] << " " << fileNumToTaxIds_[fileNumbers[0]][taxLevelSize-1] <<endl;
+                //      Logger::out( LOG_ALWAYS_SHOW ) << "FileNumbers size 1 " << fileNumbers[0] << ' ' << fileNumToTaxIds_[fileNumbers[0]][taxLevelSize-1] <<endl;
                 sharedTaxIds[i] = fileNumToTaxIds_[fileNumbers[0]][i];
             }
         }
     }
 #ifdef MET_DEBUG
     for ( unsigned int i( 0 ); i < fileNumbers.size(); i++ )
-        cerr << fileNumbers[i] << " " ;
+        cerr << fileNumbers[i] << ' ' ;
     cerr << endl;
     for ( unsigned int i( 0 ); i < taxSame.size() ; i++ )
-        cerr << sharedTaxIds[i] << " " ;
+        cerr << sharedTaxIds[i] << ' ' ;
     cerr << endl;
     for ( unsigned int i( 0 ); i < taxSame.size(); i++ )
-        cerr << taxSame[i] << " " ;
+        cerr << taxSame[i] << ' ' ;
     cerr << endl;
 #endif
     return taxSame;
@@ -201,7 +202,8 @@ void IntervalHandlerMetagenome::foundInBoth
 ( const int pileNum,
   const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
   const Range &thisRangeA, const Range &thisRangeB,
-  AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB )
+  AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
+  bool &isBreakpointDetected )
 {
     //propagate A only if the Range also exists in B
     //print only if the word can't be propagated anymore,
@@ -266,17 +268,22 @@ void IntervalHandlerMetagenome::foundInBoth
         //only print information about a certain singleton lengths
         //this is mostly to sorten the output of the database information as well as reduce running time
         //the numbers are completely randomly chosen
+#ifdef PROPAGATE_PREFIX
         if ( thisRangeB.word_.length() == 35
              || thisRangeB.word_.length() == 50
              || thisRangeB.word_.length() == 100
              || thisRangeB.word_.length() == 150
              || thisRangeB.word_.length() == 200
              || thisRangeB.word_.length() == 250 )
+#else
+        assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
+        if ( 1 )
+#endif
         {
             // get the unique file numbers where this Range can be found
             getFileNumbersForRange( pileNum, thisRangeB.pos_, thisRangeB.num_, fileNumbers );
             // test if word is singleton in the files
-            cout << "file numbers size " << fileNumbers.size() << " range " << thisRangeB.num_ << endl;
+            Logger::out( LOG_ALWAYS_SHOW ) << "file numbers size " << fileNumbers.size() << " range " << thisRangeB.num_ << endl;
             if ( fileNumbers.size() <= thisRangeB.num_ )
             {
                 //if the word is a singleton in the files, look if there is a shared taxonomic Id on the different taxonomic levels
@@ -289,7 +296,11 @@ void IntervalHandlerMetagenome::foundInBoth
                     if ( sameTaxa[i] && sharedTaxa[i] != 0 )
                     {
                         //taxaCountPerWordLength[thisRangeB.word_.length()][sharedTaxa[i]] += 1;
-                        cout << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
+#ifdef PROPAGATE_PREFIX
+                        Logger::out( LOG_ALWAYS_SHOW ) << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
+#else
+                        assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
+#endif
                         break;
                     } //~same taxa
                 }// ~ for loop for the tax levels
@@ -300,44 +311,56 @@ void IntervalHandlerMetagenome::foundInBoth
 
     //if the database should not be tested on its own the normal comparison between the two datasets takes place
     //the suffix of the range can only be once in each file if the amount of suffixes is smaller than all possible files. so start testing if it is smaller
+#ifdef PROPAGATE_PREFIX
     else if ( ( thisRangeB.num_ < fileNumToTaxIds_.size() )
               //test file numbers and print information only if the suffix is longer than a certain minimal length chosen from the user
               //this reduces the amount of output and speeds up the count word algorithm because the filenumbers don't need to be looked at
               &&  thisRangeB.word_.length() > minWordLength_
               //test file numbers and print taxonomic information only if a possible tax break point or the end of the read is reached
             )
+#else
+    assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
+#endif
     {
-
         sharedTaxa.resize( taxLevelSize );
         //put back breackpoint information, if
         const bool printBKPT = true;
         const bool printBKPTdetails = false;
         if ( printBKPT && ( differentProp || belowMinDepthBecauseOfEndOfReads ) )
         {
-            printf(
-                "BKPT %s %llu:%llu:%llu:%llu:%llu:%llu %llu:%llu:%llu:%llu:%llu:%llu %llu ",
-                thisRangeB.word_.c_str(),
-                countsThisRangeA.count_[0],
-                countsThisRangeA.count_[1],
-                countsThisRangeA.count_[2],
-                countsThisRangeA.count_[3],
-                countsThisRangeA.count_[4],
-                countsThisRangeA.count_[5],
-                countsThisRangeB.count_[0],
-                countsThisRangeB.count_[1],
-                countsThisRangeB.count_[2],
-                countsThisRangeB.count_[3],
-                countsThisRangeB.count_[4],
-                countsThisRangeB.count_[5],
-                ( thisRangeB.pos_ & matchMask ) );
+            isBreakpointDetected = true;
+            Logger::out( LOG_ALWAYS_SHOW )
+                    << "BKPT"
+#ifdef PROPAGATE_PREFIX
+                    << ' ' << thisRangeB.word_
+#endif
+                    << ' ' << countsThisRangeA.count_[0]
+                    << ':' << countsThisRangeA.count_[1]
+                    << ':' << countsThisRangeA.count_[2]
+                    << ':' << countsThisRangeA.count_[3]
+                    << ':' << countsThisRangeA.count_[4]
+                    << ':' << countsThisRangeA.count_[5]
+                    << ' ' << countsThisRangeB.count_[0]
+                    << ':' << countsThisRangeB.count_[1]
+                    << ':' << countsThisRangeB.count_[2]
+                    << ':' << countsThisRangeB.count_[3]
+                    << ':' << countsThisRangeB.count_[4]
+                    << ':' << countsThisRangeB.count_[5]
+                    << ' ' << ( thisRangeB.pos_ & matchMask )
+                    << ' ';
             if ( printBKPTdetails )
                 for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
-                    cout << fileNumbers[f] << ":";
-            cout << endl;
+                    Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[f] << ':';
+            Logger::out( LOG_ALWAYS_SHOW ) << endl;
         }
 
+#ifdef PROPAGATE_PREFIX
         assert( thisRangeA.word_.size() == thisRangeB.word_.size() );
         bool maxLengthReached = ( thisRangeA.word_.size() >= maxWordLength_ + 1 );
+#else
+        bool maxLengthReached;
+        assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
+#endif
         if ( differentProp || belowMinDepthBecauseOfEndOfReads || maxLengthReached )
         {
             //get the unique file number for the files where the suffix can be found in
@@ -348,9 +371,14 @@ void IntervalHandlerMetagenome::foundInBoth
             if ( thisRangeB.num_ <= fileNumbers.size() )
             {
                 vector<bool> sameTaxa = intervalInSameTaxa( sharedTaxa, fileNumbers );
+#ifdef PROPAGATE_PREFIX
                 //print the information about a shared superkingdom only if a wordlength higher than 50 is reached
                 //printing this information about shorter words inflates the output incredibly without giving much of useful information
                 int smallestTaxLevel = ( thisRangeB.word_.length() > 50 ) ? 0 : 1;
+#else
+                int smallestTaxLevel = 0;
+                assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
+#endif
                 //if there are shared taxonomic ids between the files where this suffix can be found
                 //print the information about the deepest tax level
                 for ( int i( taxLevelSize - 1 ) ; i >= smallestTaxLevel; i-- )
@@ -358,26 +386,30 @@ void IntervalHandlerMetagenome::foundInBoth
                     if ( sameTaxa[i] && sharedTaxa[i] != 0 )
                     {
                         //                        if ( !( differentProp || belowMinDepthBecauseOfEndOfReads ) )
-                        //                            cout << "ending"; // == This MTAXA is due to maxLengthReached
-                        cout << "MTAXA " << i <<  " " << sharedTaxa[i] << " " << thisRangeB.word_ ;
-                        cout << " " << ( thisRangeB.pos_ & matchMask ) << " " ;
-                        printf( "%llu:%llu:%llu:%llu:%llu:%llu %llu:%llu:%llu:%llu:%llu:%llu ",
-                                countsThisRangeA.count_[0],
-                                countsThisRangeA.count_[1],
-                                countsThisRangeA.count_[2],
-                                countsThisRangeA.count_[3],
-                                countsThisRangeA.count_[4],
-                                countsThisRangeA.count_[5],
-                                countsThisRangeB.count_[0],
-                                countsThisRangeB.count_[1],
-                                countsThisRangeB.count_[2],
-                                countsThisRangeB.count_[3],
-                                countsThisRangeB.count_[4],
-                                countsThisRangeB.count_[5]
-                              );
+                        //                            Logger::out( LOG_ALWAYS_SHOW ) << "ending"; // == This MTAXA is due to maxLengthReached
+                        Logger::out( LOG_ALWAYS_SHOW )
+                                << "MTAXA " << i
+                                << ' ' << sharedTaxa[i]
+#ifdef PROPAGATE_PREFIX
+                                << ' ' << thisRangeB.word_
+#endif
+                                << ' ' << ( thisRangeB.pos_ & matchMask )
+                                << ' ' << countsThisRangeA.count_[0]
+                                << ':' << countsThisRangeA.count_[1]
+                                << ':' << countsThisRangeA.count_[2]
+                                << ':' << countsThisRangeA.count_[3]
+                                << ':' << countsThisRangeA.count_[4]
+                                << ':' << countsThisRangeA.count_[5]
+                                << ' ' << countsThisRangeB.count_[0]
+                                << ':' << countsThisRangeB.count_[1]
+                                << ':' << countsThisRangeB.count_[2]
+                                << ':' << countsThisRangeB.count_[3]
+                                << ':' << countsThisRangeB.count_[4]
+                                << ':' << countsThisRangeB.count_[5]
+                                << ' ';
                         for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
-                            cout << fileNumbers[f] << ":";
-                        cout << endl;
+                            Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[f] << ':';
+                        Logger::out( LOG_ALWAYS_SHOW ) << endl;
                         break;
                     }//~if shared taxa
                 }//~for loop for the taxonomic levels
@@ -401,19 +433,24 @@ void IntervalHandlerMetagenome::foundInBOnly
         {
             propagateIntervalB[l] = countsThisRangeB.count_[l] > 0;
             if ( pileNum == 0 )
-                cerr << countsThisRangeB.count_[l] << " " ;
+                cerr << countsThisRangeB.count_[l] << ' ' ;
         }
         if ( pileNum == 0 )
             cerr << endl;
         //don't bother about the Ns they are creating to many false positives
         propagateIntervalB[whichPile[( int )dontKnowChar]] = false;
         //only print information about a certain word length to keep the output smaller
+#ifdef PROPAGATE_PREFIX
         if ( thisRangeB.word_.length() == 35
              || thisRangeB.word_.length() == 50
              || thisRangeB.word_.length() == 100
              || thisRangeB.word_.length() == 150
              || thisRangeB.word_.length() == 200
              || thisRangeB.word_.length() == 250 )
+#else
+        assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
+        if ( 1 )
+#endif
         {
             //only try this if there even is a range like that
             //not sure why this happended a few times
@@ -437,8 +474,12 @@ void IntervalHandlerMetagenome::foundInBOnly
                     {
                         if ( sameTaxa[i] && sharedTaxa[i] != 0 )
                         {
-                            // print the smalles possible information to keep the output small
-                            cout << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
+                            // print the smallest possible information to keep the output small
+#ifdef PROPAGATE_PREFIX
+                            Logger::out( LOG_ALWAYS_SHOW ) << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
+#else
+                            assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
+#endif
                             break;
                         }
                     }
@@ -448,46 +489,46 @@ void IntervalHandlerMetagenome::foundInBOnly
                     {
                         if ( sameTaxa[i] )
                         {
-                            cout << "BTAXA " << taxLevel[i] <<  " " << sharedTaxa[i] << " " << thisRangeB.word_ << " " ;
-                            cout << ( thisRangeB.pos_ & matchMask ) << " " << thisRangeB.num_ << endl;
+                            Logger::out( LOG_ALWAYS_SHOW ) << "BTAXA " << taxLevel[i] <<  ' ' << sharedTaxa[i] << ' ' << thisRangeB.word_ << ' ' ;
+                            Logger::out( LOG_ALWAYS_SHOW ) << ( thisRangeB.pos_ & matchMask ) << ' ' << thisRangeB.num_ << endl;
                         }
                     }
                     if ( sameTaxa[taxLevelSize - 1] )
                     {
                         speciesFound = true;
 
-                        printf(
-                            "BSPECIES %s %llu %d %llu:%llu:%llu:%llu:%llu:%llu ",
-                            thisRangeB.word_.c_str(),
-                            thisRangeB.pos_ & matchMask,
-                            sharedTaxa[taxLevelSize - 1],
-                            countsThisRangeB.count_[0],
-                            countsThisRangeB.count_[1],
-                            countsThisRangeB.count_[2],
-                            countsThisRangeB.count_[3],
-                            countsThisRangeB.count_[4],
-                            countsThisRangeB.count_[5]
-                        );
+                        Logger::out( LOG_ALWAYS_SHOW )
+                                << "BSPECIES"
+                                << ' ' << thisRangeB.word_
+                                << ' ' << ( thisRangeB.pos_ & matchMask )
+                                << ' ' << sharedTaxa[taxLevelSize - 1]
+                                << ' ' << countsThisRangeB.count_[0]
+                                << ':' << countsThisRangeB.count_[1]
+                                << ':' << countsThisRangeB.count_[2]
+                                << ':' << countsThisRangeB.count_[3]
+                                << ':' << countsThisRangeB.count_[4]
+                                << ':' << countsThisRangeB.count_[5]
+                                << ' ';
                         for ( unsigned int j( 0 ) ; j < fileNumbers.size() ; j++ )
-                            cout << fileNumbers[j] << ":" ;
-                        cout << endl;
+                            Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[j] << ':' ;
+                        Logger::out( LOG_ALWAYS_SHOW ) << endl;
                     }
                     if ( fileNumbers.size() == 1 )
                     {
-                        printf(
-                            "BSINGLE %s %llu %llu:%llu:%llu:%llu:%llu:%llu ",
-                            thisRangeB.word_.c_str(),
-                            thisRangeB.pos_ & matchMask,
-                            countsThisRangeB.count_[0],
-                            countsThisRangeB.count_[1],
-                            countsThisRangeB.count_[2],
-                            countsThisRangeB.count_[3],
-                            countsThisRangeB.count_[4],
-                            countsThisRangeB.count_[5]
-                        );
+                        Logger::out( LOG_ALWAYS_SHOW )
+                        "BSINGLE"
+                                << ' ' << thisRangeB.word_
+                                << ' ' << ( thisRangeB.pos_ & matchMask )
+                                << ' ' << countsThisRangeB.count_[0]
+                                << ':' << countsThisRangeB.count_[1]
+                                << ':' << countsThisRangeB.count_[2]
+                                << ':' << countsThisRangeB.count_[3]
+                                << ':' << countsThisRangeB.count_[4]
+                                << ':' << countsThisRangeB.count_[5]
+                                << ' ';
                         for ( unsigned int j( 0 ) ; j < fileNumbers.size() ; j++ )
-                            cout << fileNumbers[j] << ":" ;
-                        cout << endl;
+                            Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[j] << ':';
+                        Logger::out( LOG_ALWAYS_SHOW ) << endl;
                     }
 #endif
                 }//~test on singletons

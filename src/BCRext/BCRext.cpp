@@ -24,11 +24,12 @@
 #include "SeqReader.hh"
 
 #include "Config.hh"
-#include "Logger.hh"
+#include "Filename.hh"
 #include "Timer.hh"
 #include "Tools.hh"
 #include "Types.hh"
 #include "config.h"
+#include "libzoo/util/Logger.hh"
 
 #include <cassert>
 #include <cstdlib>
@@ -41,26 +42,14 @@
 #include <vector>
 
 #ifdef HAVE_POSIX_FADVISE
-#define _XOPEN_SOURCE 600
+#  include <fcntl.h>
 #endif
-#include <fcntl.h>
 
 
 #define BCREXT_ID "@(#) $Id: BCRext.cpp,v 1.8 2011/12/20 14:33:24 tjakobi Exp $"
 
 
 using namespace std;
-
-//const int maxSeqSize(1023);
-//const int bwtBufferSize(16384); // 1<<20=1048576
-
-// below limits to 4 billion reads max - change to unsigned long for more
-//typedef unsigned int SequenceNumberType;
-
-// Should work for BWT of up to 2^64 characters in size
-//typedef unsigned long LetterCountType;
-
-
 
 
 //typedef ReadBufferASCII ReadBuffer;
@@ -82,12 +71,6 @@ typedef BwtWriterRunLength BwtWriter;
 typedef BwtReaderASCII BwtReader;
 typedef BwtWriterASCII BwtWriter;
 #endif
-
-
-const string tmp1( "temp1-XX" );
-const string tmp2( "temp2-XX" );
-//const int tmp1Size(strlen(tmp1));
-//const int tmp2Size(strlen(tmp2));
 
 
 // added by Tobias, interface to new Beetl executable
@@ -115,6 +98,12 @@ BCRext::BCRext( bool huffman, bool runlength,
     inFile_[inFile.length()] = '\0';
     prefix_[prefix.length()] = '\0';
 
+    // Notes
+    if ( implicitSort && ( huffman || runlength ) )
+    {
+        cout << "-> Note: -sap mode needs ASCII intermediate files," << endl
+             << "-> will revert to requested compression type for final output" << endl;
+    }
 }
 
 // called from beetl class, replaces main method
@@ -132,8 +121,8 @@ void BCRext::run( void )
     //  cerr << prefix << "software version is " << BCREXT_ID << endl;
 
 
-    const string fileStem( prefix_ );
-    const string fileStemTemp( "tmp" );
+    const string fileStem( "tmp1" );
+    const string fileStemTemp( "tmp2" );
 
 
     string tmpIn = fileStem;
@@ -183,7 +172,7 @@ void BCRext::run( void )
     }
 
 
-    Logger::out( LOG_FOR_DEBUGGING ) << prefix << "Using alphabet = " << alphabet << ", size = " << alphabetSize << endl;
+    Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << prefix << "Using alphabet = " << alphabet << ", size = " << alphabetSize << endl;
     //  cerr << BUFSIZ << endl
 
     if ( alphabetSize >= 10 )
@@ -192,37 +181,37 @@ void BCRext::run( void )
         exit( EXIT_FAILURE );
     }
 
-    if ( sizeof ( LetterCountType ) != 8 )
+    if ( sizeof ( LetterNumber ) != 8 )
     {
         cerr << "Long long size is not 8 Byte. Aborting." << endl;
         exit( EXIT_FAILURE );
     }
 
 
-    SequenceNumberType seqNum( 0 );
+    SequenceNumber seqNum( 0 );
 
 
-    const LetterCountType sameAsPrevFlag( ( ( LetterCountType )1 ) << ( ( 8 * sizeof( LetterCountType ) ) - 1 ) );
-    const LetterCountType sameAsPrevMask( ~sameAsPrevFlag );
+    const LetterNumber sameAsPrevFlag( ( ( LetterNumber )1 ) << ( ( 8 * sizeof( LetterNumber ) ) - 1 ) );
+    const LetterNumber sameAsPrevMask( ~sameAsPrevFlag );
 
-    //  cout << sameAsPrevFlag << " "<< sameAsPrevMask << " "<< (sameAsPrevMask&sameAsPrevFlag) << " " << (((LetterCountType)1)<<63) << endl;
+    //  cout << sameAsPrevFlag << " "<< sameAsPrevMask << " "<< (sameAsPrevMask&sameAsPrevFlag) << " " << (((LetterNumber)1)<<63) << endl;
 
-    LetterCountType seqPtr;
+    LetterNumber seqPtr;
     int thisPile, lastPile;
-    LetterCountType posInPile;
+    LetterNumber posInPile;
     //  char inChar;
     long long charsToGrab;// charsLeft, charsThisBatch; // TBD make these long?
     //unsigned int charsToGrab;// charsLeft, charsThisBatch; // TBD make these long?
 
 
-    Logger::out( LOG_SHOW_IF_VERBOSE ) << prefix << "Will read sequences from file " << inFile_ << endl;
+    Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << prefix << "Will read sequences from file " << inFile_ << endl;
 
     // read first sequence to determine read size
     SeqReaderFile *seqReader( SeqReaderFile::getReader( fopen( inFile_, "rb" ) ) );
     const char *seqBuf = seqReader->thisSeq();
 
     const int seqSize( strlen( seqBuf ) - 1 ); // -1 compensates for \n at end
-    Logger::out( LOG_SHOW_IF_VERBOSE ) << prefix << "Assuming all sequences are of length " << seqSize << endl;
+    Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << prefix << "Assuming all sequences are of length " << seqSize << endl;
     //  inFile.seekg(0,ios::beg);
     //  rewind(inSeq);
 
@@ -239,7 +228,7 @@ void BCRext::run( void )
         tmpOut = fileStem;
     } // ~else
 
-    getFileName( fileStem, 'B', 0, fileName );
+    fileName = TmpFilename( fileStem, "-B0", 0 ).str();
     readWriteCheck( fileName.c_str(), true );
     outDollarBwt = fopen( fileName.c_str(), "w" );
 
@@ -247,23 +236,23 @@ void BCRext::run( void )
     for ( int j( 1 ); j < alphabetSize; j++ )
     {
 
-        getFileName( tmpIn, 'S', j, fileName );
+        fileName = TmpFilename( tmpIn, "-S0", j ).str();
         readWriteCheck( fileName.c_str(), true );
         outSeq[j] = fopen( fileName.c_str(), "w" );
 
 
-        getFileName( tmpIn, 'P', j, fileName );
+        fileName = TmpFilename( tmpIn, "-P0", j ).str();
         readWriteCheck( fileName.c_str(), true );
         outPtr[j] = fopen( fileName.c_str(), "w" );
 
 
 #ifdef TRACK_SEQUENCE_NUMBER
-        getFileName( tmpIn, 'N', j, fileName );
+        fileName = TmpFilename( tmpIn, "-N0", j ).str();
         readWriteCheck( fileName.c_str(), true );
         outNum[j] = fopen( fileName.c_str(), "w" );
 #endif
 
-        getFileName( tmpIn, 'B', j, fileName );
+        fileName = TmpFilename( tmpIn, "-B0", j ).str();
 
         if ( useImplicitSort_ || useAsciiEncoder_ )
             outBwt[j] = new BwtWriterASCII( fileName.c_str() );
@@ -343,7 +332,7 @@ void BCRext::run( void )
         readBuffer.sendTo( outSeq[thisPile] );
 
 #ifdef TRACK_SEQUENCE_NUMBER
-        assert( fwrite( &seqNum, sizeof( SequenceNumberType ),
+        assert( fwrite( &seqNum, sizeof( SequenceNumber ),
                         1, outNum[thisPile] ) == 1 );
         //    seqNum++;
 #endif
@@ -373,7 +362,7 @@ void BCRext::run( void )
         ( *outBwt[thisPile] )( readBuffer.seqBufBase_ + seqSize - 2, 1 );
 
 
-        if ( fwrite( &seqPtr, sizeof( LetterCountType ),
+        if ( fwrite( &seqPtr, sizeof( LetterNumber ),
                      1, outPtr[thisPile] ) != 1 )
         {
             cerr << "Could not write to pointer pile. Aborting." << endl;
@@ -388,7 +377,7 @@ void BCRext::run( void )
 
     fclose ( outDollarBwt );
 
-    Logger::out( LOG_SHOW_IF_VERBOSE ) << prefix << "Read " << seqNum << " sequences" << endl;
+    Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << prefix << "Read " << seqNum << " sequences" << endl;
     for ( int i( 1 ); i < alphabetSize; i++ )
     {
         fclose( outSeq[i] );
@@ -402,7 +391,7 @@ void BCRext::run( void )
     //    return (0);
 
     LetterCount lastSAPInterval;
-    LetterCountType thisSAPInterval;
+    LetterNumber thisSAPInterval;
 
     //  ReadBuffer buffer(seqSize);
 
@@ -420,21 +409,21 @@ void BCRext::run( void )
         {
             // prep the output files
 
-            getFileName( tmpOut, 'S', j, fileName );
+            fileName = TmpFilename( tmpOut, "-S0", j ).str();
             readWriteCheck( fileName.c_str(), true );
             outSeq[j] = fopen( fileName.c_str(), "w" );
 
-            getFileName( tmpOut, 'P', j, fileName );
+            fileName = TmpFilename( tmpOut, "-P0", j ).str();
             readWriteCheck( fileName.c_str(), true );
             outPtr[j] = fopen( fileName.c_str(), "w" );
 
 #ifdef TRACK_SEQUENCE_NUMBER
-            getFileName( tmpOut, 'N', j, fileName );
+            fileName = TmpFilename( tmpOut, "-N0", j ).str();
             readWriteCheck( fileName.c_str(), true );
             outNum[j] = fopen( fileName.c_str(), "w" );
 #endif
 
-            getFileName( tmpOut, 'B', j, fileName );
+            fileName = TmpFilename( tmpOut, "-B0", j ).str();
 
 
 
@@ -463,7 +452,7 @@ void BCRext::run( void )
             //  setvbuf( outBwt[j], NULL, _IOFBF, 65536);
 
             // prep the input files
-            getFileName( tmpIn, 'B', j, fileName );
+            fileName = TmpFilename( tmpIn, "-B0", j ).str();
             // select the proper input module
             if ( useImplicitSort_ || useAsciiEncoder_ )
             {
@@ -519,17 +508,17 @@ void BCRext::run( void )
         {
             // read each input file in turn
 
-            getFileName( tmpIn, 'S', j, fileName );
+            fileName = TmpFilename( tmpIn, "-S0", j ).str();
             readWriteCheck( fileName.c_str(), false );
             fdSeq = open( fileName.c_str(), O_RDONLY, 0 );
 
-            getFileName( tmpIn, 'P', j, fileName );
+            fileName = TmpFilename( tmpIn, "-P0", j ).str();
             readWriteCheck( fileName.c_str(), false );
             fdPtr = open( fileName.c_str(), O_RDONLY, 0 );
 
 
 #ifdef TRACK_SEQUENCE_NUMBER
-            getFileName( tmpIn, 'N', j, fileName );
+            fileName = TmpFilename( tmpIn, "-N0", j ).str();
             readWriteCheck( fileName.c_str(), false );
             fdNum = open( fileName.c_str(), O_RDONLY, 0 );
 
@@ -702,7 +691,7 @@ void BCRext::run( void )
 
                 ( *outBwt[thisPile] )( &bwtBuf[0], 1 );
 
-                if ( fwrite( &seqPtr, sizeof ( LetterCountType ),
+                if ( fwrite( &seqPtr, sizeof ( LetterNumber ),
                              1, outPtr[thisPile] ) != 1 )
                 {
                     cerr << "BWT readAndSend returned only " << readSendChars
@@ -727,7 +716,7 @@ void BCRext::run( void )
 
 
 #ifdef TRACK_SEQUENCE_NUMBER
-                assert( fwrite( &seqNum, sizeof( SequenceNumberType ),
+                assert( fwrite( &seqNum, sizeof( SequenceNumber ),
                                 1, outNum[thisPile] ) == 1 );
 #endif
 
@@ -742,8 +731,7 @@ void BCRext::run( void )
 
         } // ~for j
 
-        if ( Logger::isActive( LOG_SHOW_IF_VERBOSE ) )
-            Logger::out( LOG_SHOW_IF_VERBOSE ) << "All new characters inserted, usage: " << timer << endl;
+        Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "All new characters inserted, usage: " << timer << endl;
         for ( int j( 1 ); j < alphabetSize; j++ )
         {
 
@@ -752,7 +740,7 @@ void BCRext::run( void )
 
         } // ~for j
 
-        Logger::out( LOG_SHOW_IF_VERBOSE ) << "finishing off BWT strings" << endl;
+        Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "finishing off BWT strings" << endl;
         for ( int j( 1 ); j < alphabetSize; j++ )
         {
 
@@ -786,19 +774,20 @@ void BCRext::run( void )
         tmpIn = tmpOut;
         tmpOut = tmpSwap;
 
-        if ( Logger::isActive( LOG_SHOW_IF_VERBOSE ) )
-            Logger::out( LOG_SHOW_IF_VERBOSE ) << "finished iteration " << i  << ", usage: " << timer << endl;
+        Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "finished iteration " << i  << ", usage: " << timer << endl;
 
         //    assert(i<2);
     } // ~for i (main iteration)
 
+    string fileTypes( "BPS" );
 #ifdef REMOVE_TEMPORARY_FILES
-    string fileTypes( "SPB" );
     for ( int j( 1 ); j < alphabetSize; j++ )
     {
         for ( unsigned int i( 0 ); i < fileTypes.size(); i++ )
         {
-            getFileName( tmpOut, fileTypes[i], j, fileName );
+            char s[4] = "-B0";
+            s[1] = fileTypes[i];
+            fileName = TmpFilename( tmpOut, s, j ).str();
             if ( remove( fileName.c_str() ) != 0 )
             {
                 cerr << "Warning: failed to clean up temporary file " << fileName
@@ -806,13 +795,30 @@ void BCRext::run( void )
             } // ~if
             else
             {
-                Logger::out( LOG_SHOW_IF_VERBOSE ) << "Removed temporary file " << fileName << endl;
+                Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Removed temporary file " << fileName << endl;
             } // ~if
         } // ~for i
     } // ~for j
 #endif
 
-    Logger::out( LOG_ALWAYS_SHOW ) << "Final output files are named " << tmpIn << "-Bxx and similar" << endl;
+    // Move files to final output directory
+    for ( int j( 0 ); j < alphabetSize; j++ )
+    {
+        for ( unsigned int i( 0 ); i < fileTypes.size(); i++ )
+        {
+            if ( j == 0 && i >= 1 ) continue; // "-S00" and "-P00" don't exist
+            char s[4] = "-B0";
+            s[1] = fileTypes[i];
+            fileName = TmpFilename( fileStem, s, j ).str();
+            Filename filenameOut( prefix_, s, j );
+            if ( safeRename( fileName, filenameOut.str() ) != 0 )
+            {
+                cerr << "Warning: failed to rename temporary file \"" << fileName << "\" to final output " << endl;
+            }
+        }
+    }
+
+    Logger::out( LOG_ALWAYS_SHOW ) << "Final output files are named " << prefix_ << "-Bxx and similar" << endl;
 }
 
 

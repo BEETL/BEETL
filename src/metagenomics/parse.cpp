@@ -22,6 +22,7 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -59,13 +60,13 @@ struct TaxInformation
     vector<int> files_;
     double *wordCountPerSize_;
     string name_;
-    vector <unsigned long>  bwtPositions_;
+    vector <uint64_t> bwtPositions_;
     vector <double>  wordCounts_;
     vector <unsigned short> wordLengths_;
     vector <unsigned short> pileNumbers_;
     unsigned int parentId_;
     double normalisedCount_;
-    unsigned long seqLengthSum_;
+    uint64_t seqLengthSum_;
 };
 
 struct FileInformation
@@ -73,7 +74,7 @@ struct FileInformation
     vector<unsigned> suffixPos_;
     vector< int > suffixCounts_;
     vector<unsigned short > suffixLengths_;
-    vector<unsigned long > bwtPositions_;
+    vector<uint64_t > bwtPositions_;
     int sequenceLength_;
     vector<char> suffixChar_;
 };
@@ -84,7 +85,7 @@ int countForTaxLevel[7];
 typedef map<int, TaxInformation> TAXMAP;
 typedef map<int, FileInformation> FILEMAP;
 
-typedef map <unsigned long, BWTInformation > BWTMAP;
+typedef map <uint64_t, BWTInformation > BWTMAP;
 
 typedef map <unsigned int, string> READMAP;
 long getFileSize( FILE *file )
@@ -369,7 +370,7 @@ void printTaxTree( TAXMAP &taxInfo, FILEMAP &fileInfo, vector<int> wordMinSize )
 void getSecondaryInformation( string countWordOutput )
 {
     ifstream parsedIn( countWordOutput.c_str(), ios::in );
-    vector<unsigned long> taxLevelCount;
+    vector<uint64_t> taxLevelCount;
     for ( unsigned int level ( 0 ); level < taxLevelSize; level++ )
         taxLevelCount.push_back( 0 );
     string line;
@@ -506,7 +507,7 @@ vector<BWTMAP> getBWTInformationThroughOnceParsed( string parsedBWTOutput, vecto
             vector<string> splitLine = split( line, " " );
             //      146065189 287 58 1 4 0:0:0:2:2:0: 0:0:0:4:0:0: 2544:2208:2974:4163:
             // bwt = 146065189, taxId = 287, wordLengt = 58, pileNum = 1, 4 = readCount, 0:0:0:2:2:0: = countA (reads), 0:0:0:4:0:0: = countB (reference), 2544:2208:2974:4163: = fileNumbers
-            unsigned long bwtPosition = atol( splitLine[0].c_str() );
+            uint64_t bwtPosition = atol( splitLine[0].c_str() );
             unsigned int wordLength = atoi( splitLine[2].c_str() );
             bool firstBWT = true;
             BWTInformation bwt;
@@ -625,7 +626,7 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
                 //MTAXA 6 562 AAAAAAAAAAAAAAAAAAAAAAAAAAAAACCCCCCCCCCCCCCCCC 1455 0:2:0:0:0:0 0:0:1:0:0:0 2247:
                 // MTAXA 6 37734 ACTAGGGGTCCA 982822322 0:3:1:1:0:2 0:2:0:0:0:0  299:301:
                 int readCount = 0;
-                unsigned long bwtPosition = atol( splitLine[4].c_str() );
+                uint64_t bwtPosition = atol( splitLine[4].c_str() );
                 unsigned short taxLevel = ( unsigned short ) atoi( splitLine[1].c_str() );
                 int wordLength = splitLine[3].length();
                 bool firstBWT = true;
@@ -657,7 +658,7 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
                                 charBCount.push_back( atoi( fileCounts[i].c_str() ) );
                             vector<string> fileNumbers = split ( splitLine[7], ":" );
                             vector<unsigned short> fileNums;
-                            unsigned long genomeLengthsSum( 0 ) ;
+                            uint64_t genomeLengthsSum( 0 ) ;
                             for ( unsigned int i( 0 ); i < fileNumbers.size() - 1; i++ )
                             {
                                 unsigned short fileNum = ( unsigned short ) atoi( fileNumbers[i].c_str() );
@@ -1119,7 +1120,7 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
         if ( splitLine[0].compare( "MTAXA" ) == 0 )
         {
             //MTAXA 2 91061 GGCTGCCAACTAA 1197996044 0:0:2:3:0:5 0:0:0:0:0:7  1121:1123:816:77:75:1460:1462:
-            unsigned long BWTPosition = atol( splitLine[4].c_str() );
+            uint64_t BWTPosition = atol( splitLine[4].c_str() );
 
             vector<string> fileNumbersStrings = ( splitLine[7].compare( "" ) == 0 ) ? split( splitLine[8], ":" ) : split( splitLine[7], ":" );
             vector<int> fileNumbers;
@@ -1135,7 +1136,7 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
             //      cout <<"got unsigned " <<endl;
             //read the start of the words out of the mergeA-output
 
-            fread( suffStarts, sizeof( unsigned ), fileCounts, mergeAOutput[whichPile( splitLine[3][0] )] );
+            assert( fread( suffStarts, sizeof( unsigned ), fileCounts, mergeAOutput[whichPile( splitLine[3][0] )] ) == fileCounts );
 
             // cout << "Read suff worked " <<endl;
             int readsSuffCount( 0 );
@@ -1168,7 +1169,7 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
         vector< int > uniqueSuffixCounts;
         vector<unsigned short > uniqueSuffixLengths;
         vector<char> uniqueSuffixChar;
-        vector<unsigned long > uniqueBWTs;
+        vector<uint64_t > uniqueBWTs;
         if ( ( *it ).second.suffixPos_.size() > 1 )
             for ( unsigned int i( 0 ); i < ( *it ).second.suffixPos_.size() ; i++ )
             {

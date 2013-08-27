@@ -185,7 +185,7 @@ int main ( int numArgs, const char *args[] )
     readFileList( args[3], files );
     cerr << "Collected " << files.size() << " files" << endl;
 
-    for ( int i( 0 ); i < files.size(); ++i )
+    for ( uint i( 0 ); i < files.size(); ++i )
     {
         //      cout << i <<endl;
         //read the fasta file in

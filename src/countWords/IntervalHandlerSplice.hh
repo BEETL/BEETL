@@ -38,7 +38,8 @@ struct IntervalHandlerSplice : public IntervalHandlerBase
     ( const int pileNum,
       const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
       const Range &thisRangeA, const Range &thisRangeB,
-      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB );
+      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
+      bool &isBreakpointDetected );
 
     virtual void foundInAOnly
     ( const int pileNum,
@@ -54,7 +55,7 @@ struct IntervalHandlerSplice : public IntervalHandlerBase
       const Range &thisRangeB,
       AlphabetFlag &propagateIntervalB );
 
-    const LetterCountType minOcc_;
+    const LetterNumber minOcc_;
 };
 
 #endif

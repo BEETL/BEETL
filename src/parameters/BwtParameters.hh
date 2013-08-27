@@ -18,9 +18,11 @@
 #ifndef BEETL_BWT_PARAMETERS_HH
 #define BEETL_BWT_PARAMETERS_HH
 
-#include "ToolParameters.hh"
+#include "libzoo/cli/ToolParameters.hh"
 
 #include <string>
+
+using std::string;
 
 
 namespace BeetlBwtParameters
@@ -77,9 +79,9 @@ enum AlgorithmOption
     ALGORITHM_COUNT
 };
 
-static const string algorithmOptionLabels[] =
+static const string algorithmLabels[] =
 {
-    "bcr",
+    "BCR",
     "ext",
     "" // end marker
 };
@@ -119,23 +121,6 @@ static const string intermediateStorageMediumLabels[] =
 {
     "disk",
     "RAM",
-    "" // end marker
-};
-
-
-// options: parallel prefetch on/off
-
-enum ParallelPrefetch
-{
-    PARALLEL_PREFETCH_OFF,
-    PARALLEL_PREFETCH_ON,
-    PARALLEL_PREFETCH_COUNT,
-};
-
-static const string parallelPrefetchLabels[] =
-{
-    "prefetch off",
-    "prefetch on",
     "" // end marker
 };
 
@@ -180,202 +165,113 @@ static const string processQualitiesLabels[] =
 };
 
 
-// options: generate LCP on/off
+// options: generate cycle BWT off/pbe/ascii
 
-enum GenerateLcp
+enum GenerateCycleBwt
 {
-    GENERATE_LCP_OFF,
-    GENERATE_LCP_ON,
-    GENERATE_LCP_COUNT,
+    GENERATE_CYCLE_BWT_OFF,
+    GENERATE_CYCLE_BWT_PBE,
+    GENERATE_CYCLE_BWT_ASCII,
+    GENERATE_CYCLE_BWT_COUNT,
 };
 
-static const string generateLcpLabels[] =
-{
-    "off",
-    "on",
-    "" // end marker
-};
-
-
-// options: reverse off/on
-
-enum Reverse
-{
-    REVERSE_OFF,
-    REVERSE_ON,
-    REVERSE_COUNT,
-};
-
-static const string reverseLabels[] =
+static const string generateCycleBwtLabels[] =
 {
     "off",
-    "on",
+    "PBE",
+    "ASCII",
     "" // end marker
 };
 
 
-// options: single cycle on/off
+// options: generate cycle qualities off/pbe
 
-enum SingleCycle
+enum GenerateCycleQual
 {
-    SINGLE_CYCLE_ON,
-    SINGLE_CYCLE_OFF,
-    SINGLE_CYCLE_COUNT,
+    GENERATE_CYCLE_QUAL_OFF,
+    GENERATE_CYCLE_QUAL_PBE,
+    GENERATE_CYCLE_QUAL_COUNT,
 };
 
-static const string singleCycleLabels[] =
-{
-    "single cycle on",
-    "single cycle off",
-    "" // end marker
-};
-
-
-// options: concatenate output off/on
-
-enum ConcatenateOutput
-{
-    CONCATENATE_OUTPUT_OFF,
-    CONCATENATE_OUTPUT_ON,
-    CONCATENATE_OUTPUT_COUNT,
-};
-
-static const string concatenateOutputLabels[] =
+static const string generateCycleQualLabels[] =
 {
     "off",
-    "on",
+    "PBE",
     "" // end marker
 };
 
-
-// options: sap ordering off/on
-
-enum SapOrdering
-{
-    SAP_ORDERING_OFF,
-    SAP_ORDERING_ON,
-    SAP_ORDERING_COUNT,
-};
-
-static const string sapOrderingLabels[] =
-{
-    "off",
-    "on",
-    "" // end marker
-};
-
-
-// options: generate endPosFile off/on
-
-enum GenerateEndPosFile
-{
-    GENERATE_ENDPOSFILE_OFF,
-    GENERATE_ENDPOSFILE_ON,
-    GENERATE_ENDPOSFILE_COUNT,
-};
-
-static const string generateEndPosFileLabels[] =
-{
-    "off",
-    "on",
-    "" // end marker
-};
-
-
-// options: pause between cycles off/on
-
-enum PauseBetweenCycles
-{
-    PAUSE_BETWEEN_CYCLES_OFF,
-    PAUSE_BETWEEN_CYCLES_ON,
-    PAUSE_BETWEEN_CYCLES_COUNT,
-};
-
-static const string pauseBetweenCyclesLabels[] =
-{
-    "off",
-    "on",
-    "" // end marker
-};
 
 
 // Option container
 
-enum BwtOptions
+enum BwtParameterIds
 {
-    BWT_OPTION_INPUT_FORMAT,
-    BWT_OPTION_OUTPUT_FORMAT,
-    BWT_OPTION_ALGORITHM,
-    BWT_OPTION_INTERMEDIATE_FORMAT,
-    BWT_OPTION_INTERMEDIATE_STORAGE_MEDIUM,
-    BWT_OPTION_PARALLEL_PREFETCH,
-    BWT_OPTION_PARALLEL_PROCESSING,
-    BWT_OPTION_PROCESS_QUALITIES,
-    BWT_OPTION_GENERATE_LCP,
-    BWT_OPTION_REVERSE,
-    BWT_OPTION_SINGLE_CYCLE,
-    BWT_OPTION_CONCATENATE_OUTPUT,
-    BWT_OPTION_SAP_ORDERING,
-    BWT_OPTION_GENERATE_ENDPOSFILE,
-    BWT_OPTION_PAUSE_BETWEEN_CYCLES,
-    BWT_OPTION_COUNT // end marker
-};
-
-static const string bwtOptionNames[] =
-{
-    "input format",
-    "output format",
-    "algorithm",
-    "intermediate format",
-    "intermediate storage medium",
-    "parallel prefetch",
-    "parallel processing",
-    "process qualities",
-    "generate LCP",
-    "reverse",
-    "single cycle",
-    "concatenate output",
-    "SAP ordering",
-    "generate endPosFile",
-    "pause between cycles",
-    "" // end marker
-};
-
-static const string *bwtOptionPossibleValues[] =
-{
-    inputFormatLabels,
-    outputFormatLabels,
-    algorithmOptionLabels,
-    intermediateFormatLabels,
-    intermediateStorageMediumLabels,
-    parallelPrefetchLabels,
-    parallelProcessingLabels,
-    processQualitiesLabels,
-    generateLcpLabels,
-    reverseLabels,
-    singleCycleLabels,
-    concatenateOutputLabels,
-    sapOrderingLabels,
-    generateEndPosFileLabels,
-    pauseBetweenCyclesLabels,
-    NULL // end marker
+    PARAMETER_UNDEFINED = -1,
+    PARAMETER_INPUT_FILENAME = 0,
+    PARAMETER_OUTPUT_FILENAME,
+    PARAMETER_MEMORY_LIMIT,
+    PARAMETER_INPUT_FORMAT,
+    PARAMETER_OUTPUT_FORMAT,
+    PARAMETER_ALGORITHM,
+    PARAMETER_INTERMEDIATE_FORMAT,
+    PARAMETER_INTERMEDIATE_STORAGE_MEDIUM,
+    PARAMETER_PARALLEL_PREFETCH,
+    //    PARAMETER_PARALLEL_PROCESSING,
+    PARAMETER_PROCESS_QUALITIES,
+    PARAMETER_GENERATE_LCP,
+    PARAMETER_ADD_REV_COMP,
+    PARAMETER_REVERSE,
+    PARAMETER_SUB_SEQUENCE_LENGTH,
+    PARAMETER_SINGLE_CYCLE,
+    PARAMETER_CONCATENATE_OUTPUT,
+    PARAMETER_SAP_ORDERING,
+    PARAMETER_GENERATE_ENDPOSFILE,
+    PARAMETER_GENERATE_CYCLE_BWT,
+    PARAMETER_GENERATE_CYCLE_QUAL,
+    PARAMETER_PAUSE_BETWEEN_CYCLES,
+    PARAMETER_COUNT // end marker
 };
 
 } // namespace BeetlBwtParameters
 
 
+
 class BwtParameters : public ToolParameters
 {
-    virtual const string **getOptionPossibleValues() const
-    {
-        return BeetlBwtParameters::bwtOptionPossibleValues;
-    }
+
 public:
-    virtual const string getOptionName( const unsigned i ) const
+    BwtParameters()
     {
-        return BeetlBwtParameters::bwtOptionNames[i];
+        using namespace BeetlBwtParameters;
+        addEntry( PARAMETER_INPUT_FILENAME, "input filename", "--input", "-i", "Input file name or prefix", "", TYPE_STRING | REQUIRED );
+        addEntry( PARAMETER_OUTPUT_FILENAME, "output filename", "--output", "-o", "Output file name or prefix", "outBWT", TYPE_STRING | REQUIRED );
+        addEntry( PARAMETER_INPUT_FORMAT, "input format", "--input-format", "", "", "detect", TYPE_CHOICE | REQUIRED, inputFormatLabels );
+        addEntry( PARAMETER_OUTPUT_FORMAT, "output format", "--output-format", "", "", "rle", TYPE_CHOICE | REQUIRED, outputFormatLabels );
+        addEntry( PARAMETER_INTERMEDIATE_FORMAT, "intermediate format", "--intermediate-format", "", "", "", TYPE_CHOICE | REQUIRED | AUTOMATED, intermediateFormatLabels );
+        //    addEntry( PARAMETER_INTERMEDIATE_STORAGE_MEDIUM, "intermediate storage medium", "--intermediate-medium", "", "[disk|ram] (multirle->ram, others->disk)", "", TYPE_CHOICE | REQUIRED | AUTOMATED, intermediateStorageMediumLabels );
+        addEntry( PARAMETER_ALGORITHM, "algorithm", "--algorithm", "-a", "", "", TYPE_CHOICE | REQUIRED | AUTOMATED, algorithmLabels );
+        addEntry( PARAMETER_MEMORY_LIMIT, "memory limit MB", "--memory-limit", "-M", "RAM constraint in MB", "smallest of ulimit -v and /proc/meminfo", TYPE_INT | REQUIRED );
+
+        addEntry( PARAMETER_PROCESS_QUALITIES, "process qualities", "--qualities", "-q", "Ignore/Permute qualities", "ignore", TYPE_CHOICE, processQualitiesLabels );
+        addEntry( PARAMETER_CONCATENATE_OUTPUT, "concatenate output", "--concatenate-output", "", "Concatenate BWT files at the end", "", TYPE_SWITCH );
+        addEntry( PARAMETER_ADD_REV_COMP, "add reverse complement", "--add-rev-comp", "", "Add reverse complemented sequences", "", TYPE_SWITCH );
+        addEntry( PARAMETER_REVERSE, "reverse", "--reverse", "", "Process cycles in reverse order", "", TYPE_SWITCH );
+        addEntry( PARAMETER_SUB_SEQUENCE_LENGTH, "sub-sequence length", "--sub-sequence-length", "", "Split sequences into two sub-sequences. Useful for paired reads", "", TYPE_INT );
+        addEntry( PARAMETER_SAP_ORDERING, "SAP ordering", "--sap-ordering", "", "Use SAP ordering (see SAP note below)", "", TYPE_SWITCH );
+        addEntry( PARAMETER_GENERATE_ENDPOSFILE, "generate endPosFile", "--generate-end-pos-file", "", "Generate mapping between BWT '$' signs and sequence numbers", "", TYPE_SWITCH );
+        addEntry( PARAMETER_GENERATE_LCP, "generate LCP", "--generate-lcp", "", "Generate Longest Common Prefix lengths (see LCP note below)", "", TYPE_SWITCH );
+        addEntry( PARAMETER_GENERATE_CYCLE_BWT, "generate cycle BWT", "--cycle-bwt", "", "PBE=Generate cycle-by-cycle BWT with prediction-based encoding", "off", TYPE_CHOICE, generateCycleBwtLabels );
+        addEntry( PARAMETER_GENERATE_CYCLE_QUAL, "generate cycle qualities", "--cycle-qual", "", "PBE=Generate cycle-by-cycle qualities zeroed at correctly-predicted bases", "off", TYPE_CHOICE, generateCycleQualLabels );
+#ifdef USE_OPENMP
+        addEntry( PARAMETER_PARALLEL_PREFETCH, "parallel prefetch", "--no-parallel-prefetch", "", "Disable parallel prefetch of cycle files", "", TYPE_SWITCH | AUTOMATED );
+        //    addEntry( PARAMETER_PARALLEL_PROCESSING, "parallel processing", "--no-parallel-processing", "", "Disable parallel processing by letter", "", TYPE_SWITCH | AUTOMATED, parallelProcessingLabels );
+#endif //ifdef USE_OPENMP
+        //    addEntry( PARAMETER_, "", " --hw-constraints         File describing hardware constraints for speed estimates", "", TYPE_STRING );
+        addEntry( PARAMETER_PAUSE_BETWEEN_CYCLES, "pause between cycles", "--pause-between-cycles", "", "Wait for a key press after each cycle", "", TYPE_SWITCH );
+
+        addDefaultVerbosityAndHelpEntries();
     }
-    //    virtual const string getOptionPossibleValue( const unsigned i, const unsigned j ) const { return bwtOptionPossibleValues[i][j]; }
+
 };
 
 

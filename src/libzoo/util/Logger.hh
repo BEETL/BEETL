@@ -34,11 +34,17 @@ public:
 
 extern NullStream nullStream;
 
+#define Logger_if(verbosity) if (Logger::currentVerbosity >= verbosity)
 
 class Logger
 {
 public:
     static int currentVerbosity;
+
+    static inline std::ostream &out()
+    {
+        return std::cout;
+    }
 
     static std::ostream &out( const int verbosity )
     {
@@ -57,10 +63,6 @@ public:
         return std::cerr;
     }
 
-    static bool isActive( const int verbosity )
-    {
-        return ( currentVerbosity >= verbosity );
-    }
     static void setVerbosity( const string &verbosityString );
 };
 

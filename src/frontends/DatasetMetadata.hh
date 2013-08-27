@@ -18,6 +18,8 @@
 #ifndef DATASET_METADATA_HH
 #define DATASET_METADATA_HH
 
+#include "Types.hh"
+
 #include <string>
 
 using std::string;
@@ -26,9 +28,9 @@ using std::string;
 class DatasetMetadata
 {
 public:
-    unsigned int nCycles;
-    unsigned long nReads;
-    unsigned long nBases;
+    SequenceLength nCycles;
+    SequenceNumber nReads;
+    LetterNumber nBases;
     float rleCompressibility;
 
     void init( const string &input, const string &inputFormat );

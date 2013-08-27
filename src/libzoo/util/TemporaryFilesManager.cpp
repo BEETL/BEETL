@@ -17,8 +17,7 @@
 
 #include "TemporaryFilesManager.hh"
 
-#include "Logger.hh"
-#include "Types.hh"
+#include "libzoo/util/Logger.hh"
 
 #include <algorithm>
 #include <cassert>
@@ -33,6 +32,11 @@
 
 using namespace std;
 
+
+void TemporaryFilesManager_cleanupAtExit()
+{
+    TemporaryFilesManager::get().cleanup();
+}
 
 void TemporaryFilesManager::setTempPath( const string &path, const bool createUniqueSubDirectory )
 {
@@ -54,8 +58,11 @@ void TemporaryFilesManager::setTempPath( const string &path, const bool createUn
         }
 
         tempPathParent_ = ( path.empty() ? "" : ( path + "/" ) ) + "BEETL-Temp";
-        mkdir( tempPathParent_.c_str(), 0700 ); // If this fails, it will be detected and reported below
-        chdir( tempPathParent_.c_str() );
+        mkdir( tempPathParent_.c_str(), 0777 ); // If this fails, it will be detected and reported below
+        if ( chdir( tempPathParent_.c_str() ) != 0 )
+        {
+            cerr << "Warning: Cannot enter directory " << tempPathParent_ << endl;
+        }
 
         vector<char> fullTempPath( 6, 'X' );
         fullTempPath.push_back( '\0' );
@@ -68,12 +75,22 @@ void TemporaryFilesManager::setTempPath( const string &path, const bool createUn
         tempPath_ = tempPathParent_ + "/" + string( &fullTempPath[0] );
         tempPathWasCreated_ = true;
 
-        chdir( oldPath );
+        if ( chdir( oldPath ) != 0 )
+        {
+            cerr << "Warning: Cannot restore path to " << oldPath << endl;
+        }
+        atexit( TemporaryFilesManager_cleanupAtExit );
     }
 
     // Todo: Check that the directory exists
 
-    Logger::out( LOG_SHOW_IF_VERBOSE ) << "Temporary files go in " << tempPath_ << endl;
+    Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Temporary files go in " << tempPath_ << endl;
+}
+
+void TemporaryFilesManager::setRamLimit( const size_t ramLimitMB )
+{
+    ramLimitMB_ = ramLimitMB;
+    Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Temporary RAM files limit set to " << ramLimitMB_ << " MB" << endl;
 }
 
 void TemporaryFilesManager::addFilename( const string &filename )
@@ -86,7 +103,7 @@ void TemporaryFilesManager::addFilename( const string &filename )
 
 void TemporaryFilesManager::cleanupAllFiles()
 {
-    Logger::out( LOG_SHOW_IF_VERBOSE ) << "Removing " << filenames_.size() << " temporary files" << endl;
+    Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Removing " << filenames_.size() << " temporary files" << endl;
 
     for ( unsigned int i = 0; i < filenames_.size(); ++i )
     {
@@ -94,8 +111,12 @@ void TemporaryFilesManager::cleanupAllFiles()
         // cout << "Removing temporary file " << filename << endl;
 
         if ( remove( filename.c_str() ) != 0 )
-            cerr << "TemporaryFilesManager: Error deleting file " << filename << endl;
+        {
+            Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "TemporaryFilesManager: Could not delete file " << filename << endl;
+        }
     }
+
+    filenames_.clear();
 }
 
 void TemporaryFilesManager::cleanup()
@@ -104,14 +125,31 @@ void TemporaryFilesManager::cleanup()
 
     if ( tempPathWasCreated_ )
     {
-        if ( rmdir( tempPath_.c_str() ) != 0 )
+        int attemptRemaining = 3;
+        while ( attemptRemaining-- > 0 )
         {
-            cerr << "Warning: Could not delete temporary directory " << tempPath_ << endl;
+            if ( rmdir( tempPath_.c_str() ) != 0 )
+            {
+                if ( attemptRemaining == 0 )
+                {
+                    cerr << "Warning: Could not delete temporary directory " << tempPath_ << endl;
+                    perror( "Reason: " );
+                }
+                else
+                {
+                    Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Waiting for files to synchronise before deleting temp directory. " << attemptRemaining << " attempts remaining..." << endl;
+                    system( "sync" );
+                    sleep( 1 );
+                }
+            }
+            else
+                break;
         }
         rmdir( tempPathParent_.c_str() );
     }
 
     tempPath_.clear();
+    tempPathWasCreated_ = false;
 }
 
 
@@ -138,11 +176,17 @@ void TemporaryFile::open( const char *filename, const char *mode )
 
 static std::map<string, TemporaryRamFile * > existingRamFiles;
 
+TemporaryRamFile::~TemporaryRamFile()
+{
+    Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "TemporaryRamFile::~TemporaryRamFile " << filename_ << " , mode=" << mode_ << endl;
+}
+
 TemporaryRamFile::TemporaryRamFile( const char *filename, const char *mode, const uint64_t maxRAM  )
     : filename_( filename )
     , mode_( mode )
     , currentPos_( 0 )
 {
+    Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "TemporaryRamFile::TemporaryRamFile " << filename_ << " , mode=" << mode_ << endl;
     TemporaryRamFile *existingRamFile = existingRamFiles[filename_];
 
     switch ( mode[0] )
@@ -155,19 +199,21 @@ TemporaryRamFile::TemporaryRamFile( const char *filename, const char *mode, cons
             }
 
             const uint64_t reserveRAM = max<uint64_t>( maxRAM, 1 ); // minimum RAM = 1 byte
-            buf_.reserve( reserveRAM );
-            break;
+            buf_.reset( new vector<char>() );
+            buf_->reserve( reserveRAM );
+            existingRamFiles[filename_] = this;
         }
+        break;
 
         case 'r':
         {
             if ( existingRamFile )
             {
-                buf_.swap( existingRamFile->buf_ );
-                delete existingRamFile;
+                buf_ = existingRamFile->buf_;
+                //                delete existingRamFile;
             }
-            break;
         }
+        break;
 
         default:
             assert( false && "invalid file open mode" );
@@ -175,14 +221,14 @@ TemporaryRamFile::TemporaryRamFile( const char *filename, const char *mode, cons
 
     // We open the file anyway, to overwrite any existing one where needed
     open( filename_.c_str(), mode_.c_str() );
-
-    existingRamFiles[filename_] = this;
 }
 
 TemporaryRamFile *TemporaryRamFile::fopen( const char *filename, const char *mode, const uint64_t maxRAM )
 {
+    Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "TemporaryRamFile::fopen " << filename << " , mode=" << mode << ", maxRAM=" << maxRAM << endl;
+
     TemporaryRamFile *result = new TemporaryRamFile( filename, mode, maxRAM );
-    if ( result->buf_.capacity() || result->f_ )
+    if ( ( result->buf_ && result->buf_->capacity() ) || result->f_ )
         return result;
     else
     {
@@ -192,17 +238,54 @@ TemporaryRamFile *TemporaryRamFile::fopen( const char *filename, const char *mod
     }
 }
 
+bool TemporaryRamFile::remove( const char *filename )
+{
+    Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "TemporaryRamFile::remove " << filename << endl;
+
+    std::map<string, TemporaryRamFile * >::iterator it = existingRamFiles.find( filename );
+    if ( it != existingRamFiles.end() )
+    {
+        TemporaryRamFile *existingRamFile = it->second;
+        delete existingRamFile;
+        existingRamFiles.erase( it );
+
+        // delete real file
+        const string &tempPath = TemporaryFilesManager::get().tempPath_;
+        string fullFilename;
+        if ( tempPath.empty() )
+            fullFilename = string( filename );
+        else
+            fullFilename = tempPath + "/" + string( filename );
+
+        ::remove( fullFilename.c_str() );
+
+        return true;
+    }
+    else
+        return false;
+}
+
+void TemporaryRamFile::close()
+{
+    TemporaryFile::close();
+    if ( mode_[0] == 'r' )
+    {
+        buf_.reset();
+        delete this;
+    }
+}
+
 size_t TemporaryRamFile::read( void *ptr, size_t size, size_t nmemb )
 {
     size_t totalSize = size * nmemb;
-    size_t availableInRam = ( buf_.size() > currentPos_ ) ? ( buf_.size() - currentPos_ ) : 0;
+    size_t availableInRam = ( buf_->size() > currentPos_ ) ? ( buf_->size() - currentPos_ ) : 0;
     size_t readFromRam = min( totalSize, availableInRam );
     size_t readFromDisk = totalSize - readFromRam;
 
     // Part to read to RAM
     if ( readFromRam )
     {
-        memcpy( ptr, &buf_[currentPos_], readFromRam );
+        memcpy( ptr, &( ( *buf_ )[currentPos_] ), readFromRam );
         currentPos_ += readFromRam;
     }
 
@@ -221,16 +304,16 @@ size_t TemporaryRamFile::read( void *ptr, size_t size, size_t nmemb )
 size_t TemporaryRamFile::write( const void *ptr, size_t size, size_t nmemb )
 {
     size_t totalSize = size * nmemb;
-    size_t capacityLeft = buf_.capacity() - buf_.size();
+    size_t capacityLeft = buf_->capacity() - buf_->size();
     size_t writeToRam = min( totalSize, capacityLeft );
     size_t writeToDisk = totalSize - writeToRam;
 
     // Part to write to RAM
     if ( writeToRam )
     {
-        size_t pos = buf_.size();
-        buf_.resize( pos + writeToRam );
-        memcpy( &buf_[pos], ptr, writeToRam );
+        size_t pos = buf_->size();
+        buf_->resize( pos + writeToRam );
+        memcpy( &( ( *buf_ )[pos] ), ptr, writeToRam );
 
         currentPos_ += writeToRam;
     }
@@ -246,4 +329,14 @@ size_t TemporaryRamFile::write( const void *ptr, size_t size, size_t nmemb )
     }
 
     return size ? nmemb : 0;
+}
+
+bool TemporaryRamFile::eof()
+{
+    size_t availableInRam = ( buf_->size() > currentPos_ ) ? ( buf_->size() - currentPos_ ) : 0;
+
+    if ( availableInRam )
+        return false;
+    else
+        return TemporaryFile::eof();
 }

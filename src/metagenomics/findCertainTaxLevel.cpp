@@ -21,6 +21,7 @@
 #include<iostream>
 #include<map>
 #include<sstream>
+#include<stdint.h>
 #include<string>
 #include<vector>
 
@@ -41,7 +42,7 @@ struct SequenceInformation
     unsigned short fileNum_;
     string tag_;
     string fileName_;
-    unsigned long  giNumber_;
+    uint64_t giNumber_;
     string giString_;
 };
 

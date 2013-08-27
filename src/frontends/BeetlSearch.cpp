@@ -18,11 +18,11 @@
 #include "BeetlSearch.hh"
 
 #include "BCRexternalBWT.hh"
-#include "Common.hh"
-#include "Logger.hh"
 #include "Tools.hh"
 #include "config.h"
 #include "parameters/SearchParameters.hh"
+#include "libzoo/cli/Common.hh"
+#include "libzoo/util/Logger.hh"
 
 #include <cstdlib>
 #include <fstream>
@@ -107,7 +107,10 @@ void launchBeetlSearch( SearchParameters &searchParams, const BeetlSearchArgumen
     }
     else
     {
-        link( args.argKmers.c_str(), intermediateFilename.c_str() );
+        if ( link( args.argKmers.c_str(), intermediateFilename.c_str() ) != 0 )
+        {
+            cerr << "Error: Cannot create link " << intermediateFilename << " -> " << args.argKmers << endl;
+        }
     }
 
     // Launch

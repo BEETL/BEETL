@@ -18,7 +18,8 @@
 #ifndef SORTED_INCLUDED
 #define SORTED_INCLUDED
 
-#include "Tools.hh"
+#include "Alphabet.hh"
+#include "Types.hh"
 
 #include <vector>
 
@@ -31,28 +32,28 @@ struct sortElement
 
     sortElement() {}
 
-    sortElement( dataTypedimAlpha z, dataTypeNChar x, dataTypeNSeq y )
+    sortElement( AlphabetSymbol z, LetterNumber x, SequenceNumber y )
         : pileN( z )
         , posN( x )
         , seqN( y )
     {}
 
-    dataTypelenSeq getLcpCurN() const
+    SequenceLength getLcpCurN() const
     {
         return 0;
     }
-    dataTypelenSeq getLcpSucN() const
+    SequenceLength getLcpSucN() const
     {
         return 0;
     }
-    void setLcpCurN( const dataTypelenSeq val ) { }
-    void setLcpSucN( const dataTypelenSeq val ) { }
+    void setLcpCurN( const SequenceLength val ) { }
+    void setLcpSucN( const SequenceLength val ) { }
 
 #else
 
     sortElement() : lcpCurN( 0 ), lcpSucN( 0 ) {}
 
-    sortElement( dataTypedimAlpha z, dataTypeNChar x, dataTypeNSeq y, dataTypelenSeq l1 = 0, dataTypelenSeq l2 = 0 )
+    sortElement( AlphabetSymbol z, LetterNumber x, SequenceNumber y, SequenceLength l1 = 0, SequenceLength l2 = 0 )
         : pileN( z )
         , posN( x )
         , seqN( y )
@@ -60,31 +61,31 @@ struct sortElement
         , lcpSucN( l2 )
     {}
 
-    dataTypelenSeq getLcpCurN() const
+    SequenceLength getLcpCurN() const
     {
         return lcpCurN;
     }
-    dataTypelenSeq getLcpSucN() const
+    SequenceLength getLcpSucN() const
     {
         return lcpSucN;
     }
-    void setLcpCurN( const dataTypelenSeq val )
+    void setLcpCurN( const SequenceLength val )
     {
         lcpCurN = val;
     }
-    void setLcpSucN( const dataTypelenSeq val )
+    void setLcpSucN( const SequenceLength val )
     {
         lcpSucN = val;
     }
 
 #endif
     ~sortElement() {};
-    dataTypedimAlpha pileN;
-    dataTypeNChar posN;
-    dataTypeNSeq seqN;
+    AlphabetSymbol pileN;
+    LetterNumber posN;
+    SequenceNumber seqN;
 #if BUILD_LCP == 1
-    dataTypelenSeq lcpCurN;
-    dataTypelenSeq lcpSucN;
+    SequenceLength lcpCurN;
+    SequenceLength lcpSucN;
 #endif
 
 #if USE_ATTRIBUTE_PACKED == 1

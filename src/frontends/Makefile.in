@@ -42,7 +42,8 @@ subdir = src/frontends
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/beetl.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.in
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -54,23 +55,25 @@ PROGRAMS = $(bin_PROGRAMS)
 am_beetl_bwt_OBJECTS = beetl_bwt-BeetlBwt.$(OBJEXT) \
 	beetl_bwt-Common.$(OBJEXT) beetl_bwt-DatasetMetadata.$(OBJEXT)
 beetl_bwt_OBJECTS = $(am_beetl_bwt_OBJECTS)
-beetl_bwt_DEPENDENCIES = ../liball.a
+am__DEPENDENCIES_1 =
+beetl_bwt_DEPENDENCIES = ../liball.a ../libzoo.a $(am__DEPENDENCIES_1)
 am_beetl_compare_OBJECTS = beetl_compare-BeetlCompare.$(OBJEXT) \
 	beetl_compare-Common.$(OBJEXT)
 beetl_compare_OBJECTS = $(am_beetl_compare_OBJECTS)
-beetl_compare_DEPENDENCIES = ../liball.a
-am_beetl_convert_OBJECTS = beetl_convert-BeetlConvert.$(OBJEXT) \
-	beetl_convert-Common.$(OBJEXT)
+beetl_compare_DEPENDENCIES = ../liball.a ../libzoo.a \
+	$(am__DEPENDENCIES_1)
+am_beetl_convert_OBJECTS = beetl_convert-BeetlConvert.$(OBJEXT)
 beetl_convert_OBJECTS = $(am_beetl_convert_OBJECTS)
-beetl_convert_DEPENDENCIES = ../liball.a
-am_beetl_search_OBJECTS = beetl_search-BeetlSearch.$(OBJEXT) \
-	beetl_search-Common.$(OBJEXT)
+beetl_convert_DEPENDENCIES = ../liball.a ../libzoo.a \
+	$(am__DEPENDENCIES_1)
+am_beetl_search_OBJECTS = beetl_search-BeetlSearch.$(OBJEXT)
 beetl_search_OBJECTS = $(am_beetl_search_OBJECTS)
-beetl_search_DEPENDENCIES = ../liball.a
-am_beetl_unbwt_OBJECTS = beetl_unbwt-BeetlUnbwt.$(OBJEXT) \
-	beetl_unbwt-Common.$(OBJEXT)
+beetl_search_DEPENDENCIES = ../liball.a ../libzoo.a \
+	$(am__DEPENDENCIES_1)
+am_beetl_unbwt_OBJECTS = beetl_unbwt-BeetlUnbwt.$(OBJEXT)
 beetl_unbwt_OBJECTS = $(am_beetl_unbwt_OBJECTS)
-beetl_unbwt_DEPENDENCIES = ../liball.a
+beetl_unbwt_DEPENDENCIES = ../liball.a ../libzoo.a \
+	$(am__DEPENDENCIES_1)
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(bin_SCRIPTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
@@ -98,6 +101,10 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BOOST_CXXFLAGS = @BOOST_CXXFLAGS@
+BOOST_LDADD = @BOOST_LDADD@
+BOOST_LDFLAGS = @BOOST_LDFLAGS@
+BOOST_PATH = @BOOST_PATH@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -114,6 +121,7 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+HAVE_CXX11 = @HAVE_CXX11@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -172,21 +180,22 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+AM_LDFLAGS = -L${BOOST_ROOT}/lib
 bin_SCRIPTS = beetl
 beetl_bwt_SOURCES = BeetlBwt.cpp Common.cpp DatasetMetadata.cpp
-beetl_bwt_LDADD = ../liball.a
+beetl_bwt_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_bwt_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
-beetl_unbwt_SOURCES = BeetlUnbwt.cpp Common.cpp
-beetl_unbwt_LDADD = ../liball.a
+beetl_unbwt_SOURCES = BeetlUnbwt.cpp
+beetl_unbwt_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_unbwt_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
-beetl_convert_SOURCES = BeetlConvert.cpp Common.cpp
-beetl_convert_LDADD = ../liball.a
+beetl_convert_SOURCES = BeetlConvert.cpp
+beetl_convert_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD} -lz
 beetl_convert_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
-beetl_search_SOURCES = BeetlSearch.cpp Common.cpp
-beetl_search_LDADD = ../liball.a
+beetl_search_SOURCES = BeetlSearch.cpp
+beetl_search_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_search_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
 beetl_compare_SOURCES = BeetlCompare.cpp Common.cpp
-beetl_compare_LDADD = ../liball.a
+beetl_compare_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_compare_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
 all: all-am
 
@@ -293,11 +302,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_compare-BeetlCompare.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_compare-Common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_convert-BeetlConvert.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_convert-Common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_search-BeetlSearch.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_search-Common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_unbwt-BeetlUnbwt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_unbwt-Common.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -397,20 +403,6 @@ beetl_convert-BeetlConvert.obj: BeetlConvert.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_convert_CXXFLAGS) $(CXXFLAGS) -c -o beetl_convert-BeetlConvert.obj `if test -f 'BeetlConvert.cpp'; then $(CYGPATH_W) 'BeetlConvert.cpp'; else $(CYGPATH_W) '$(srcdir)/BeetlConvert.cpp'; fi`
 
-beetl_convert-Common.o: Common.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_convert_CXXFLAGS) $(CXXFLAGS) -MT beetl_convert-Common.o -MD -MP -MF "$(DEPDIR)/beetl_convert-Common.Tpo" -c -o beetl_convert-Common.o `test -f 'Common.cpp' || echo '$(srcdir)/'`Common.cpp; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_convert-Common.Tpo" "$(DEPDIR)/beetl_convert-Common.Po"; else rm -f "$(DEPDIR)/beetl_convert-Common.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='Common.cpp' object='beetl_convert-Common.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_convert_CXXFLAGS) $(CXXFLAGS) -c -o beetl_convert-Common.o `test -f 'Common.cpp' || echo '$(srcdir)/'`Common.cpp
-
-beetl_convert-Common.obj: Common.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_convert_CXXFLAGS) $(CXXFLAGS) -MT beetl_convert-Common.obj -MD -MP -MF "$(DEPDIR)/beetl_convert-Common.Tpo" -c -o beetl_convert-Common.obj `if test -f 'Common.cpp'; then $(CYGPATH_W) 'Common.cpp'; else $(CYGPATH_W) '$(srcdir)/Common.cpp'; fi`; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_convert-Common.Tpo" "$(DEPDIR)/beetl_convert-Common.Po"; else rm -f "$(DEPDIR)/beetl_convert-Common.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='Common.cpp' object='beetl_convert-Common.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_convert_CXXFLAGS) $(CXXFLAGS) -c -o beetl_convert-Common.obj `if test -f 'Common.cpp'; then $(CYGPATH_W) 'Common.cpp'; else $(CYGPATH_W) '$(srcdir)/Common.cpp'; fi`
-
 beetl_search-BeetlSearch.o: BeetlSearch.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_search_CXXFLAGS) $(CXXFLAGS) -MT beetl_search-BeetlSearch.o -MD -MP -MF "$(DEPDIR)/beetl_search-BeetlSearch.Tpo" -c -o beetl_search-BeetlSearch.o `test -f 'BeetlSearch.cpp' || echo '$(srcdir)/'`BeetlSearch.cpp; \
 @am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_search-BeetlSearch.Tpo" "$(DEPDIR)/beetl_search-BeetlSearch.Po"; else rm -f "$(DEPDIR)/beetl_search-BeetlSearch.Tpo"; exit 1; fi
@@ -425,20 +417,6 @@ beetl_search-BeetlSearch.obj: BeetlSearch.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_search_CXXFLAGS) $(CXXFLAGS) -c -o beetl_search-BeetlSearch.obj `if test -f 'BeetlSearch.cpp'; then $(CYGPATH_W) 'BeetlSearch.cpp'; else $(CYGPATH_W) '$(srcdir)/BeetlSearch.cpp'; fi`
 
-beetl_search-Common.o: Common.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_search_CXXFLAGS) $(CXXFLAGS) -MT beetl_search-Common.o -MD -MP -MF "$(DEPDIR)/beetl_search-Common.Tpo" -c -o beetl_search-Common.o `test -f 'Common.cpp' || echo '$(srcdir)/'`Common.cpp; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_search-Common.Tpo" "$(DEPDIR)/beetl_search-Common.Po"; else rm -f "$(DEPDIR)/beetl_search-Common.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='Common.cpp' object='beetl_search-Common.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_search_CXXFLAGS) $(CXXFLAGS) -c -o beetl_search-Common.o `test -f 'Common.cpp' || echo '$(srcdir)/'`Common.cpp
-
-beetl_search-Common.obj: Common.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_search_CXXFLAGS) $(CXXFLAGS) -MT beetl_search-Common.obj -MD -MP -MF "$(DEPDIR)/beetl_search-Common.Tpo" -c -o beetl_search-Common.obj `if test -f 'Common.cpp'; then $(CYGPATH_W) 'Common.cpp'; else $(CYGPATH_W) '$(srcdir)/Common.cpp'; fi`; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_search-Common.Tpo" "$(DEPDIR)/beetl_search-Common.Po"; else rm -f "$(DEPDIR)/beetl_search-Common.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='Common.cpp' object='beetl_search-Common.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_search_CXXFLAGS) $(CXXFLAGS) -c -o beetl_search-Common.obj `if test -f 'Common.cpp'; then $(CYGPATH_W) 'Common.cpp'; else $(CYGPATH_W) '$(srcdir)/Common.cpp'; fi`
-
 beetl_unbwt-BeetlUnbwt.o: BeetlUnbwt.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_unbwt_CXXFLAGS) $(CXXFLAGS) -MT beetl_unbwt-BeetlUnbwt.o -MD -MP -MF "$(DEPDIR)/beetl_unbwt-BeetlUnbwt.Tpo" -c -o beetl_unbwt-BeetlUnbwt.o `test -f 'BeetlUnbwt.cpp' || echo '$(srcdir)/'`BeetlUnbwt.cpp; \
 @am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_unbwt-BeetlUnbwt.Tpo" "$(DEPDIR)/beetl_unbwt-BeetlUnbwt.Po"; else rm -f "$(DEPDIR)/beetl_unbwt-BeetlUnbwt.Tpo"; exit 1; fi
@@ -452,20 +430,6 @@ beetl_unbwt-BeetlUnbwt.obj: BeetlUnbwt.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='BeetlUnbwt.cpp' object='beetl_unbwt-BeetlUnbwt.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_unbwt_CXXFLAGS) $(CXXFLAGS) -c -o beetl_unbwt-BeetlUnbwt.obj `if test -f 'BeetlUnbwt.cpp'; then $(CYGPATH_W) 'BeetlUnbwt.cpp'; else $(CYGPATH_W) '$(srcdir)/BeetlUnbwt.cpp'; fi`
-
-beetl_unbwt-Common.o: Common.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_unbwt_CXXFLAGS) $(CXXFLAGS) -MT beetl_unbwt-Common.o -MD -MP -MF "$(DEPDIR)/beetl_unbwt-Common.Tpo" -c -o beetl_unbwt-Common.o `test -f 'Common.cpp' || echo '$(srcdir)/'`Common.cpp; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_unbwt-Common.Tpo" "$(DEPDIR)/beetl_unbwt-Common.Po"; else rm -f "$(DEPDIR)/beetl_unbwt-Common.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='Common.cpp' object='beetl_unbwt-Common.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_unbwt_CXXFLAGS) $(CXXFLAGS) -c -o beetl_unbwt-Common.o `test -f 'Common.cpp' || echo '$(srcdir)/'`Common.cpp
-
-beetl_unbwt-Common.obj: Common.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_unbwt_CXXFLAGS) $(CXXFLAGS) -MT beetl_unbwt-Common.obj -MD -MP -MF "$(DEPDIR)/beetl_unbwt-Common.Tpo" -c -o beetl_unbwt-Common.obj `if test -f 'Common.cpp'; then $(CYGPATH_W) 'Common.cpp'; else $(CYGPATH_W) '$(srcdir)/Common.cpp'; fi`; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_unbwt-Common.Tpo" "$(DEPDIR)/beetl_unbwt-Common.Po"; else rm -f "$(DEPDIR)/beetl_unbwt-Common.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='Common.cpp' object='beetl_unbwt-Common.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_unbwt_CXXFLAGS) $(CXXFLAGS) -c -o beetl_unbwt-Common.obj `if test -f 'Common.cpp'; then $(CYGPATH_W) 'Common.cpp'; else $(CYGPATH_W) '$(srcdir)/Common.cpp'; fi`
 uninstall-info-am:
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)

@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE LN_S CC CFLAGS ac_ct_CC CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE RANLIB ac_ct_RANLIB SEQAN_PATH SEQAN_CXXFLAGS CPP EGREP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE LN_S CC CFLAGS ac_ct_CC CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE RANLIB ac_ct_RANLIB HAVE_CXX11 SEQAN_PATH SEQAN_CXXFLAGS BOOST_PATH BOOST_CXXFLAGS BOOST_LDFLAGS BOOST_LDADD CPP EGREP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -864,6 +864,7 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-seqan=PATH       Path to Seqan package
+  --with-boost=PATH       Path to Boost package
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -1765,6 +1766,7 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
           ac_config_headers="$ac_config_headers config.h"
+
 
 
 # Checks for programs.
@@ -3507,7 +3509,314 @@ else
 fi
 
 
+
+# Checks for C++11 compatibility
+#AC_CONFIG_MACRO_DIR([m4])
+# ============================================================================
+#  http://www.gnu.org/software/autoconf-archive/ax_cxx_compile_stdcxx_11.html
+# ============================================================================
+#
+# SYNOPSIS
+#
+#   AX_CXX_COMPILE_STDCXX_11([ext|noext],[mandatory|optional])
+#
+# DESCRIPTION
+#
+#   Check for baseline language coverage in the compiler for the C++11
+#   standard; if necessary, add switches to CXXFLAGS to enable support.
+#
+#   The first argument, if specified, indicates whether you insist on an
+#   extended mode (e.g. -std=gnu++11) or a strict conformance mode (e.g.
+#   -std=c++11).  If neither is specified, you get whatever works, with
+#   preference for an extended mode.
+#
+#   The second argument, if specified 'mandatory' or if left unspecified,
+#   indicates that baseline C++11 support is required and that the macro
+#   should error out if no mode with that support is found.  If specified
+#   'optional', then configuration proceeds regardless, after defining
+#   HAVE_CXX11 if and only if a supporting mode is found.
+#
+# LICENSE
+#
+#   Copyright (c) 2008 Benjamin Kosnik <bkoz@redhat.com>
+#   Copyright (c) 2012 Zack Weinberg <zackw@panix.com>
+#   Copyright (c) 2013 Roy Stogner <roystgnr@ices.utexas.edu>
+#
+#   Copying and distribution of this file, with or without modification, are
+#   permitted in any medium without royalty provided the copyright notice
+#   and this notice are preserved. This file is offered as-is, without any
+#   warranty.
+
+#serial 3
+
+
+
+
+
+
+    ax_cxx_compile_cxx11_required=truednl
+  ac_ext=cc
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+  ac_success=no
+  echo "$as_me:$LINENO: checking whether $CXX supports C++11 features by default" >&5
+echo $ECHO_N "checking whether $CXX supports C++11 features by default... $ECHO_C" >&6
+if test "${ax_cv_cxx_compile_cxx11+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+  template <typename T>
+    struct check
+    {
+      static_assert(sizeof(int) <= sizeof(T), "not big enough");
+    };
+
+    typedef check<check<bool>> right_angle_brackets;
+
+    int a;
+    decltype(a) b;
+
+    typedef check<int> check_type;
+    check_type c;
+    check_type&& cr = static_cast<check_type&&>(c);
+
+    auto d = a;
+
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ax_cv_cxx_compile_cxx11=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ax_cv_cxx_compile_cxx11=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ax_cv_cxx_compile_cxx11" >&5
+echo "${ECHO_T}$ax_cv_cxx_compile_cxx11" >&6
+  if test x$ax_cv_cxx_compile_cxx11 = xyes; then
+    ac_success=yes
+  fi
+
+    if test x$ac_success = xno; then
+    for switch in -std=gnu++11 -std=gnu++0x; do
+      cachevar=`echo "ax_cv_cxx_compile_cxx11_$switch" | $as_tr_sh`
+      echo "$as_me:$LINENO: checking whether $CXX supports C++11 features with $switch" >&5
+echo $ECHO_N "checking whether $CXX supports C++11 features with $switch... $ECHO_C" >&6
+if eval "test \"\${$cachevar+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_save_CXXFLAGS="$CXXFLAGS"
+         CXXFLAGS="$CXXFLAGS $switch"
+         cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+  template <typename T>
+    struct check
+    {
+      static_assert(sizeof(int) <= sizeof(T), "not big enough");
+    };
+
+    typedef check<check<bool>> right_angle_brackets;
+
+    int a;
+    decltype(a) b;
+
+    typedef check<int> check_type;
+    check_type c;
+    check_type&& cr = static_cast<check_type&&>(c);
+
+    auto d = a;
+
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  eval $cachevar=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+eval $cachevar=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+         CXXFLAGS="$ac_save_CXXFLAGS"
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$cachevar'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$cachevar'}'`" >&6
+      if eval test x\$$cachevar = xyes; then
+        CXXFLAGS="$CXXFLAGS $switch"
+        ac_success=yes
+        break
+      fi
+    done
+  fi
+
+    if test x$ac_success = xno; then
+    for switch in -std=c++11 -std=c++0x; do
+      cachevar=`echo "ax_cv_cxx_compile_cxx11_$switch" | $as_tr_sh`
+      echo "$as_me:$LINENO: checking whether $CXX supports C++11 features with $switch" >&5
+echo $ECHO_N "checking whether $CXX supports C++11 features with $switch... $ECHO_C" >&6
+if eval "test \"\${$cachevar+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_save_CXXFLAGS="$CXXFLAGS"
+         CXXFLAGS="$CXXFLAGS $switch"
+         cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+  template <typename T>
+    struct check
+    {
+      static_assert(sizeof(int) <= sizeof(T), "not big enough");
+    };
+
+    typedef check<check<bool>> right_angle_brackets;
+
+    int a;
+    decltype(a) b;
+
+    typedef check<int> check_type;
+    check_type c;
+    check_type&& cr = static_cast<check_type&&>(c);
+
+    auto d = a;
+
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  eval $cachevar=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+eval $cachevar=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+         CXXFLAGS="$ac_save_CXXFLAGS"
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$cachevar'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$cachevar'}'`" >&6
+      if eval test x\$$cachevar = xyes; then
+        CXXFLAGS="$CXXFLAGS $switch"
+        ac_success=yes
+        break
+      fi
+    done
+  fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  if test x$ax_cxx_compile_cxx11_required = xtrue; then
+    if test x$ac_success = xno; then
+      { { echo "$as_me:$LINENO: error: *** A compiler with support for C++11 language features is required." >&5
+echo "$as_me: error: *** A compiler with support for C++11 language features is required." >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+  else
+    if test x$ac_success = xno; then
+      HAVE_CXX11=0
+      { { echo "$as_me:$LINENO: error: *** A compiler with support for C++11 language features is required." >&5
+echo "$as_me: error: *** A compiler with support for C++11 language features is required." >&2;}
+   { (exit 1); exit 1; }; }
+      { echo "$as_me:$LINENO: No compiler with C++11 support was found" >&5
+echo "$as_me: No compiler with C++11 support was found" >&6;}
+    else
+      HAVE_CXX11=1
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_CXX11 1
+_ACEOF
+
+    fi
+
+
+  fi
+
+
+
 # Checks for libraries.
+# Seqan
 
 # Check whether --with-seqan or --without-seqan was given.
 if test "${with_seqan+set}" = set; then
@@ -3545,6 +3854,59 @@ if test `eval echo '${'$as_ac_File'}'` = yes; then
 else
   { { echo "$as_me:$LINENO: error: Seqan header file not found in $with_seqan" >&5
 echo "$as_me: error: Seqan header file not found in $with_seqan" >&2;}
+   { (exit 1); exit 1; }; }
+
+fi
+
+
+
+fi
+
+
+# Boost
+
+# Check whether --with-boost or --without-boost was given.
+if test "${with_boost+set}" = set; then
+  withval="$with_boost"
+
+fi;
+
+BOOST_PATH="not found (but only used for experimental stuff)"
+BOOST_CXXFLAGS=
+BOOST_LDADD=
+BOOST_LDFLAGS=
+if test "x$with_boost" != "x" -a "x$with_boost" != "xno"; then
+  as_ac_File=`echo "ac_cv_file_$with_boost/include/boost/version.hpp" | $as_tr_sh`
+echo "$as_me:$LINENO: checking for $with_boost/include/boost/version.hpp" >&5
+echo $ECHO_N "checking for $with_boost/include/boost/version.hpp... $ECHO_C" >&6
+if eval "test \"\${$as_ac_File+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  test "$cross_compiling" = yes &&
+  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "$with_boost/include/boost/version.hpp"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_File'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_File'}'`" >&6
+if test `eval echo '${'$as_ac_File'}'` = yes; then
+  BOOST_PATH="$with_boost"
+
+         BOOST_CXXFLAGS="-I$with_boost/include -DHAVE_BOOST"
+
+         BOOST_LDFLAGS="-L$with_boost/lib"
+
+         BOOST_LDADD="-lboost_system -lboost_thread"
+
+
+else
+  { { echo "$as_me:$LINENO: error: Boost header file not found in $with_boost" >&5
+echo "$as_me: error: Boost header file not found in $with_boost" >&2;}
    { (exit 1); exit 1; }; }
 
 fi
@@ -6099,8 +6461,13 @@ s,@am__fastdepCC_TRUE@,$am__fastdepCC_TRUE,;t t
 s,@am__fastdepCC_FALSE@,$am__fastdepCC_FALSE,;t t
 s,@RANLIB@,$RANLIB,;t t
 s,@ac_ct_RANLIB@,$ac_ct_RANLIB,;t t
+s,@HAVE_CXX11@,$HAVE_CXX11,;t t
 s,@SEQAN_PATH@,$SEQAN_PATH,;t t
 s,@SEQAN_CXXFLAGS@,$SEQAN_CXXFLAGS,;t t
+s,@BOOST_PATH@,$BOOST_PATH,;t t
+s,@BOOST_CXXFLAGS@,$BOOST_CXXFLAGS,;t t
+s,@BOOST_LDFLAGS@,$BOOST_LDFLAGS,;t t
+s,@BOOST_LDADD@,$BOOST_LDADD,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
@@ -6828,4 +7195,7 @@ Note:
 Configure summary:
     Packages for metagenomics:
         Seqan .....: $SEQAN_PATH
+
+    Optional packages:
+        Boost .....: $BOOST_PATH
 "

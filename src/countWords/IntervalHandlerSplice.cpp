@@ -18,6 +18,8 @@
 
 #include "IntervalHandlerSplice.hh"
 
+#include "libzoo/util/Logger.hh"
+
 using namespace std;
 
 
@@ -29,10 +31,11 @@ void IntervalHandlerSplice::foundInBoth
 ( const int pileNum,
   const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
   const Range &thisRangeA, const Range &thisRangeB,
-  AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB )
+  AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
+  bool &isBreakpointDetected )
 {
     bool sharedPath( false );
-    LetterCountType maxSignalAOnly( 0 ), maxSignalBOnly( 0 );
+    LetterNumber maxSignalAOnly( 0 ), maxSignalBOnly( 0 );
 
     for ( int l( 1 ); l < alphabetSize; l++ )
     {
@@ -62,40 +65,43 @@ void IntervalHandlerSplice::foundInBoth
             propagateIntervalB[l] = ( countsThisRangeB.count_[l] >= minOcc_ );
 
 
+        isBreakpointDetected = true;
 #ifdef PROPAGATE_PREFIX
-        printf(
-            "BKPT %s %llu:%llu:%llu:%llu:%llu:%llu %llu:%llu:%llu:%llu:%llu:%llu\n",
-            thisRangeB.word_.c_str(),
-            countsThisRangeA.count_[0],
-            countsThisRangeA.count_[1],
-            countsThisRangeA.count_[2],
-            countsThisRangeA.count_[3],
-            countsThisRangeA.count_[4],
-            countsThisRangeA.count_[5],
-            countsThisRangeB.count_[0],
-            countsThisRangeB.count_[1],
-            countsThisRangeB.count_[2],
-            countsThisRangeB.count_[3],
-            countsThisRangeB.count_[4],
-            countsThisRangeB.count_[5] );
+        Logger::out( LOG_ALWAYS_SHOW )
+                << "BKPT"
+                << ' ' << thisRangeB.word_
+                << ' ' << countsThisRangeA.count_[0]
+                << ':' << countsThisRangeA.count_[1]
+                << ':' << countsThisRangeA.count_[2]
+                << ':' << countsThisRangeA.count_[3]
+                << ':' << countsThisRangeA.count_[4]
+                << ':' << countsThisRangeA.count_[5]
+                << ' ' << countsThisRangeB.count_[0]
+                << ':' << countsThisRangeB.count_[1]
+                << ':' << countsThisRangeB.count_[2]
+                << ':' << countsThisRangeB.count_[3]
+                << ':' << countsThisRangeB.count_[4]
+                << ':' << countsThisRangeB.count_[5]
+                << endl;
 #else
-        printf(
-            "BKPT %c %llu:%llu:%llu:%llu:%llu:%llu %llu:%llu:%llu:%llu:%llu:%llu %llu %llu\n",
-            alphabet[pileNum],
-            countsThisRangeA.count_[0],
-            countsThisRangeA.count_[1],
-            countsThisRangeA.count_[2],
-            countsThisRangeA.count_[3],
-            countsThisRangeA.count_[4],
-            countsThisRangeA.count_[5],
-            countsThisRangeB.count_[0],
-            countsThisRangeB.count_[1],
-            countsThisRangeB.count_[2],
-            countsThisRangeB.count_[3],
-            countsThisRangeB.count_[4],
-            countsThisRangeB.count_[5],
-            ( thisRangeA.pos_ & matchMask ),
-            ( thisRangeB.pos_ & matchMask ) );
+        Logger::out( LOG_ALWAYS_SHOW )
+                << "BKPT"
+                << ' ' << alphabet[pileNum]
+                << ' ' << countsThisRangeA.count_[0]
+                << ':' << countsThisRangeA.count_[1]
+                << ':' << countsThisRangeA.count_[2]
+                << ':' << countsThisRangeA.count_[3]
+                << ':' << countsThisRangeA.count_[4]
+                << ':' << countsThisRangeA.count_[5]
+                << ' ' << countsThisRangeB.count_[0]
+                << ':' << countsThisRangeB.count_[1]
+                << ':' << countsThisRangeB.count_[2]
+                << ':' << countsThisRangeB.count_[3]
+                << ':' << countsThisRangeB.count_[4]
+                << ':' << countsThisRangeB.count_[5]
+                << ' ' << ( thisRangeA.pos_ & matchMask )
+                << ' ' << ( thisRangeB.pos_ & matchMask )
+                << endl;
 #endif
 
 #ifdef OLD
@@ -104,9 +110,9 @@ void IntervalHandlerSplice::foundInBoth
         cout << thisRangeA.word_;
 #endif
         for ( int l( 0 ); l < alphabetSize; l++ )
-            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
+            cout << ( ( l == 0 ) ? ' ' : ':' ) << countsThisRangeA.count_[l];
         for ( int l( 0 ); l < alphabetSize; l++ )
-            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeB.count_[l];
+            cout << ( ( l == 0 ) ? ' ' : ':' ) << countsThisRangeB.count_[l];
         cout << endl;
 #endif
     }
@@ -126,41 +132,22 @@ void IntervalHandlerSplice::foundInAOnly
 {
     if ( countsThisRangeA.count_[0] > 0 )
     {
+        Logger::out( LOG_ALWAYS_SHOW )
+                << "READ"
 #ifdef PROPAGATE_PREFIX
-        printf( "READ %s %llu %llu:%llu:%llu:%llu:%llu:%llu %llu\n",
-                thisRangeA.word_.c_str(),
-                thisRangeA.pos_,
-                countsThisRangeA.count_[0],
-                countsThisRangeA.count_[1],
-                countsThisRangeA.count_[2],
-                countsThisRangeA.count_[3],
-                countsThisRangeA.count_[4],
-                countsThisRangeA.count_[5],
-                countsSoFarA.count_[0] );
+                << ' ' << thisRangeA.word_
 #else
-        printf( "READ %c %llu %llu:%llu:%llu:%llu:%llu:%llu %llu\n",
-                alphabet[pileNum],
-                thisRangeA.pos_,
-                countsThisRangeA.count_[0],
-                countsThisRangeA.count_[1],
-                countsThisRangeA.count_[2],
-                countsThisRangeA.count_[3],
-                countsThisRangeA.count_[4],
-                countsThisRangeA.count_[5],
-                countsSoFarA.count_[0] );
+                << ' ' << alphabet[pileNum]
 #endif
-
-#ifdef OLD
-#ifdef PROPAGATE_PREFIX
-        cout << "READ " << thisRangeA.word_;
-#else
-        cout << "READ " << thisRangeA.num_;
-#endif
-        cout << " " << thisRangeA.pos_;
-        for ( int l( 0 ); l < alphabetSize; l++ )
-            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
-        cout << endl;
-#endif
+                << ' ' << thisRangeA.pos_
+                << ' ' << countsThisRangeA.count_[0]
+                << ':' << countsThisRangeA.count_[1]
+                << ':' << countsThisRangeA.count_[2]
+                << ':' << countsThisRangeA.count_[3]
+                << ':' << countsThisRangeA.count_[4]
+                << ':' << countsThisRangeA.count_[5]
+                << ' ' << countsSoFarA.count_[0]
+                << endl;
     }
     // TBD print out IDs of discovered reads
 
@@ -182,41 +169,22 @@ void IntervalHandlerSplice::foundInBOnly
 {
     if ( countsThisRangeB.count_[0] > 0 )
     {
+        Logger::out( LOG_ALWAYS_SHOW )
+                << "INBS"
 #ifdef PROPAGATE_PREFIX
-        printf( "INBS %s %llu %llu:%llu:%llu:%llu:%llu:%llu %llu\n",
-                thisRangeB.word_.c_str(),
-                thisRangeB.pos_,
-                countsThisRangeB.count_[0],
-                countsThisRangeB.count_[1],
-                countsThisRangeB.count_[2],
-                countsThisRangeB.count_[3],
-                countsThisRangeB.count_[4],
-                countsThisRangeB.count_[5],
-                countsSoFarB.count_[0] );
+                << ' ' << thisRangeB.word_
 #else
-        printf( "INBS %c %llu %llu:%llu:%llu:%llu:%llu:%llu %llu\n",
-                alphabet[pileNum],
-                thisRangeB.pos_,
-                countsThisRangeB.count_[0],
-                countsThisRangeB.count_[1],
-                countsThisRangeB.count_[2],
-                countsThisRangeB.count_[3],
-                countsThisRangeB.count_[4],
-                countsThisRangeB.count_[5],
-                countsSoFarB.count_[0] );
+                << ' ' << alphabet[pileNum]
 #endif
-
-#ifdef OLD
-#ifdef PROPAGATE_PREFIX
-        cout << "READ " << thisRangeB.word_;
-#else
-        cout << "READ " << thisRangeB.num_;
-#endif
-        cout << " " << thisRangeB.pos_;
-        for ( int l( 0 ); l < alphabetSize; l++ )
-            cout << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeB.count_[l];
-        cout << endl;
-#endif
+                << ' ' << thisRangeB.pos_
+                << ' ' << countsThisRangeB.count_[0]
+                << ':' << countsThisRangeB.count_[1]
+                << ':' << countsThisRangeB.count_[2]
+                << ':' << countsThisRangeB.count_[3]
+                << ':' << countsThisRangeB.count_[4]
+                << ':' << countsThisRangeB.count_[5]
+                << ' ' << countsSoFarB.count_[0]
+                << endl;
     }
     // TBD print out IDs of discovered reads
 

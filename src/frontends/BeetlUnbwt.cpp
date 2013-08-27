@@ -18,50 +18,48 @@
 #include "BeetlUnbwt.hh"
 
 #include "BCRexternalBWT.hh"
-#include "Common.hh"
-#include "Logger.hh"
 #include "config.h"
 #include "parameters/UnbwtParameters.hh"
+#include "libzoo/cli/Common.hh"
+#include "libzoo/util/Logger.hh"
 
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <string.h>
 
 using namespace std;
 using namespace BeetlUnbwtParameters;
 
 
-void launchBeetlUnbwt( UnbwtParameters &unbwtParams, const string &inputFilename, const string &outputFilename )
+UnbwtParameters params;
+
+void launchBeetlUnbwt()
 {
+    const string &inputFilename = params["input filename prefix"];
+    const string &outputFilename = params["output filename"];
+
+    Logger::out( LOG_ALWAYS_SHOW ) << "\nLaunching the following configuration of Beetl-unbwt:" << endl;
+    params.print( Logger::out( LOG_ALWAYS_SHOW ), false );
+    Logger::out( LOG_ALWAYS_SHOW ) << endl;
+
     int bcrMode = 1 ; // 1=decode BWT
     CompressionFormatType outputCompression = compressionIncrementalRunLength; // not used
-    BCRexternalBWT bwt( ( char * )inputFilename.c_str(), ( char * )outputFilename.c_str(), bcrMode, outputCompression, &unbwtParams );
+    BCRexternalBWT bwt( ( char * )inputFilename.c_str(), ( char * )outputFilename.c_str(), bcrMode, outputCompression, &params );
     // automatically calls: result = unbuildBCR( file1, fileOutBwt, intermediateCycFiles, fileOutput );
 }
 
 
 void printUsage()
 {
-    cout << "Parameters:" << endl;
-    cout << "    --input (-i)             Input prefix" << endl;
-    cout << "    --output (-o)            Output file name" << endl;
-    cout << endl;
-    cout << "Options:" << endl;
-    cout << "    --decode-direction (-d)  = backward [forward|backward]" << endl;
-    cout << "    --use-vector             = on [on|off]: Pre-compute a sampling vector of the BWT segments. More RAM, faster." << endl;
-    cout << "    --verbosity              = normal [quiet|normal|verbose|very-verbose|debug] or [0|1|2|3|4]" << endl;
-    cout << "    -v / -vv                 Shortcuts to --verbosity = verbose / very-verbose" << endl;
-    cout << "    --help (-h)              Help" << endl;
+    params.printUsage();
+
+    cout << "Notes:" << endl;
+    cout << "    Input must be a set of ASCII-encoded BWT files (not run-length-encoded)" << endl;
+    cout << "    Fastq output requires {input}-Q0x quality files to be present" << endl;
     cout << endl;
 }
 
-
-struct BeetlUnbwtArguments
-{
-    string argInput;
-    string argOutput;
-    string argVerbosityLevel;
-};
 
 int main( const int argc, const char **argv )
 {
@@ -81,58 +79,62 @@ int main( const int argc, const char **argv )
     }
     cout << "\n" << endl;
 
-    // Todo: reduce these 2 structures to 1
-    BeetlUnbwtArguments args;
-    UnbwtParameters params;
-
-    for ( int i = 1; i < argc; ++i )
+    if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
-        if ( isNextArgument( "-h", "--help", argc, argv, i ) )
-        {
-            printUsage();
-            exit( 0 );
-        }
-        else if ( isNextArgument   ( "-i", "--input"               , argc, argv, i, &args.argInput                           ) ) {}
-        else if ( isNextArgument   ( "-o", "--output"              , argc, argv, i, &args.argOutput                          ) ) {}
-        else if ( parseNextArgument( "-d", "--decode-direction"    , argc, argv, i, params, UNBWT_OPTION_DECODE_DIRECTION    ) ) {}
-        else if ( parseNextArgument( ""  , "--use-vector"          , argc, argv, i, params, UNBWT_OPTION_USE_VECTOR          ) ) {}
-        else if ( isNextArgument   ( ""  , "--verbosity"           , argc, argv, i, &args.argVerbosityLevel                  ) )
-        {
-            Logger::setVerbosity( args.argVerbosityLevel );
-        }
-        else if ( isNextArgument   ( "-v"  , ""                    , argc, argv, i ) )
-        {
-            Logger::setVerbosity   ( "verbose" );
-        }
-        else if ( isNextArgument   ( "-vv" , ""                    , argc, argv, i ) )
-        {
-            Logger::setVerbosity( "very-verbose" );
-        }
-        else
-        {
-            cerr << "Error: Invalid parameter: " << argv[i] << "\n" << endl;
-            printUsage();
-            exit( 1 );
-        }
-    }
-
-    // Checking for required parameters
-    if ( args.argInput.empty() || args.argOutput.empty() )
-    {
-        cerr << "Error: Missing arguments: --input and --output are required\n" << endl;
         printUsage();
         exit( 1 );
     }
 
     // Use default parameter values where needed
-    if ( params.getValue( UNBWT_OPTION_DECODE_DIRECTION ) == MULTIPLE_OPTIONS )
-        params.set( UNBWT_OPTION_DECODE_DIRECTION, DECODE_DIRECTION_BACKWARD );
+    params.commitDefaultValues();
 
-    if ( params.getValue( UNBWT_OPTION_USE_VECTOR ) == MULTIPLE_OPTIONS )
-        params.set( UNBWT_OPTION_USE_VECTOR, USE_VECTOR_ON );
+    // Auto-detection of missing arguments
+    if ( !params["output format"].isSet() )
+    {
+        const string &filename = params["output filename"];
+        string fileFormat = detectFileFormat( filename );
+        if ( fileFormat.empty() )
+        {
+            cerr << "Error: file format not recognised for " << filename << endl;
+            exit( -1 );
+        }
+        params["output format"] = fileFormat;
+    }
+    checkFileFormat( params["output filename"], params["output format"] );
+
+    if ( !params["input format"].isSet() )
+    {
+        const string &bwtPrefix = params["input filename prefix"];
+        vector<string> filenames;
+        bool isBwtCompressed;
+        string availableFileLetters;
+        detectInputBwtProperties( bwtPrefix, filenames, isBwtCompressed, availableFileLetters );
+
+        if ( filenames.size() < 2 )
+        {
+            cerr << "Error: too few input files detected (run with -vv for more details)" << endl;
+            exit( -1 );
+        }
+
+        if ( isBwtCompressed )
+        {
+            cerr << "Error: BWT files don't seem to be in ASCII format (they probably got created as run-length-encoded)" << endl;
+            exit( -1 );
+        }
+        else
+        {
+            params["input format"] = "BWT_ASCII";
+        }
+
+        // Check that {prefix}-Q0* files are present if output is fastq
+        if ( params["output format"] == "fastq" )
+        {
+            assert( strchr( availableFileLetters.c_str(), 'Q' ) && "{input}-Q0x files cannot be found (those qualities are required for fastq output)" );
+        }
+    }
 
     // Launch
-    launchBeetlUnbwt( params, args.argInput, args.argOutput );
+    launchBeetlUnbwt();
 
     return 0;
 }

@@ -1,177 +1,30 @@
 BEETL: Burrows-Wheeler Extended Tool Library
 
-Copyright (c) 2011 Illumina, Inc.
+Copyright (c) 2013 Illumina, Inc.
 
 This software is covered by the "Illumina Non-Commercial Use Software
 and Source Code License Agreement" and any user of this software or
-source file is bound by the terms therein 
-
-*** Description ***
-
-BEETL is a suite of applications for building and manipulating the 
-Burrows-Wheeler Transform (BWT) of collections of DNA sequences. 
-The algorithms employed in BEETL are intended to scale to collections of 
-sequences containing one billion entries or more.
-
-The initial release implements two flavours of an algorithm for
-building the BWT of a sequence collection - BCR and BCRext.
-
-Subsequent releases will add functionality for efficient inversion and
-querying of BWTs.
+source file is bound by the terms therein
 
 
-*** System requirements ***
 
-This program has been compiled and tested using gcc version 4.7.0 under 
-the CentOS Linux distribution.
+Documentation in: doc/BEETL.md
 
-BCR requires around 14 bytes of RAM per input sequence 
-
-BCRext works entirely in external memory but places more demands on your file
-system. 
-
-In both cases, for best performance it is recommended to run on a 
-dedicated local file system. A solid state hard drive (SSD) has been found
-to be particularly suitable.
-
-
-For metagenomics, one of the tools (makeBWTskew) needs the Seqan library's header files.
-Seqan can be downloaded from www.seqan.de
-
-
-*** Installation ***
-
-Assuming BEETL source code is in directory /source_path
-Assuming a temporary build directory /build_path
-Assuming code should be installed into directory /install_path
-
-If you obtained the source from git:
-  cd /source_path
-  ./bootstrap_with_autotools
-
-If you have gcc>=4.7, you can activate OpenMP's parallelism with:
-  export CXXFLAGS="-DUSE_OPENMP -fopenmp"
-
-Then, for everyone:
-  cd /build_path
-  /source_path/configure --prefix=/install_path
-  make
-  make install
-
-
-*** Usage ***
- 
-/install_path/bin/beetl --help
-
-
-*** BWT creation ***
-
-/install_path/bin/beetl bwt --help
-
-
-Simplest form:
-    /install_path/bin/beetl bwt -i input -o outputPrefix
-
-Input: FASTA/FASTQ/SEQ/CYC files
-Output: by default, 6 files in run-length-encoded format:
-
-${outputPrefix}-B00
-- BWT of characters corresponding to suffixes beginning with '$'
-${outputPrefix}-B01
-- BWT of characters corresponding to suffixes beginning with 'A'
-${outputPrefix}-B02
-- BWT of characters corresponding to suffixes beginning with 'C'
-${outputPrefix}-B03
-- BWT of characters corresponding to suffixes beginning with 'G'
-${outputPrefix}-B04
-- BWT of characters corresponding to suffixes beginning with 'N'
-${outputPrefix}-B05
-- BWT of characters corresponding to suffixes beginning with 'T'
-
-
--------------------------------------------------------------
-Parameters in Tools.h
-deletePartialLCP:	if it is set to 1, it deletes the LCP-segments files and keeps the entire LCP, otherwise renames them.
-deleteCycFile:		if it is set to 1, it deletes the cycs files.
-BUILD_SA:			if it is set to 1, it computes the GSA (seqID, position) and the SA (position of the concatenated sequences without a further end-marker).
-BUILD_LCP 			if it is set to 1, it also computes the LCP
-decodeBackward:		if it is set to 1, it computes the inverse BWT in backward direction, otherwise in forward direction.
-BackByVector:		if it is set to 1, it uses the sampling of the BWT segments for inverse BWT. More memory, less time.
-
-Inverse BWT:
-
-	/install_path/bin/beetl unbwt --help
-
-	Input: outfile of BCR
-
-	1) Backward direction
-		Inverse BWT by Backward direction of nText sequences at the same time by lengthRead iterations, in the original order.
-		1a)	By using the sampling 
-		1b) Without using the sampling
-		Output: outputInverse. TDB
-			For now, it returns the cyc files.
-			TDB: To do the inverse of Transpose class. We should obtain from cyc files the sequences in fasta format.
-
-	2) Forward direction
-		Inverse BWT by Forward direction of nText sequences, one sequence at a time, in lexicographic order.
-		1a)	By using the sampling 
-		1b) Without using the sampling
-		Output: outputInverse.
-			It contains seqID and the recovered sequence for each row.
-
-(Generalized) Suffix Array by using BCR
-	
-	/install_path/bin/OldBeetl bcr -i input.fa -o BCR-B0
-
-	Input: input.fa (like above)
-	
-	Output: 
-		BCR-B0. It is the concatenation of BCR-B0[012345]
-		BCR-B0.pairSA. It is the generalized suffix array (seqID, position) of the collection S.
-						It is defined as an array of N pairs (seqID, position), and GSA[i]=(t,j) is the the pair corresponding to the i-th smallest suffix of the strings in S.
-		BCR-B0.sa. It is the suffix array of the concatenated strings of the collection (without to append a further end-marker)
-		BCR-B0.txt. it produces an information file when verboseEncode == 1. Useful for small input.
-
-Example:
-input.fa
-	> First sequence
-	CGAACAGTTA
-	> Second sequence
-	ACAGTACGAT 
-
-outfile.txt
-Position of end-markers
-seqN 	 posN 	 pileN
-1	3	1
-0	3	2
-
-bwt	pos	numSeq	SA
-A	10	0	10
-T	10	1	21
-T	9	0	9
-G	2	0	2
-$	0	1	11
-A	3	0	3
-T	5	1	16
-C	2	1	13
-C	5	0	5
-G	8	1	19
-A	1	1	12
-A	4	0	4
-$	0	0	0
-A	6	1	17
-C	1	0	1
-C	7	1	18
-A	3	1	14
-A	6	0	6
-A	9	1	20
-T	8	0	8
-G	4	1	15
-G	7	0	7
-
--------------------------------------------------------------
 
 *** Release notes ***
+
+Version 0.6.0 (27th August 2013)
+
+- Important: Harmonised file encodings: you may need to rebuild your BWT files or just convert bwt-B00 from BWT_ASCII to BWT_RLE with beetl-convert (bwt-B00 was always ASCII-encoded. It now follows the same encoding as the other piles)
+- Now requires GCC with C++11 support (gcc 4.3 or above)
+- New Markdown documentation style
+- Faster beetl-compare and metaBEETL
+- Lossless quality compression scripts added, even though they are not using BWT
+- New features:
+  - BWT creation with reverse-complemented reads (--add-rev-comp)
+  - BWT creation with multiple reads per sequence (--sequence-length)
+- Support for BCL and BCL.gz in beetl-convert
+
 
 Version 0.5.0 (10th June 2013)
 

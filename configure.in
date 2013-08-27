@@ -9,6 +9,7 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/frontends/BeetlBwt.cpp])
 AC_CONFIG_HEADER([config.h])
 
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_INSTALL
@@ -16,7 +17,15 @@ AC_PROG_LN_S
 AC_PROG_CC
 AC_PROG_RANLIB
 
+
+# Checks for C++11 compatibility
+#AC_CONFIG_MACRO_DIR([m4])
+m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
+AX_CXX_COMPILE_STDCXX_11
+
+
 # Checks for libraries.
+# Seqan
 AC_ARG_WITH([seqan],
     AS_HELP_STRING([--with-seqan=PATH], [Path to Seqan package]))
 
@@ -28,6 +37,26 @@ AS_IF([test "x$with_seqan" != "x" -a "x$with_seqan" != "xno"],
          AC_SUBST([SEQAN_CXXFLAGS], ["-I$with_seqan -DHAVE_SEQAN"])
         ],
         [AC_MSG_ERROR([Seqan header file not found in $with_seqan])]
+       )
+      ]
+     )
+
+# Boost
+AC_ARG_WITH([boost],
+    AS_HELP_STRING([--with-boost=PATH], [Path to Boost package]))
+
+BOOST_PATH="not found (but only used for experimental stuff)"
+BOOST_CXXFLAGS=
+BOOST_LDADD=
+BOOST_LDFLAGS=
+AS_IF([test "x$with_boost" != "x" -a "x$with_boost" != "xno"],
+      [AC_CHECK_FILE([$with_boost/include/boost/version.hpp],
+        [AC_SUBST([BOOST_PATH], ["$with_boost"])
+         AC_SUBST([BOOST_CXXFLAGS], ["-I$with_boost/include -DHAVE_BOOST"])
+         AC_SUBST([BOOST_LDFLAGS], ["-L$with_boost/lib"])
+         AC_SUBST([BOOST_LDADD], ["-lboost_system -lboost_thread"])
+        ],
+        [AC_MSG_ERROR([Boost header file not found in $with_boost])]
        )
       ]
      )
@@ -66,4 +95,7 @@ Note:
 Configure summary:
     Packages for metagenomics:
         Seqan .....: $SEQAN_PATH
+
+    Optional packages:
+        Boost .....: $BOOST_PATH
 "

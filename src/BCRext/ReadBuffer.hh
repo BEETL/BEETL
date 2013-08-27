@@ -56,7 +56,7 @@ struct ReadBufferBase
 
     bool getNext(
         //char*& seqBuf,
-        SequenceNumberType &seqNum, LetterCountType &seqPtr );
+        SequenceNumber &seqNum, LetterNumber &seqPtr );
 
     virtual void sendTo( FILE *pFile )
     {
@@ -94,9 +94,9 @@ struct ReadBufferBase
     bool lastIter_;
 
 #ifdef TRACK_SEQUENCE_NUMBER
-    SequenceNumberType seqNum_[ReadBufferSize];
+    SequenceNumber seqNum_[ReadBufferSize];
 #endif
-    LetterCountType seqPtr_[ReadBufferSize];
+    LetterNumber seqPtr_[ReadBufferSize];
     // start of storage buffer
     char *seqBufBase_;
     // start of storage buffer for last entry read

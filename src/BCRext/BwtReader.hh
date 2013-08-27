@@ -37,13 +37,13 @@ public:
     BwtReaderBase( const string &fileName );
     virtual ~BwtReaderBase();
 
-    virtual unsigned int readAndCount( LetterCount &c, const LetterCountType numChars ) = 0;
-    uint readAndCount( LetterCount &c );
-    virtual uint readAndSend( BwtWriterBase &writer, const int numChars ) = 0;
-    virtual uint readAndSend( BwtWriterBase &writer );
-    virtual int operator()( char *p, int numChars ) = 0;
+    virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars ) = 0;
+    LetterNumber readAndCount( LetterCount &c );
+    virtual LetterNumber readAndSend( BwtWriterBase &writer, const LetterNumber numChars ) = 0;
+    virtual LetterNumber readAndSend( BwtWriterBase &writer );
+    virtual LetterNumber operator()( char *p, LetterNumber numChars ) = 0;
     virtual void rewindFile( void ) = 0;
-    virtual LetterCountType tellg( void ) const = 0;
+    virtual LetterNumber tellg( void ) const = 0;
 
 protected:
     FILE *pFile_;
@@ -64,18 +64,18 @@ public:
 
     virtual ~BwtReaderASCII() {}
 
-    virtual unsigned int readAndCount( LetterCount &c, const LetterCountType numChars );
+    virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
-    virtual uint readAndSend( BwtWriterBase &writer, const int numChars );
+    virtual LetterNumber readAndSend( BwtWriterBase &writer, const LetterNumber numChars );
 
-    virtual int operator()( char *p, int numChars );
+    virtual LetterNumber operator()( char *p, LetterNumber numChars );
 
     virtual void rewindFile( void );
 
-    virtual LetterCountType tellg( void ) const;
+    virtual LetterNumber tellg( void ) const;
 
 protected:
-    LetterCountType currentPos_;
+    LetterNumber currentPos_;
     uchar lastChar_;
     uint runLength_;
 }; // ~class BwtReaderASCII
@@ -88,15 +88,15 @@ public:
 
     virtual ~BwtReaderRunLength() {}
 
-    virtual uint readAndCount( LetterCount &c, const LetterCountType numChars );
+    virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
-    virtual uint readAndSend( BwtWriterBase &writer, const int numChars );
+    virtual LetterNumber readAndSend( BwtWriterBase &writer, const LetterNumber numChars );
 
-    virtual int operator()( char *p, int numChars );
+    virtual LetterNumber operator()( char *p, LetterNumber numChars );
 
     virtual void rewindFile( void );
 
-    virtual LetterCountType tellg( void ) const;
+    virtual LetterNumber tellg( void ) const;
 
     bool getRun( void );
 
@@ -109,7 +109,7 @@ protected:
     uchar *pBufMax_;
     uchar lastChar_;
     bool finished_;
-    LetterCountType currentPos_;
+    LetterNumber currentPos_;
 
 }; // class ~BwtReaderRunLength
 
@@ -120,21 +120,21 @@ public:
 
     virtual ~BwtReaderRunLengthIndex() {}
 
-    virtual uint readAndCount( LetterCount &c, const LetterCountType numChars );
+    virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
-    virtual uint readAndSend( BwtWriterBase &writer, const int numChars )
+    virtual LetterNumber readAndSend( BwtWriterBase &writer, const LetterNumber numChars )
     {
         assert( 1 == 0 );
     }
 
-    virtual int operator()( char *p, int numChars )
+    virtual LetterNumber operator()( char *p, LetterNumber numChars )
     {
         assert( 1 == 0 );
     }
 
     virtual void rewindFile( void );
 
-    //  virtual LetterCountType tellg( void ) const;
+    //  virtual LetterNumber tellg( void ) const;
 
     void buildIndex( FILE *pFile, const int indexBinSize );
 
@@ -152,10 +152,10 @@ protected:
     LetterCount currentIndex_; // count at last index at or before current pos
     LetterCount current_; // index right now
     LetterCount next_; // counts for next index point
-    LetterCountType currentIndexPos_; // position in BWT at last index point at or before current pos
-    LetterCountType currentFilePos_; // position in file at last index point at or before current pos
-    LetterCountType nextPos_; // position in BWT for next index point
-    LetterCountType nextFilePos_;// position in file for next index point
+    LetterNumber currentIndexPos_; // position in BWT at last index point at or before current pos
+    LetterNumber currentFilePos_; // position in file at last index point at or before current pos
+    LetterNumber nextPos_; // position in BWT for next index point
+    LetterNumber nextFilePos_;// position in file for next index point
     bool isNextIndex_; // is there a next index point?
 
     FILE *pIndexFile_;
@@ -169,15 +169,15 @@ public:
 
     virtual ~BwtReaderIncrementalRunLength() {}
 
-    virtual uint readAndCount( LetterCount &c, const LetterCountType numChars );
+    virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
-    virtual uint readAndSend( BwtWriterBase &writer, const int numChars );
+    virtual LetterNumber readAndSend( BwtWriterBase &writer, const LetterNumber numChars );
 
-    virtual int operator()( char *p, int numChars );
+    virtual LetterNumber operator()( char *p, LetterNumber numChars );
 
     virtual void rewindFile( void );
 
-    virtual LetterCountType tellg( void ) const;
+    virtual LetterNumber tellg( void ) const;
 
 
     bool getRun( void );
@@ -193,7 +193,7 @@ protected:
     uchar lastChar_;
     uchar lastMetadata_;
     bool finished_;
-    LetterCountType currentPos_;
+    LetterNumber currentPos_;
     size_t posInRamFile_;
 
     int fileNum_;
@@ -211,15 +211,15 @@ class BwtReaderHuffman : public BwtReaderBase
 public:
     BwtReaderHuffman( const string &fileName );
 
-    virtual uint readAndCount( LetterCount &c, const LetterCountType numChars );
+    virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
-    virtual uint readAndSend( BwtWriterBase &writer, const int numChars );
+    virtual LetterNumber readAndSend( BwtWriterBase &writer, const LetterNumber numChars );
 
-    virtual int operator()( char *p, int numChars );
+    virtual LetterNumber operator()( char *p, LetterNumber numChars );
 
     virtual void rewindFile( void );
 
-    virtual LetterCountType tellg( void ) const;
+    virtual LetterNumber tellg( void ) const;
 
     uint getNum( int &i );
 
@@ -242,7 +242,7 @@ protected:
     int queueCounter_; // position in the queue of decoded sumbols
     uchar symBuf[huffmanBufferSize]; // extracted character from compressed BWT
     uint runBuf[huffmanBufferSize]; // runlength of character at same pos in upper array
-    LetterCountType currentPos_; // position in the file
+    LetterNumber currentPos_; // position in the file
     bool firstRun_; // self explainatory
 
 

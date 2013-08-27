@@ -27,5 +27,12 @@ Details: See http://astyle.sourceforge.net/astyle.html
 
 Coding conventions from Illumina's Software Engineering group:
 - Variable names follow "thisStyle"
-- Private class member end with an underscore
+- Private class members end with an underscore
+
+
+
+3. Static code checking
+
+cd src
+cppcheck -v -I . -I shared -I BCR -I BCRext -I countWords --enable=all .
 

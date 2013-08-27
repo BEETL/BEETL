@@ -237,14 +237,6 @@ int main( int numArgs, char **args )
 
         //   cout << bcrExtImplicitSort << bcrExtHuffmanOutput << bcrExtRunlengthOutput << endl;
 
-        if ( ( bcrExtImplicitSort == true ) &&
-             ( ( bcrExtHuffmanOutput == true ) || ( bcrExtRunlengthOutput == true ) ) )
-        {
-            cout << "-> Note: -sap mode needs ASCII intermediate files," << endl
-                 << "-> will revert to requested compression type for final output" << endl;
-
-        }
-
         if ( bcrExtFileIn.empty() )
         {
             print_usage( args[0], COMMAND_BCR_EXT );

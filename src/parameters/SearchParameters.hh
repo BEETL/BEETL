@@ -18,7 +18,7 @@
 #ifndef BEETL_SEARCH_PARAMETERS_HH
 #define BEETL_SEARCH_PARAMETERS_HH
 
-#include "ToolParameters.hh"
+#include "libzoo/cli/ToolParameters.hh"
 
 #include <string>
 
@@ -33,31 +33,12 @@ enum SearchOptions
     SEARCH_OPTION_COUNT // end marker
 };
 
-static const string searchOptionNames[] =
-{
-    "" // end marker
-};
-
-static const string *searchOptionPossibleValues[] =
-{
-    NULL // end marker
-};
-
-
 } // namespace BeetlSearchParameters
 
 
 class SearchParameters : public ToolParameters
 {
-    virtual const string **getOptionPossibleValues() const
-    {
-        return BeetlSearchParameters::searchOptionPossibleValues;
-    }
 public:
-    virtual const string getOptionName( const unsigned i ) const
-    {
-        return BeetlSearchParameters::searchOptionNames[i];
-    }
 };
 
 

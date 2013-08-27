@@ -18,8 +18,8 @@
 #include "BwtWriter.hh"
 
 #include "LetterCount.hh"
-#include "Logger.hh"
 #include "Tools.hh"
+#include "libzoo/util/Logger.hh"
 
 #include <cstdlib>
 #include <cstring>
@@ -34,7 +34,7 @@ using namespace std;
 // BwtWriterBase member function definitions
 //
 
-BwtWriterFile::BwtWriterFile( const string &fileName ) : pFile_( fopen( fileName.c_str(), "w" ) )
+BwtWriterFile::BwtWriterFile( const string &fileName ) : pFile_( fopen( fileName.c_str(), "wb" ) )
 {
 #ifdef DEBUG
     cout << "BwtWriterFile opened file " << fileName << " " << pFile_ << endl;
@@ -51,6 +51,11 @@ BwtWriterFile::~BwtWriterFile()
 
 }
 
+void BwtWriterFile::flush()
+{
+
+    fflush( pFile_ );
+}
 
 //
 // BwtWriterASCII member function definitions
@@ -71,7 +76,7 @@ BwtWriterASCII::~BwtWriterASCII()
 }
 
 
-void BwtWriterASCII::operator()( const char *p, int numChars )
+void BwtWriterASCII::operator()( const char *p, LetterNumber numChars )
 {
 #ifdef DEBUG
     cout << "BW ASCII () - " << *p << " " << numChars << endl;
@@ -90,11 +95,11 @@ void BwtWriterASCII::operator()( const char *p, int numChars )
         lastChar_ = p[numChars - 1];
 } // ~operator()
 
-void BwtWriterASCII::sendRun( char c, int runLength )
+void BwtWriterASCII::sendRun( char c, LetterNumber runLength )
 {
     if ( runLength )
     {
-        for ( int i( 0 ); i < runLength; i++ ) fprintf( pFile_, "%c", c );
+        for ( LetterNumber i( 0 ); i < runLength; i++ ) fputc( c, pFile_ );
         lastChar_ = c;
     }
 }
@@ -103,6 +108,7 @@ char BwtWriterASCII::getLastChar()
 {
     return lastChar_;
 }
+
 
 //
 // BwtWriterRunLength member function definitions
@@ -125,12 +131,12 @@ BwtWriterRunLength::~BwtWriterRunLength()
         }
 
 #ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_ += ( LetterCountType )( pBuf_ - buf_ );
+        bytesWritten_ += ( LetterNumber )( pBuf_ - buf_ );
 #endif
     }
 
 #ifdef REPORT_COMPRESSION_RATIO
-    Logger::out( LOG_FOR_DEBUGGING )
+    Logger_if( LOG_FOR_DEBUGGING ) Logger::out()
             << "BwtWriterRunLength: received "
             << charsReceived_ << " chars, sent "
             << bytesWritten_ << " bytes, compression "
@@ -141,13 +147,13 @@ BwtWriterRunLength::~BwtWriterRunLength()
 
 }
 
-void BwtWriterRunLength::operator()( const char *p, int numChars )
+void BwtWriterRunLength::operator()( const char *p, LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BW RL () - " << *p << " " << numChars << " state: " << lastChar_ << " " << runLength_ << endl;
 #endif
 
-    for ( int i( 0 ); i < numChars; i++ )
+    for ( LetterNumber i( 0 ); i < numChars; i++ )
     {
         if ( ( *p ) == lastChar_ )
         {
@@ -167,27 +173,31 @@ void BwtWriterRunLength::operator()( const char *p, int numChars )
     //    assert(fwrite( p, sizeof(char), numChars, pFile_ )==numChars);
 } // ~operator()
 
+void BwtWriterRunLength::flushBuffer()
+{
+    size_t bufLength = pBuf_ - buf_;
+#ifdef REPORT_COMPRESSION_RATIO
+    bytesWritten_ += bufLength;
+#endif
+
+    size_t bytesWritten = fwrite( buf_, sizeof( char ), bufLength, pFile_ );
+    if ( bytesWritten != ( size_t )bufLength )
+    {
+        cerr << "Unable to write " << bufLength
+             << " chars. Aborting." << endl;
+        exit( EXIT_FAILURE );
+    }
+    pBuf_ = buf_;
+}
+
 void BwtWriterRunLength::sendChar( char c )
 {
     *pBuf_ = c;
     if ( ++pBuf_ == pBufMax_ )
-    {
-#ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_ += ReadBufferSize;
-#endif
-
-        size_t bytesWritten = fwrite( buf_, sizeof( char ), ReadBufferSize, pFile_ );
-        if ( bytesWritten != ( size_t )ReadBufferSize )
-        {
-            cerr << "Unable to write " << ReadBufferSize
-                 << " chars. Aborting." << endl;
-            exit( EXIT_FAILURE );
-        }
-        pBuf_ = buf_;
-    }
+        flushBuffer();
 }
 
-void BwtWriterRunLength::encodeRun( char c, unsigned int runLength )
+void BwtWriterRunLength::encodeRun( char c, LetterNumber runLength )
 {
 #ifdef DEBUG
     std::cout << "BW RL encodeRun - sending run " << c << " " << runLength << " " << pFile_
@@ -206,12 +216,12 @@ void BwtWriterRunLength::encodeRun( char c, unsigned int runLength )
 
     uchar outCode( 0xF0 | ( ( uchar )charIndex ) );
     runLength--;
-    const unsigned int numMaxChars( runLength >> 4 );
-    for ( unsigned int i( 0 ); i < numMaxChars; i++ )
+    const LetterNumber numMaxChars( runLength >> 4 );
+    for ( LetterNumber i( 0 ); i < numMaxChars; i++ )
     {
         sendChar( outCode );
     }
-    runLength &= ( unsigned int )0xF;
+    runLength &= ( LetterNumber )0xF;
 
     outCode = ( ( ( uchar )runLength ) << 4 );
     outCode |= charIndex;
@@ -223,7 +233,7 @@ void BwtWriterRunLength::encodeRun( char c, unsigned int runLength )
 #endif
 } // ~encodeRun
 
-void BwtWriterRunLength::sendRun( char c, int runLength )
+void BwtWriterRunLength::sendRun( char c, LetterNumber runLength )
 {
 #ifdef DEBUG
     std::cout << "BW RL sendRun - sending run " << c << " " << runLength << " " << endl;
@@ -246,7 +256,7 @@ void BwtWriterRunLength::sendRun( char c, int runLength )
 
 
 #ifdef ORIG
-void BwtWriterRunLength::sendRun( char c, int runLength )
+void BwtWriterRunLength::sendRun( char c, LetterNumber runLength )
 {
 #ifdef DEBUG
     std::cout << "BW RL sendRun - sending run " << c << " " << runLength << " " << endl;
@@ -273,6 +283,18 @@ char BwtWriterRunLength::getLastChar()
     return lastChar_;
 }
 
+void BwtWriterRunLength::flush()
+{
+    if ( runLength_ != 0 )
+    {
+        encodeRun( lastChar_, runLength_ );
+        lastChar_ = notInAlphabet;
+        runLength_ = 0;
+    }
+    flushBuffer();
+
+    fflush( pFile_ );
+}
 
 
 //
@@ -301,19 +323,15 @@ BwtWriterIncrementalRunLength::BwtWriterIncrementalRunLength( const string &file
     //    cout << "BwtWriterIncrementalRunLength: Opening " << fileName << endl;
 
     // todo: remove this hack, which is here to make sure the ramFiles%5 keep pointing to the correct alphabet BWT
-    const char *ptr = fileName.c_str();
-    while ( *ptr && ( *ptr < '0' || *ptr > '9' ) ) // skip any prefix like in "new_1"
-        ++ptr;
-    unsigned int letterNum = atoi( ptr );
-    /*
-        assert( letterNum >= 1 && letterNum <= 5 );
-        do {
-            fileNum_ = nextFileNum_++;
-        }
-        while ( (fileNum_%5) != (letterNum-1) );
-    */
+    int firstDigitPos = fileName.size() - 1;
+    while ( firstDigitPos >= 0 && ( fileName[firstDigitPos] >= '0' && fileName[firstDigitPos] <= '9' ) ) // skip any prefix like in "new_1"
+        --firstDigitPos;
+    ++firstDigitPos;
+    unsigned int letterNum = atoi( fileName.c_str() + firstDigitPos );
+
     extern unsigned int debugCycle;
     extern unsigned int lastDefragCycle;
+    assert( letterNum > 0 && "This class doesn't store pile 0" );
     if ( lastDefragCycle == 0 )
         fileNum_ = letterNum - 1 + 5 * ( debugCycle - 1 );
     else
@@ -352,7 +370,7 @@ BwtWriterIncrementalRunLength::~BwtWriterIncrementalRunLength()
         }
 
 #ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_ += ( LetterCountType )( pBuf_ - buf_ );
+        bytesWritten_ += ( LetterNumber )( pBuf_ - buf_ );
 #endif
     }
 
@@ -362,7 +380,7 @@ BwtWriterIncrementalRunLength::~BwtWriterIncrementalRunLength()
     bytesWritten_ = ramFiles[fileNum_].size();
 #endif //ifndef SEND_DATA_TO_FILES_FOR_DEBUGGING
 
-    Logger::out( LOG_FOR_DEBUGGING )
+    Logger_if( LOG_FOR_DEBUGGING ) Logger::out()
             << "BwtWriterIncrementalRunLength: received "
             << charsReceived_ << " chars, sent "
             << bytesWritten_ << " bytes, compression "
@@ -373,13 +391,13 @@ BwtWriterIncrementalRunLength::~BwtWriterIncrementalRunLength()
 
 }
 
-void BwtWriterIncrementalRunLength::operator()( const char *p, int numChars )
+void BwtWriterIncrementalRunLength::operator()( const char *p, LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BW RL () - " << *p << " " << numChars << " state: " << lastChar_ << " " << runLength_ << endl;
 #endif
 
-    for ( int i( 0 ); i < numChars; i++ )
+    for ( LetterNumber i( 0 ); i < numChars; i++ )
     {
         if ( ( *p ) == lastChar_ )
         {
@@ -626,7 +644,7 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
                 onHoldUntilNextReturn_metadata_ = ramFiles[fileNum_].back(); // todo: & ~0x80?
                 ramFiles[fileNum_].pop_back();
                 assert( ( ramFiles[fileNum_].back() & 0x0F ) == letter1 );
-                assert( ( ramFiles[fileNum_].back() >> 4 ) + 1 > remainingRunLengthInReader_ );
+                assert( ( ramFiles[fileNum_].back() >> 4 ) + 1 > ( int )remainingRunLengthInReader_ );
                 unsigned char newCount = ( ramFiles[fileNum_].back() >> 4 ) + 1 - remainingRunLengthInReader_;
                 onHoldUntilNextReturn_letter_ = letter1;
                 onHoldUntilNextReturn_runLength_ = remainingRunLengthInReader_;
@@ -690,7 +708,7 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
                 onHoldUntilNextReturn_metadata_ = ramFiles[fileNum_].back(); // todo: & ~0x80?
                 ramFiles[fileNum_].pop_back();
                 assert( ( ramFiles[fileNum_].back() & 0x0F ) == letter1 );
-                assert( ( ramFiles[fileNum_].back() >> 4 ) + 1 > remainingRunLengthInReader_ );
+                assert( ( ramFiles[fileNum_].back() >> 4 ) + 1 > ( int )remainingRunLengthInReader_ );
                 unsigned char newCount = ( ramFiles[fileNum_].back() >> 4 ) + 1 - remainingRunLengthInReader_;
                 onHoldUntilNextReturn_letter_ = letter1;
                 onHoldUntilNextReturn_runLength_ = remainingRunLengthInReader_;
@@ -725,7 +743,7 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
     }
 }
 
-void BwtWriterIncrementalRunLength::encodeRun( char c, uint runLength )
+void BwtWriterIncrementalRunLength::encodeRun( char c, LetterNumber runLength )
 {
 #ifdef DEBUG
     std::cout << "BW RL encodeRun - sending run " << c << " " << runLength << " " << pFile_
@@ -744,12 +762,12 @@ void BwtWriterIncrementalRunLength::encodeRun( char c, uint runLength )
 
     uchar outCode( 0xF0 | ( ( uchar )charIndex ) );
     runLength--;
-    const uint numMaxChars( runLength >> 4 );
-    for ( uint i( 0 ); i < numMaxChars; i++ )
+    const LetterNumber numMaxChars( runLength >> 4 );
+    for ( LetterNumber i( 0 ); i < numMaxChars; i++ )
     {
         sendChar( outCode, 0 );
     }
-    runLength &= ( uint )0xF;
+    runLength &= ( LetterNumber )0xF;
 
     outCode = ( ( ( uchar )runLength ) << 4 );
     outCode |= charIndex;
@@ -761,7 +779,7 @@ void BwtWriterIncrementalRunLength::encodeRun( char c, uint runLength )
 #endif
 } // ~encodeRun
 
-void BwtWriterIncrementalRunLength::sendRun( char c, int runLength )
+void BwtWriterIncrementalRunLength::sendRun( char c, LetterNumber runLength )
 {
     assert( false );
 #ifdef DEBUG
@@ -784,7 +802,7 @@ void BwtWriterIncrementalRunLength::sendRun( char c, int runLength )
 
 
 // sendRunOfPreExistingData is expected to be called by reader's readAndSend
-void BwtWriterIncrementalRunLength::sendRunOfPreExistingData( char c, int runLength, int fileNum, size_t posInRamFile, int remainingRunLength )
+void BwtWriterIncrementalRunLength::sendRunOfPreExistingData( char c, LetterNumber runLength, int fileNum, size_t posInRamFile, LetterNumber remainingRunLength )
 {
     if ( runLength == 0 )
     {
@@ -824,7 +842,7 @@ BwtWriterHuffman::~BwtWriterHuffman() // destructor
     {
         assert( fwrite( &soFar_.ui, sizeof( unsigned int ), 1, pFile_ ) == 1 );
 #ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_ += ( LetterCountType ) sizeof( unsigned int );
+        bytesWritten_ += ( LetterNumber ) sizeof( unsigned int );
 #endif
 #ifdef DEBUG
         cout << endl;
@@ -835,7 +853,7 @@ BwtWriterHuffman::~BwtWriterHuffman() // destructor
         bitsUsed_ -= 32;
     }
 #ifdef REPORT_COMPRESSION_RATIO
-    Logger::out( LOG_FOR_DEBUGGING )
+    Logger_if( LOG_FOR_DEBUGGING ) Logger::out()
             << "BwtWriterHuffman: received "
             << charsReceived_ << " chars, sent "
             << bytesWritten_ << " bytes, compression "
@@ -844,9 +862,9 @@ BwtWriterHuffman::~BwtWriterHuffman() // destructor
 #endif
 } // ~BwtWriterHuffman()
 
-void BwtWriterHuffman::operator()( const char *p, int numChars )
+void BwtWriterHuffman::operator()( const char *p, LetterNumber numChars )
 {
-    for ( int i( 0 ); i < numChars; i++ )
+    for ( LetterNumber i( 0 ); i < numChars; i++ )
     {
         if ( ( *p ) == lastChar_ )
         {
@@ -868,7 +886,7 @@ void BwtWriterHuffman::operator()( const char *p, int numChars )
     runLength_ = 0;
 } // ~operator()
 
-void BwtWriterHuffman::sendToken( unsigned long long code, unsigned int length )
+void BwtWriterHuffman::sendToken( unsigned long long code, LetterNumber length )
 {
     toAdd_.ull = code;
 
@@ -880,7 +898,7 @@ void BwtWriterHuffman::sendToken( unsigned long long code, unsigned int length )
     {
         assert( fwrite( &soFar_.ui, sizeof ( unsigned int ), 1, pFile_ ) == 1 );
 #ifdef REPORT_COMPRESSION_RATIO
-        bytesWritten_ += ( LetterCountType ) sizeof( unsigned int );
+        bytesWritten_ += ( LetterNumber ) sizeof( unsigned int );
 #endif
 #ifdef DEBUG
         for ( unsigned int i( 1 ); i != 0; i <<= 1 )
@@ -893,7 +911,7 @@ void BwtWriterHuffman::sendToken( unsigned long long code, unsigned int length )
 
 } // ~sendToken()
 
-void BwtWriterHuffman::sendRun( char c, int runLength )
+void BwtWriterHuffman::sendRun( char c, LetterNumber runLength )
 {
 #ifdef REPORT_COMPRESSION_RATIO
     charsReceived_ += runLength;
@@ -901,7 +919,7 @@ void BwtWriterHuffman::sendRun( char c, int runLength )
     if ( runLength > 0 )
     {
 
-        for ( int i( 0 ); i < runLength; i++ )
+        for ( LetterNumber i( 0 ); i < runLength; i++ )
         {
 
             if ( huffmanBufferPos == huffmanWriterBufferSize - 1 )
@@ -931,7 +949,7 @@ void BwtWriterHuffman::processBuffer( int itemsToPrint )
     if ( itemsToPrint > 0 )
     {
         char localLastChar = 0;
-        unsigned int localRunLength = 0;
+        LetterNumber localRunLength = 0;
 
         for ( int i( 0 ); i < itemsToPrint; i++ )
         {
@@ -988,7 +1006,7 @@ void BwtWriterHuffman::processBuffer( int itemsToPrint )
     }
 } // ~sendRun
 
-void BwtWriterHuffman::sendNum( unsigned int runLength )
+void BwtWriterHuffman::sendNum( LetterNumber runLength )
 {
     if ( runLength < 17 ) // max 16
     {
@@ -1044,10 +1062,10 @@ void BwtWriterImplicit::flushSAP( void )
 }
 
 
-void BwtWriterImplicit::operator()( const char *p, int numChars )
+void BwtWriterImplicit::operator()( const char *p, LetterNumber numChars )
 {
 
-    for ( int i( 0 ); i < numChars; i++, p++ )
+    for ( LetterNumber i( 0 ); i < numChars; i++, p++ )
     {
         if ( islower( *p ) )
         {
@@ -1079,7 +1097,7 @@ void BwtWriterImplicit::operator()( const char *p, int numChars )
     }
 }
 
-void BwtWriterImplicit::sendRun( char c, int runLength )
+void BwtWriterImplicit::sendRun( char c, LetterNumber runLength )
 {
     if ( islower( c ) )
     {
@@ -1113,18 +1131,18 @@ void BwtWriterImplicit::sendRun( char c, int runLength )
 }
 
 #ifdef XXX
-void BwtWriterImplicit::operator()( const char *p, int numChars )
+void BwtWriterImplicit::operator()( const char *p, LetterNumber numChars )
 {
     // could be smarter about this
     char c;
-    for ( int i( 0 ); i < numChars; i++, p++ )
+    for ( LetterNumber i( 0 ); i < numChars; i++, p++ )
     {
         c = toupper( *p );
         ( *pWriter_ )( &c, 1 );
     }
 }
 
-void BwtWriterImplicit::sendRun( char c, int runLength )
+void BwtWriterImplicit::sendRun( char c, LetterNumber runLength )
 {
     ( *pWriter_ ).sendRun( toupper( c ), runLength );
 }

@@ -41,7 +41,8 @@ struct IntervalHandlerBase
     ( const int pileNum,
       const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
       const Range &thisRangeA, const Range &thisRangeB,
-      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB ) = 0;
+      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
+      bool &isBreakpointDetected ) = 0;
 
     virtual void foundInAOnly
     ( const int pileNum,

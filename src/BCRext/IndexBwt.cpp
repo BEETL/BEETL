@@ -97,13 +97,13 @@ BwtReaderBase::~BwtReaderBase()
 unsigned int BwtReaderBase::readAndCount( LetterCount &c )
 {
     // will call the relevant virtual function
-    return readAndCount( c, maxLetterCountType );
+    return readAndCount( c, maxLetterNumber );
 } // ~readAndCount
 
 unsigned int BwtReaderBase::readAndSend( BwtWriterBase &writer )
 {
     // will call the relevant virtual function
-    return readAndSend( writer,  2000000000 ); // TBD numChars->LetterCountType
+    return readAndSend( writer,  2000000000 ); // TBD numChars->LetterNumber
 } // ~readAndCount
 
 
@@ -117,19 +117,19 @@ void BwtReaderASCII::rewindFile( void )
     currentPos_ = 0;
 } // ~rewindFile
 
-LetterCountType BwtReaderASCII::tellg( void ) const
+LetterNumber BwtReaderASCII::tellg( void ) const
 {
     return currentPos_;
 } // ~tellg
 
 
 
-unsigned int BwtReaderASCII::readAndCount( LetterCount &c, const LetterCountType numChars )
+unsigned int BwtReaderASCII::readAndCount( LetterCount &c, const LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR ASCII readAndCount " << numChars << " chars " << endl;
 #endif
-    LetterCountType charsLeft( numChars ), charsToRead, charsRead;
+    LetterNumber charsLeft( numChars ), charsToRead, charsRead;
     while ( charsLeft > 0 )
     {
         charsToRead = ( ( charsLeft > ReadBufferSize ) ? ReadBufferSize : charsLeft );
@@ -137,7 +137,7 @@ unsigned int BwtReaderASCII::readAndCount( LetterCount &c, const LetterCountType
 #ifdef DEBUG
         std::cout << "Reading " << charsRead << " chars ";
 #endif
-        for ( LetterCountType i( 0 ); i < charsRead; i++ )
+        for ( LetterNumber i( 0 ); i < charsRead; i++ )
         {
 #ifdef DEBUG
             std::cout << buf_[i];
@@ -261,18 +261,18 @@ void BwtReaderRunLength::rewindFile( void )
     finished_ = false;
 } // ~rewindFile
 
-LetterCountType BwtReaderRunLength::tellg( void ) const
+LetterNumber BwtReaderRunLength::tellg( void ) const
 {
     return currentPos_;
 } // ~tellg
 
 // TODO: return type should be unsigned in order to avoid compiler warnings
-unsigned int BwtReaderRunLength::readAndCount( LetterCount &c, const LetterCountType numChars )
+unsigned int BwtReaderRunLength::readAndCount( LetterCount &c, const LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR RL readAndCount " << numChars << " chars " << endl;
 #endif
-    LetterCountType charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     while ( charsLeft > runLength_ )
     {
         // Below is not great design, at first call of this function it accesses an
@@ -496,15 +496,15 @@ void BwtReaderHuffman::rewindFile( void )
     }
 } // ~rewindFile
 
-LetterCountType BwtReaderHuffman::tellg( void ) const
+LetterNumber BwtReaderHuffman::tellg( void ) const
 {
     return currentPos_;
 } // ~tellg
 
-unsigned int BwtReaderHuffman::readAndCount( LetterCount &c, const LetterCountType numChars )
+unsigned int BwtReaderHuffman::readAndCount( LetterCount &c, const LetterNumber numChars )
 {
 
-    LetterCountType charsLeft( numChars );
+    LetterNumber charsLeft( numChars );
     while ( charsLeft > runLength_ )
     {
         // Below is not great design, at first call of this function it accesses an

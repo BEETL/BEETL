@@ -19,7 +19,11 @@
 
 #include "Tools.hh"
 
+#include "libzoo/util/Logger.hh"
+
 #include <cstdlib>
+#include <sstream>
+#include <unistd.h>
 
 using namespace std;
 
@@ -59,9 +63,9 @@ uchar *Tools::GetRandomString( unsigned min, unsigned max, unsigned &alphabetSiz
 
 
 
-unsigned Tools::FloorLog2( ulong i )
+uint8_t Tools::FloorLog2( uint64_t i )
 {
-    ulong b = 0;
+    uint8_t b = 0;
     if ( i == 0 )
         return 0;
     while ( i )
@@ -73,10 +77,10 @@ unsigned Tools::FloorLog2( ulong i )
 }
 
 //Creating table to find logn in small time
-unsigned *Tools::MakeTable()
+uint8_t *Tools::MakeTable()
 {
-    unsigned *table = new unsigned[512];
-    for ( unsigned i = 0; i < 9; i++ )
+    uint8_t *table = new uint8_t[256];
+    for ( unsigned i = 0; i < 256; i++ )
     {
         if ( i == 0 )
             table[i] = 0;
@@ -102,35 +106,34 @@ unsigned *Tools::MakeTable()
     return table;
 }
 
-unsigned Tools::FastFloorLog2( unsigned i )
+uint8_t Tools::FastFloorLog2( uint32_t i )
 {
-    unsigned *table = MakeTable();
-    unsigned u;
-    if ( i >> 24 )    u = 22 + table[ i >> 24] ;
-    if ( i >> 16 )    u = 14 + table[ i >> 16] ;
-    if ( i >> 8 )     u = 6 + table[ i >> 8] ;
-    u =  table[i] - 1;
-    delete [] table;
+    static uint8_t *table = MakeTable();
+    uint8_t u;
+    if ( i >> 24 )       u = 22 + table[ i >> 24];
+    else if ( i >> 16 )  u = 14 + table[ i >> 16];
+    else if ( i >> 8 )   u =  6 + table[ i >>  8];
+    else                 u = table[i] - 1;
     return u;
 }
 
-unsigned Tools::CeilLog2( ulong i )
+uint8_t Tools::CeilLog2( uint64_t i )
 {
-    unsigned j = FloorLog2( i );
-    if ( ( ulong )( 1lu << j ) != i )
+    uint8_t j = FloorLog2( i );
+    if ( ( uint64_t )( 1lu << j ) != i )
         return j + 1;
 
     return j;
 }
 
-uchar *Tools::GetFileContents( char *filename, ulong maxSize )
+uchar *Tools::GetFileContents( char *filename, size_t maxSize )
 {
     std::ifstream::pos_type posSize;
     std::ifstream file ( ( char * )filename, std::ios::in | std::ios::binary | std::ios::ate );
     if ( file.is_open() )
     {
         posSize = file.tellg();
-        ulong size = posSize;
+        size_t size = posSize;
         if ( maxSize != 0 && size > maxSize )
             size = maxSize;
         char *memblock = new char [size + 1];
@@ -144,6 +147,7 @@ uchar *Tools::GetFileContents( char *filename, ulong maxSize )
         return 0;
 }
 
+/*
 void getFileName( const string &stem, const char code, const int pile,
                   string &fileName )
 {
@@ -155,6 +159,7 @@ void getFileName( const string &stem, const char code, const int pile,
     fileName += ( char )( 48 + pile );
     //  cerr << "Made file name " << fileName << endl;
 }
+*/
 
 bool isValidFastaFile( const char *fileName )
 {
@@ -268,4 +273,99 @@ bool hasSuffix( const string &fullString, const string &suffix )
 {
     return fullString.size() >= suffix.size()
            && fullString.compare( fullString.size() - suffix.size(), suffix.size(), suffix ) == 0;
+}
+
+bool isBwtFileCompressed( const string &filename )
+{
+    ifstream bwtFile( filename.c_str() );
+    for ( int i = 0; i < 10; ++i )
+    {
+        char c = 'A';
+        bwtFile.get( c );
+        switch ( toupper( c ) )
+        {
+            case 'A':
+            case 'C':
+            case 'G':
+            case 'T':
+            case 'N':
+            case '$':
+                break;
+            default:
+                return true;
+        }
+    }
+    return false;
+}
+
+void detectInputBwtProperties( const string &prefix, vector<string> &filenames, bool &isBwtCompressed, string &availableFileLetters )
+{
+    // Detect {prefix}-B0* files
+    for ( unsigned i = 0; i < 10; ++i )
+    {
+        stringstream filename;
+        filename << prefix << "-B0" << i;
+        Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Probing " << filename.str() << "..." << endl;
+        if ( access( filename.str().c_str(), R_OK ) == -1 )
+            break;
+        filenames.push_back( filename.str() );
+        Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Discovered " << filename.str() << endl;
+    }
+
+    // Detect {prefix}-*01 files
+    for ( char c = 'A'; c <= 'Z' ; ++c )
+    {
+        stringstream filename;
+        filename << prefix << "-" << c << "01";
+        Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "Probing " << filename.str() << "..." << endl;
+        if ( access( filename.str().c_str(), R_OK ) == 0 )
+        {
+            Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "Discovered " << filename.str() << endl;
+            availableFileLetters += c;
+        }
+    }
+
+    // Detect if files are run-length-encoded based on first few bytes
+    isBwtCompressed = false;
+    if ( !filenames.empty() )
+    {
+        for ( unsigned int j = 1; j < filenames.size() && !isBwtCompressed; ++j )
+        {
+            if ( isBwtFileCompressed( filenames[j] ) )
+                isBwtCompressed = true;
+        }
+
+        // When BWT0x are RLE-encoded: Check that BWT0 file has the same encoding as others, to detect the old situation where BWT0 was always ASCII-encoded
+        if ( isBwtCompressed )
+        {
+            bool isBwt0Compressed = isBwtFileCompressed( filenames[0] );
+            if ( !isBwt0Compressed )
+            {
+                cerr << "ERROR: " << filenames[0] << " is ASCII-encoded, whereas the other BWT files are using a different encoding." << endl;
+                cerr << " In this version of BEETL, all the files must have the same encoding." << endl;
+                cerr << " You can convert this file with beetl-convert --input-format=bwt_ascii --output-format=bwt_rle." << endl;
+                exit( -1 );
+            }
+        }
+    }
+    if ( isBwtCompressed )
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "BWT files detected as RLE compressed" << endl;
+    else
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "BWT files detected as ASCII" << endl;
+}
+
+int safeRename( const string &from, const string &to )
+{
+    // renames/moves files even across partitions
+    if ( rename( from.c_str(), to.c_str() ) )
+    {
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+        {
+            perror( ( "Info: BCRexternalBWT: Error \"renaming\" file " + from + " to " + to ).c_str() );
+            cerr << "Using mv command instead." << endl;
+        }
+        string cmd = "mv -f \""  + from + "\" \"" + to + "\"";
+        system( cmd.c_str() );
+    }
+    return 0;
 }

@@ -27,7 +27,7 @@ using namespace std;
 
 
 bool ReadBufferBase::getNext
-( SequenceNumberType &seqNum, LetterCountType &seqPtr )
+( SequenceNumber &seqNum, LetterNumber &seqPtr )
 {
     if ( thisEntry_ == maxEntry_ )
     {
@@ -53,12 +53,12 @@ bool ReadBufferBase::getNext
         }
 
 #ifdef TRACK_SEQUENCE_NUMBER
-        assert( read( fdNum_, seqNum_, sizeof( SequenceNumberType )*maxEntry_ ) == sizeof( SequenceNumberType )*maxEntry_ );
+        assert( read( fdNum_, seqNum_, sizeof( SequenceNumber )*maxEntry_ ) == sizeof( SequenceNumber )*maxEntry_ );
 #ifdef DEBUG
         std::cout << "RB: read " << numRead << " seqnums" << endl;
 #endif
 #endif
-        assert( read( fdPtr_, seqPtr_, sizeof( LetterCountType )*maxEntry_ ) == ( int )sizeof( LetterCountType )*maxEntry_ );
+        assert( read( fdPtr_, seqPtr_, sizeof( LetterNumber )*maxEntry_ ) == ( int )sizeof( LetterNumber )*maxEntry_ );
 
 #ifdef DEBUG
         std::cout << "RB: read " << numRead << " seqptrs" << std::endl;

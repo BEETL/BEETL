@@ -55,7 +55,8 @@ struct IntervalHandlerMetagenome : public IntervalHandlerBase
     ( const int pileNum,
       const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
       const Range &thisRangeA, const Range &thisRangeB,
-      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB );
+      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
+      bool &isBreakpointDetected );
 
     virtual void foundInAOnly
     ( const int pileNum,
@@ -72,9 +73,9 @@ struct IntervalHandlerMetagenome : public IntervalHandlerBase
       AlphabetFlag &propagateIntervalB );
 
     vector<bool> intervalInSameTaxa( vector<uint> &sharedTaxIds, vector<MetagFileNumRefType> &fileNumbers );
-    void getFileNumbersForRange( const int &pileNum, const ulong &bwtPosition, const uint &num, vector<MetagFileNumRefType> &fileNumbers );
+    void getFileNumbersForRange( const int &pileNum, const LetterNumber &bwtPosition, const uint &num, vector<MetagFileNumRefType> &fileNumbers );
 
-    const LetterCountType minOcc_;
+    const LetterNumber minOcc_;
     //setC of the mering algorithm from Tony,
     //for each bwt positions there should be a (unsigned short) fileNumber indicating from which file the suffix came from
     vector<FILE *> mergeCSet_;

@@ -80,8 +80,8 @@ do
     do
       for intermediateFormat in ASCII RLE multiRLE
       do
-        for intermediateMedium in disk ram
-        do
+#        for intermediateMedium in disk ram
+#        do
           # Skip some configurations
           if [[ ( "${algorithm}" == "ext" ) && ( "${intermediateFormat}" == "multiRLE" ) ]]
           then
@@ -92,11 +92,13 @@ do
               break
           fi
 
-          OUTPUT_DIR=${PWD}/${inputFormat}_${outputFormat}_${algorithm}_${intermediateFormat}_${intermediateMedium}
+          OUTPUT_DIR=${PWD}/${inputFormat}_${outputFormat}_${algorithm}_${intermediateFormat}
+#_${intermediateMedium}
           rm -rf ${OUTPUT_DIR}
           mkdir -p ${OUTPUT_DIR}
           # Removed --input-format=${inputFormat} to check the format autodetection
-          COMMAND="${BEETL_BWT} -i ${TEST_FILE_PREFIX}.${inputFormat} -o ${OUTPUT_DIR}/out --output-format=${outputFormat} --algorithm=${algorithm} --intermediate-format=${intermediateFormat} --intermediate-medium=${intermediateMedium}"
+          COMMAND="${BEETL_BWT} -i ${TEST_FILE_PREFIX}.${inputFormat} -o ${OUTPUT_DIR}/out --output-format=${outputFormat} --algorithm=${algorithm} --intermediate-format=${intermediateFormat}"
+# --intermediate-medium=${intermediateMedium}"
           echo ${COMMAND}
           echo ${COMMAND} > ${OUTPUT_DIR}/command
           ${COMMAND}
@@ -108,7 +110,8 @@ do
           fi
 
           # Compare output with first output of same format
-          SAME_OUTPUT_DIR=${PWD}/fastq_${outputFormat}_bcr_ASCII_disk
+          SAME_OUTPUT_DIR=${PWD}/fastq_${outputFormat}_bcr_ASCII
+#_disk
           for i in 0 1 2 3 4 5
           do
             cmp ${OUTPUT_DIR}/out-B0${i} ${SAME_OUTPUT_DIR}/out-B0${i}
@@ -117,7 +120,7 @@ do
                 echo "Error detected."
                 exit 1
             fi
-          done
+#          done
         done
       done
     done

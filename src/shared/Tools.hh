@@ -27,46 +27,11 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
+using std::string;
+using std::vector;
 
-#define TERMINATE_CHAR '$'
-
-#define dataTypedimAlpha uchar  //size of the alphabet (in biologic case 6 ($,A,C,G,N,T))
-#define dataTypelenSeq uint //length of the sequences (in biologic case 100)
-#define dataTypeNumSeq 0  //number of sequences in the input file
-#define dataTypeNumChar 1  //numer of characters in the input file (length of the BWT)
-
-// USE_ATTRIBUTE_PACKED: if set, set __attribute__((packed)) for the
-// struct sortElement in Sorting.hh; reduces the memory consumption from
-// 24 to 17 bytes per input base
-#define USE_ATTRIBUTE_PACKED 1
-
-
-typedef LetterCountType dataTypeNChar;
-typedef SequenceNumberType dataTypeNSeq;
-
-#ifdef BCR_AND_BCREXT_NOW_USE_SAME_TYPES
-
-#if dataTypeNumSeq == 1
-#   define dataTypeNSeq ulong
-#else
-#   define dataTypeNSeq uint
-#endif
-
-#if dataTypeNumChar == 1
-#   define dataTypeNChar ulong
-#else
-#   define dataTypeNChar uint
-#endif
-
-#endif
-
-//It is the definition of each element of the generalized suffix array (GSA)
-struct ElementType
-{
-    dataTypelenSeq sa;          //It is the position in the sequence, so it goes from 0 a length read
-    dataTypeNSeq numSeq;  //It is the number of the sequence.
-};
 
 #define verboseEncode 0
 #define verboseDecode 0
@@ -85,11 +50,11 @@ public:
     static void StartTimer();
     static double GetTime();
     static uchar *GetRandomString( unsigned, unsigned, unsigned & );
-    static uchar *GetFileContents( char *, ulong = 0 );
-    static unsigned FloorLog2( ulong );
-    static unsigned CeilLog2( ulong );
-    static unsigned *MakeTable();
-    static unsigned FastFloorLog2( unsigned );
+    static uchar *GetFileContents( char *, size_t = 0 );
+    static uint8_t FloorLog2( uint64_t );
+    static uint8_t CeilLog2( uint64_t );
+    static uint8_t *MakeTable();
+    static uint8_t FastFloorLog2( uint32_t );
 };
 
 void getFileName( const string &stem, const char code, const int pile,
@@ -107,5 +72,9 @@ void checkIfNotEqual( const int arg1, const int arg2 );
 
 bool hasPrefix( const string &fullString, const string &prefix );
 bool hasSuffix( const string &fullString, const string &suffix );
+
+void detectInputBwtProperties( const string &prefix, vector<string> &filenames, bool &isBwtCompressed, string &availableFileLetters );
+
+int safeRename( const string &from, const string &to );
 
 #endif

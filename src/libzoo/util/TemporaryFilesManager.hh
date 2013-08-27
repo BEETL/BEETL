@@ -20,11 +20,13 @@
 
 #include <cstdio>
 #include <inttypes.h>
+#include <memory>
 #include <string>
 #include <vector>
 
 using std::string;
 using std::vector;
+using std::shared_ptr;
 
 class TemporaryFilesManager
 {
@@ -41,11 +43,13 @@ public:
     }
 
     void setTempPath( const string &path, const bool createUniqueSubDirectory = true );
+    void setRamLimit( const size_t ramLimit );
     void addFilename( const string &filename );
     void cleanupAllFiles(); // Delete all existing temporary files
     void cleanup(); // Delete all existing temporary files and temp subdirectory
 
     string tempPath_;
+    size_t ramLimitMB_;
 private:
     string tempPathParent_;
     bool tempPathWasCreated_;
@@ -91,7 +95,7 @@ public:
         if ( f_ )
             ::fflush( f_ );
     }
-    void close()
+    virtual void close()
     {
         if ( f_ )
             ::fclose( f_ );
@@ -102,6 +106,13 @@ public:
             return ::fileno( f_ );
         else
             return -1;
+    }
+    virtual bool eof()
+    {
+        if ( f_ )
+            return ::feof( f_ );
+        else
+            return true;
     }
 
     friend size_t fread( void *ptr, size_t size, size_t nmemb, TemporaryFile *stream )
@@ -130,6 +141,15 @@ public:
     {
         return stream->fileno();
     }
+    friend bool feof( TemporaryFile *stream )
+    {
+        return stream->eof();
+    }
+
+    static bool remove( const char *filename )
+    {
+        return ::remove( filename );
+    }
 
 protected:
     FILE *f_;
@@ -142,10 +162,12 @@ class TemporaryRamFile : public TemporaryFile
 public:
     TemporaryRamFile( ) : TemporaryFile() {}
     TemporaryRamFile( const char *filename, const char *mode, const uint64_t maxRAM = 0 );
-    virtual ~TemporaryRamFile() {}
+    virtual ~TemporaryRamFile();
 
     static TemporaryRamFile *fopen( const char *filename, const char *mode, const uint64_t maxRAM = 0 );
+    static bool remove( const char *filename );
 
+    virtual void close();
     virtual size_t read( void *ptr, size_t size, size_t nmemb );
     virtual size_t write( const void *ptr, size_t size, size_t nmemb );
 
@@ -154,10 +176,12 @@ public:
         return currentPos_;
     }
 
+    virtual bool eof();
+
 private:
     const string filename_;
     const string mode_;
-    vector<char> buf_;
+    shared_ptr< vector< char > > buf_;
     size_t currentPos_;
 };
 

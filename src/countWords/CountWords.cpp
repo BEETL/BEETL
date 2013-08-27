@@ -19,23 +19,24 @@
 
 #include "Timer.hh"
 #include "config.h"
-
-#ifdef HAVE_POSIX_FADVISE
-#define _XOPEN_SOURCE 600
-#endif
+#include "libzoo/util/Logger.hh"
 
 using namespace std;
 
-
-//#define MET_DEBUG 1
-//#define DEBUG 1
 
 CountWords::CountWords( bool inputACompressed,
                         bool inputBCompressed, char whichHandler,
                         int paramN, int paramK, const vector<string> &setA,
                         const vector<string> &setB, const vector<string> &setC,
-                        const string &ncbiTax, bool testDB, unsigned int minWordLen, string prefix, string subset ) :
+                        const string &ncbiTax, bool testDB, unsigned int minWordLen, string prefix, string subset
+                        , const bool doesPropagateBkptToSeqNumInSetA
+                        , const bool doesPropagateBkptToSeqNumInSetB
+                        , const bool noComparisonSkip
+                      ) :
     setA_( setA ), setB_( setB ), setC_( setC ), subset_( subset )
+    , doesPropagateBkptToSeqNumInSetA_( doesPropagateBkptToSeqNumInSetA )
+    , doesPropagateBkptToSeqNumInSetB_( doesPropagateBkptToSeqNumInSetB )
+    , noComparisonSkip_( true ) // Always set to 1 for BEETL release 0.6, as this feature isn't tested // real value: noComparisonSkip
 {
 
 #ifdef XXX
@@ -108,7 +109,8 @@ void CountWords::run( void )
     }
     vector<FILE *> mergeCSet;
     mergeCSet.resize( alphabetSize );
-    for ( int i( 0 ); i < alphabetSize; i++ )
+    #pragma omp parallel for
+    for ( int i = 0; i < alphabetSize; i++ )
     {
         if ( metagenomeMode )
         {
@@ -116,31 +118,44 @@ void CountWords::run( void )
             //indicating from which the this suffix came
             FILE *mergC = fopen( setC_[i].c_str(), "r" );
             if ( mergC == NULL )
-                cout << "Could not open File \"" << setC_[i] << "\"" << endl;
+            {
+                #pragma omp critical
+                {
+                    cout << "Could not open File \"" << setC_[i] << "\"" << endl;
+                }
+            }
             assert( mergC != NULL );
             mergeCSet[i] = fopen( setC_[i].c_str(), "r" );
         }
-#ifdef DEBUGX
-        cout << i << " " << alphabet[i] << endl;
-#endif
-        //cout << setA_[i] << " " << setB_[i] << endl;
-        if ( ( inputACompressed_ == true ) && ( i != 0 ) )
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+        {
+            #pragma omp critical
+            {
+                Logger::out() << "i=" << i << ", alphabet[i]=" << alphabet[i] << endl;
+                Logger::out() << "setA[i]=" << setA_[i] << ", setB[i]=" << setB_[i] << endl;
+            }
+        }
+        if ( inputACompressed_ == true )
             inBwtA[i] = new BwtReaderRunLengthIndex( setA_[i] );
         else
             inBwtA[i] = new BwtReaderASCII( setA_[i] );
         inBwtA[i]->readAndCount( countsPerPileA[i] );
 
-        if ( ( inputBCompressed_ == true ) && ( i != 0 ) )
+        if ( inputBCompressed_ == true )
             inBwtB[i] = new BwtReaderRunLengthIndex( setB_[i] );
         else
             inBwtB[i] = new BwtReaderASCII( setB_[i] );
         //    inBwtB[i]= new BwtReaderASCII(args[i+alphabetSize+nextArg]);
         inBwtB[i]->readAndCount( countsPerPileB[i] );
 
-#ifdef DEBUG
-        countsPerPileA[i].print();
-        countsPerPileB[i].print();
-#endif
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+        {
+            #pragma omp critical
+            {
+                countsPerPileA[i].print();
+                countsPerPileB[i].print();
+            }
+        }
     }
 
     countsCumulativeA = countsPerPileA;
@@ -151,10 +166,11 @@ void CountWords::run( void )
         countsCumulativeB[i] += countsCumulativeB[i - 1];
     }
 
-#ifdef DEBUG
-    countsCumulativeA.print();
-    countsCumulativeB.print();
-#endif
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+    {
+        countsCumulativeA.print();
+        countsCumulativeB.print();
+    }
     string thisWord;
     const int dontKnowIndex( whichPile[( int )dontKnowChar] );
 
@@ -163,17 +179,26 @@ void CountWords::run( void )
     {
         for ( int j( 1 ); j < alphabetSize; ++j )
         {
-#ifdef DEBUG
-            cout << i << " " << j << " " << matchFlag << endl;
-            cout << ( countsCumulativeA[i - 1].count_[j]
-                      | ( matchFlag * ( countsPerPileB[i].count_[j] != 0 ) ) )
-                 << " " << ( countsCumulativeB[i - 1].count_[j]
-                             | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ) << endl;
-#endif
+            Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+            {
+                Logger::out() << i << " " << j << " " << matchFlag << endl;
+                Logger::out() << ( countsCumulativeA[i - 1].count_[j]
+                                   | ( matchFlag * ( countsPerPileB[i].count_[j] != 0 ) ) )
+                              << " " << ( countsCumulativeB[i - 1].count_[j]
+                                          | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ) << endl;
+            }
 #ifdef PROPAGATE_PREFIX
             thisWord.clear();
             thisWord += alphabet[j];
             thisWord += alphabet[i];
+#else
+            /*
+                        if (!subset.empty() && subset[subset.size()-1] != alphabet[i])
+                        {
+                            Logger::out() << "  skipped" << endl;
+                            continue;
+                        }
+            */
 #endif
 
             if ( ( i != dontKnowIndex ) && ( j != dontKnowIndex ) )
@@ -182,21 +207,21 @@ void CountWords::run( void )
                 if ( countsPerPileA[i].count_[j] != 0 )
                     rA.addRange( j, i, thisWord,
                                  ( countsCumulativeA[i - 1].count_[j]
-                                   | ( matchFlag * ( LetterCountType )( countsPerPileB[i].count_[j] != 0 ) ) ),
-                                 countsPerPileA[i].count_[j], subset_ );
+                                   | ( matchFlag * ( LetterNumber )( countsPerPileB[i].count_[j] != 0 ) ) ),
+                                 countsPerPileA[i].count_[j], false, subset_, 1 );
                 if ( countsPerPileB[i].count_[j] != 0 )
                     rB.addRange( j, i, thisWord,
                                  ( countsCumulativeB[i - 1].count_[j]
                                    | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ),
-                                 countsPerPileB[i].count_[j], subset_ );
+                                 countsPerPileB[i].count_[j], false, subset_, 1 );
             } // ~if
         } // ~for j
     } // ~for i
 
 
     LetterCount countsSoFarA, countsSoFarB;
-    LetterCountType currentPosA, currentPosB;
-    LetterCountType numRanges, numSingletonRanges;
+    LetterNumber currentPosA, currentPosB;
+    LetterNumber numRanges, numSingletonRanges;
     //  Range thisRangeA,thisRangeB;
     rA.clear();
     rB.clear();
@@ -245,16 +270,18 @@ void CountWords::run( void )
 
             for ( int j( 1 ); j < alphabetSize; ++j )
             {
-#ifdef DEBUG
-                cout << "positions - A: " << currentPosA << " B: "
-                     << currentPosB << endl;
-#endif
+                Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "positions - A: " << currentPosA << " B: " << currentPosB << endl;
                 rA.setPortion( i, j );
                 rB.setPortion( i, j );
 
-                BackTracker backTracker( inBwtA[i], inBwtB[i],
-                                         currentPosA, currentPosB,
-                                         rA, rB, countsSoFarA, countsSoFarB, minOcc, numCycles, subset_ );
+                BackTracker backTracker( inBwtA[i], inBwtB[i]
+                                         , currentPosA, currentPosB
+                                         , rA, rB, countsSoFarA, countsSoFarB
+                                         , minOcc, numCycles, subset_, c + 2
+                                         , doesPropagateBkptToSeqNumInSetA_
+                                         , doesPropagateBkptToSeqNumInSetB_
+                                         , noComparisonSkip_
+                                       );
                 if ( referenceMode == true )
                 {
                     IntervalHandlerReference intervalHandler( minOcc );

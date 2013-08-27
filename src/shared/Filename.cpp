@@ -17,5 +17,25 @@
 
 #include "Filename.hh"
 
+#include "libzoo/util/TemporaryFilesManager.hh"
+
 using namespace std;
 
+
+std::string Filename::str() const
+{
+    return str_;
+}
+
+std::string TmpFilename::str() const
+{
+    if ( fullPathStr_.empty() )
+    {
+        const string &tempPath = TemporaryFilesManager::get().tempPath_;
+        if ( tempPath.empty() )
+            fullPathStr_ = str_;
+        else
+            fullPathStr_ = tempPath + string( "/" ) + str_;
+    }
+    return fullPathStr_;
+}

@@ -21,14 +21,25 @@
 #include "Config.hh"
 
 
-// convention is that first char is the string terminator char and
+// Convention is that first char is the string terminator char and
 // is lexicographically less than the rest
 
 #ifdef USE_STANDARD_LEXICOGRAPHIC_ORDER
 static const char alphabet[] = "$ACGNTZ";
+static const int whichPileInverse[] =
+{
+    '$', 'A', 'C', 'G', 'N', 'T', 'Z'
+};
 #else
 static const char alphabet[] = "$ACGTN";
+static const int whichPileInverse[] =
+{
+    '$', 'A', 'C', 'G', 'T', 'N', 'Z'
+};
 #endif
+
+// Type able to contain symbols of the alphabet (in biologic case 6 ($,A,C,G,N,T))
+typedef uchar AlphabetSymbol;
 
 //static const int alphabetSize(strlen(alphabet));
 enum
@@ -99,18 +110,6 @@ static const int whichPile[] =
     nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
     nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv,
     nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv
-};
-#endif
-
-#ifdef USE_STANDARD_LEXICOGRAPHIC_ORDER
-static const int whichPileInverse[] =
-{
-    '$', 'A', 'C', 'G', 'N', 'T', 'Z'
-};
-#else
-static const int whichPileInverse[] =
-{
-    '$', 'A', 'C', 'G', 'T', 'N', 'Z'
 };
 #endif
 

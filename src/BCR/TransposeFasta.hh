@@ -52,11 +52,11 @@ public:
         return processQualities_;
     }
 
-    dataTypelenSeq lengthRead;    //Lenght of each text
-    dataTypeNChar lengthTexts;   //Total length of all texts without $-symbols
+    SequenceLength lengthRead;    //Lenght of each text
+    LetterNumber lengthTexts;   //Total length of all texts without $-symbols
 
-    dataTypeNSeq nSeq;   //number total of texts in filename1
-    dataTypeNChar freq[256];  //contains the distribution of the symbols. It is useful only for testing. It depends on the #characters
+    SequenceNumber nSeq;   //number total of texts in filename1
+    LetterNumber freq[256];  //contains the distribution of the symbols. It is useful only for testing. It depends on the #characters
 
 private:
     SeqReaderFile *pReader_;

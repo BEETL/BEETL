@@ -39,7 +39,8 @@ bin_PROGRAMS = OldBeetl$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.in
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -55,23 +56,31 @@ am_liball_a_OBJECTS = liball_a-BCRext.$(OBJEXT) \
 	liball_a-CountWords.$(OBJEXT) liball_a-Timer.$(OBJEXT) \
 	liball_a-Tools.$(OBJEXT) liball_a-BWTCollection.$(OBJEXT) \
 	liball_a-BCRexternalBWT.$(OBJEXT) liball_a-BuildBCR.$(OBJEXT) \
+	liball_a-PredictiveEncoding.$(OBJEXT) \
 	liball_a-Sorting.$(OBJEXT) liball_a-TransposeFasta.$(OBJEXT) \
 	liball_a-BwtReader.$(OBJEXT) liball_a-BwtWriter.$(OBJEXT) \
-	liball_a-ReadBuffer.$(OBJEXT) liball_a-SeqReader.$(OBJEXT) \
-	liball_a-TemporaryFilesManager.$(OBJEXT) \
-	liball_a-Logger.$(OBJEXT) liball_a-BackTracker.$(OBJEXT) \
+	liball_a-ReadBuffer.$(OBJEXT) liball_a-Filename.$(OBJEXT) \
+	liball_a-SeqReader.$(OBJEXT) liball_a-BackTracker.$(OBJEXT) \
 	liball_a-IntervalHandlerBase.$(OBJEXT) \
 	liball_a-IntervalHandlerMetagenome.$(OBJEXT) \
 	liball_a-IntervalHandlerReference.$(OBJEXT) \
 	liball_a-IntervalHandlerSplice.$(OBJEXT) \
 	liball_a-RangeStore.$(OBJEXT)
 liball_a_OBJECTS = $(am_liball_a_OBJECTS)
+libzoo_a_AR = $(AR) $(ARFLAGS)
+libzoo_a_LIBADD =
+am_libzoo_a_OBJECTS = libzoo_a-Common.$(OBJEXT) \
+	libzoo_a-ToolParameters.$(OBJEXT) libzoo_a-Bcl.$(OBJEXT) \
+	libzoo_a-FastOFStream.$(OBJEXT) libzoo_a-Logger.$(OBJEXT) \
+	libzoo_a-TemporaryFilesManager.$(OBJEXT)
+libzoo_a_OBJECTS = $(am_libzoo_a_OBJECTS)
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
 am_OldBeetl_OBJECTS = OldBeetl-Beetl.$(OBJEXT)
 OldBeetl_OBJECTS = $(am_OldBeetl_OBJECTS)
-OldBeetl_DEPENDENCIES = liball.a
+am__DEPENDENCIES_1 =
+OldBeetl_DEPENDENCIES = liball.a libzoo.a $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -80,8 +89,9 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(liball_a_SOURCES) $(OldBeetl_SOURCES)
-DIST_SOURCES = $(liball_a_SOURCES) $(OldBeetl_SOURCES)
+SOURCES = $(liball_a_SOURCES) $(libzoo_a_SOURCES) $(OldBeetl_SOURCES)
+DIST_SOURCES = $(liball_a_SOURCES) $(libzoo_a_SOURCES) \
+	$(OldBeetl_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-exec-recursive install-info-recursive \
@@ -100,6 +110,10 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BOOST_CXXFLAGS = @BOOST_CXXFLAGS@
+BOOST_LDADD = @BOOST_LDADD@
+BOOST_LDFLAGS = @BOOST_LDFLAGS@
+BOOST_PATH = @BOOST_PATH@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -116,6 +130,7 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+HAVE_CXX11 = @HAVE_CXX11@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -175,9 +190,10 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 SUBDIRS = . frontends metagenomics
-noinst_LIBRARIES = liball.a
+noinst_LIBRARIES = libzoo.a liball.a
 OldBeetl_SOURCES = shared/Beetl.cpp
-OldBeetl_LDADD = liball.a
+OldBeetl_LDADD = liball.a libzoo.a ${BOOST_LDADD}
+OldBeetl_LDFLAGS = ${BOOST_LDFLAGS}
 OldBeetl_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords
 
 # Unfinished tool?
@@ -193,14 +209,14 @@ liball_a_SOURCES = \
 	BCR/BWTCollection.cpp \
 	BCR/BCRexternalBWT.cpp \
 	BCR/BuildBCR.cpp \
+	BCR/PredictiveEncoding.cpp \
 	BCR/Sorting.cpp \
 	BCR/TransposeFasta.cpp \
 	BCRext/BwtReader.cpp \
 	BCRext/BwtWriter.cpp \
 	BCRext/ReadBuffer.cpp \
+	shared/Filename.cpp \
 	shared/SeqReader.cpp \
-	shared/TemporaryFilesManager.cpp \
-	shared/Logger.cpp \
 	countWords/BackTracker.cpp \
 	countWords/IntervalHandlerBase.cpp \
 	countWords/IntervalHandlerMetagenome.cpp \
@@ -208,7 +224,16 @@ liball_a_SOURCES = \
 	countWords/IntervalHandlerSplice.cpp \
 	countWords/RangeStore.cpp
 
-liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords
+liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords ${BOOST_CXXFLAGS}
+libzoo_a_SOURCES = \
+	libzoo/cli/Common.cpp \
+	libzoo/cli/ToolParameters.cpp \
+	libzoo/io/Bcl.cpp \
+	libzoo/io/FastOFStream.cpp \
+	libzoo/util/Logger.cpp \
+	libzoo/util/TemporaryFilesManager.cpp
+
+libzoo_a_CXXFLAGS = -I$(srcdir) ${BOOST_CXXFLAGS}
 all: all-recursive
 
 .SUFFIXES:
@@ -249,6 +274,10 @@ liball.a: $(liball_a_OBJECTS) $(liball_a_DEPENDENCIES)
 	-rm -f liball.a
 	$(liball_a_AR) liball.a $(liball_a_OBJECTS) $(liball_a_LIBADD)
 	$(RANLIB) liball.a
+libzoo.a: $(libzoo_a_OBJECTS) $(libzoo_a_DEPENDENCIES) 
+	-rm -f libzoo.a
+	$(libzoo_a_AR) libzoo.a $(libzoo_a_OBJECTS) $(libzoo_a_LIBADD)
+	$(RANLIB) libzoo.a
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(bindir)" || $(mkdir_p) "$(DESTDIR)$(bindir)"
@@ -292,19 +321,25 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-BwtReader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-BwtWriter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-CountWords.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-Filename.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-IntervalHandlerBase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-IntervalHandlerMetagenome.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-IntervalHandlerReference.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-IntervalHandlerSplice.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-Logger.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-PredictiveEncoding.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-RangeStore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-ReadBuffer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-SeqReader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-Sorting.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-TemporaryFilesManager.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-Timer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-Tools.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-TransposeFasta.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libzoo_a-Bcl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libzoo_a-Common.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libzoo_a-FastOFStream.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libzoo_a-Logger.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libzoo_a-TemporaryFilesManager.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libzoo_a-ToolParameters.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -432,6 +467,20 @@ liball_a-BuildBCR.obj: BCR/BuildBCR.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-BuildBCR.obj `if test -f 'BCR/BuildBCR.cpp'; then $(CYGPATH_W) 'BCR/BuildBCR.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/BuildBCR.cpp'; fi`
 
+liball_a-PredictiveEncoding.o: BCR/PredictiveEncoding.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-PredictiveEncoding.o -MD -MP -MF "$(DEPDIR)/liball_a-PredictiveEncoding.Tpo" -c -o liball_a-PredictiveEncoding.o `test -f 'BCR/PredictiveEncoding.cpp' || echo '$(srcdir)/'`BCR/PredictiveEncoding.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-PredictiveEncoding.Tpo" "$(DEPDIR)/liball_a-PredictiveEncoding.Po"; else rm -f "$(DEPDIR)/liball_a-PredictiveEncoding.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='BCR/PredictiveEncoding.cpp' object='liball_a-PredictiveEncoding.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-PredictiveEncoding.o `test -f 'BCR/PredictiveEncoding.cpp' || echo '$(srcdir)/'`BCR/PredictiveEncoding.cpp
+
+liball_a-PredictiveEncoding.obj: BCR/PredictiveEncoding.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-PredictiveEncoding.obj -MD -MP -MF "$(DEPDIR)/liball_a-PredictiveEncoding.Tpo" -c -o liball_a-PredictiveEncoding.obj `if test -f 'BCR/PredictiveEncoding.cpp'; then $(CYGPATH_W) 'BCR/PredictiveEncoding.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/PredictiveEncoding.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-PredictiveEncoding.Tpo" "$(DEPDIR)/liball_a-PredictiveEncoding.Po"; else rm -f "$(DEPDIR)/liball_a-PredictiveEncoding.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='BCR/PredictiveEncoding.cpp' object='liball_a-PredictiveEncoding.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-PredictiveEncoding.obj `if test -f 'BCR/PredictiveEncoding.cpp'; then $(CYGPATH_W) 'BCR/PredictiveEncoding.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/PredictiveEncoding.cpp'; fi`
+
 liball_a-Sorting.o: BCR/Sorting.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-Sorting.o -MD -MP -MF "$(DEPDIR)/liball_a-Sorting.Tpo" -c -o liball_a-Sorting.o `test -f 'BCR/Sorting.cpp' || echo '$(srcdir)/'`BCR/Sorting.cpp; \
 @am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-Sorting.Tpo" "$(DEPDIR)/liball_a-Sorting.Po"; else rm -f "$(DEPDIR)/liball_a-Sorting.Tpo"; exit 1; fi
@@ -502,6 +551,20 @@ liball_a-ReadBuffer.obj: BCRext/ReadBuffer.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-ReadBuffer.obj `if test -f 'BCRext/ReadBuffer.cpp'; then $(CYGPATH_W) 'BCRext/ReadBuffer.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/ReadBuffer.cpp'; fi`
 
+liball_a-Filename.o: shared/Filename.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-Filename.o -MD -MP -MF "$(DEPDIR)/liball_a-Filename.Tpo" -c -o liball_a-Filename.o `test -f 'shared/Filename.cpp' || echo '$(srcdir)/'`shared/Filename.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-Filename.Tpo" "$(DEPDIR)/liball_a-Filename.Po"; else rm -f "$(DEPDIR)/liball_a-Filename.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='shared/Filename.cpp' object='liball_a-Filename.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-Filename.o `test -f 'shared/Filename.cpp' || echo '$(srcdir)/'`shared/Filename.cpp
+
+liball_a-Filename.obj: shared/Filename.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-Filename.obj -MD -MP -MF "$(DEPDIR)/liball_a-Filename.Tpo" -c -o liball_a-Filename.obj `if test -f 'shared/Filename.cpp'; then $(CYGPATH_W) 'shared/Filename.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Filename.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-Filename.Tpo" "$(DEPDIR)/liball_a-Filename.Po"; else rm -f "$(DEPDIR)/liball_a-Filename.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='shared/Filename.cpp' object='liball_a-Filename.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-Filename.obj `if test -f 'shared/Filename.cpp'; then $(CYGPATH_W) 'shared/Filename.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Filename.cpp'; fi`
+
 liball_a-SeqReader.o: shared/SeqReader.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-SeqReader.o -MD -MP -MF "$(DEPDIR)/liball_a-SeqReader.Tpo" -c -o liball_a-SeqReader.o `test -f 'shared/SeqReader.cpp' || echo '$(srcdir)/'`shared/SeqReader.cpp; \
 @am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-SeqReader.Tpo" "$(DEPDIR)/liball_a-SeqReader.Po"; else rm -f "$(DEPDIR)/liball_a-SeqReader.Tpo"; exit 1; fi
@@ -515,34 +578,6 @@ liball_a-SeqReader.obj: shared/SeqReader.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='shared/SeqReader.cpp' object='liball_a-SeqReader.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-SeqReader.obj `if test -f 'shared/SeqReader.cpp'; then $(CYGPATH_W) 'shared/SeqReader.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/SeqReader.cpp'; fi`
-
-liball_a-TemporaryFilesManager.o: shared/TemporaryFilesManager.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-TemporaryFilesManager.o -MD -MP -MF "$(DEPDIR)/liball_a-TemporaryFilesManager.Tpo" -c -o liball_a-TemporaryFilesManager.o `test -f 'shared/TemporaryFilesManager.cpp' || echo '$(srcdir)/'`shared/TemporaryFilesManager.cpp; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-TemporaryFilesManager.Tpo" "$(DEPDIR)/liball_a-TemporaryFilesManager.Po"; else rm -f "$(DEPDIR)/liball_a-TemporaryFilesManager.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='shared/TemporaryFilesManager.cpp' object='liball_a-TemporaryFilesManager.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-TemporaryFilesManager.o `test -f 'shared/TemporaryFilesManager.cpp' || echo '$(srcdir)/'`shared/TemporaryFilesManager.cpp
-
-liball_a-TemporaryFilesManager.obj: shared/TemporaryFilesManager.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-TemporaryFilesManager.obj -MD -MP -MF "$(DEPDIR)/liball_a-TemporaryFilesManager.Tpo" -c -o liball_a-TemporaryFilesManager.obj `if test -f 'shared/TemporaryFilesManager.cpp'; then $(CYGPATH_W) 'shared/TemporaryFilesManager.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/TemporaryFilesManager.cpp'; fi`; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-TemporaryFilesManager.Tpo" "$(DEPDIR)/liball_a-TemporaryFilesManager.Po"; else rm -f "$(DEPDIR)/liball_a-TemporaryFilesManager.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='shared/TemporaryFilesManager.cpp' object='liball_a-TemporaryFilesManager.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-TemporaryFilesManager.obj `if test -f 'shared/TemporaryFilesManager.cpp'; then $(CYGPATH_W) 'shared/TemporaryFilesManager.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/TemporaryFilesManager.cpp'; fi`
-
-liball_a-Logger.o: shared/Logger.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-Logger.o -MD -MP -MF "$(DEPDIR)/liball_a-Logger.Tpo" -c -o liball_a-Logger.o `test -f 'shared/Logger.cpp' || echo '$(srcdir)/'`shared/Logger.cpp; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-Logger.Tpo" "$(DEPDIR)/liball_a-Logger.Po"; else rm -f "$(DEPDIR)/liball_a-Logger.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='shared/Logger.cpp' object='liball_a-Logger.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-Logger.o `test -f 'shared/Logger.cpp' || echo '$(srcdir)/'`shared/Logger.cpp
-
-liball_a-Logger.obj: shared/Logger.cpp
-@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-Logger.obj -MD -MP -MF "$(DEPDIR)/liball_a-Logger.Tpo" -c -o liball_a-Logger.obj `if test -f 'shared/Logger.cpp'; then $(CYGPATH_W) 'shared/Logger.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Logger.cpp'; fi`; \
-@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-Logger.Tpo" "$(DEPDIR)/liball_a-Logger.Po"; else rm -f "$(DEPDIR)/liball_a-Logger.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='shared/Logger.cpp' object='liball_a-Logger.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-Logger.obj `if test -f 'shared/Logger.cpp'; then $(CYGPATH_W) 'shared/Logger.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Logger.cpp'; fi`
 
 liball_a-BackTracker.o: countWords/BackTracker.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-BackTracker.o -MD -MP -MF "$(DEPDIR)/liball_a-BackTracker.Tpo" -c -o liball_a-BackTracker.o `test -f 'countWords/BackTracker.cpp' || echo '$(srcdir)/'`countWords/BackTracker.cpp; \
@@ -627,6 +662,90 @@ liball_a-RangeStore.obj: countWords/RangeStore.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='countWords/RangeStore.cpp' object='liball_a-RangeStore.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-RangeStore.obj `if test -f 'countWords/RangeStore.cpp'; then $(CYGPATH_W) 'countWords/RangeStore.cpp'; else $(CYGPATH_W) '$(srcdir)/countWords/RangeStore.cpp'; fi`
+
+libzoo_a-Common.o: libzoo/cli/Common.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-Common.o -MD -MP -MF "$(DEPDIR)/libzoo_a-Common.Tpo" -c -o libzoo_a-Common.o `test -f 'libzoo/cli/Common.cpp' || echo '$(srcdir)/'`libzoo/cli/Common.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-Common.Tpo" "$(DEPDIR)/libzoo_a-Common.Po"; else rm -f "$(DEPDIR)/libzoo_a-Common.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/cli/Common.cpp' object='libzoo_a-Common.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-Common.o `test -f 'libzoo/cli/Common.cpp' || echo '$(srcdir)/'`libzoo/cli/Common.cpp
+
+libzoo_a-Common.obj: libzoo/cli/Common.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-Common.obj -MD -MP -MF "$(DEPDIR)/libzoo_a-Common.Tpo" -c -o libzoo_a-Common.obj `if test -f 'libzoo/cli/Common.cpp'; then $(CYGPATH_W) 'libzoo/cli/Common.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/cli/Common.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-Common.Tpo" "$(DEPDIR)/libzoo_a-Common.Po"; else rm -f "$(DEPDIR)/libzoo_a-Common.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/cli/Common.cpp' object='libzoo_a-Common.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-Common.obj `if test -f 'libzoo/cli/Common.cpp'; then $(CYGPATH_W) 'libzoo/cli/Common.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/cli/Common.cpp'; fi`
+
+libzoo_a-ToolParameters.o: libzoo/cli/ToolParameters.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-ToolParameters.o -MD -MP -MF "$(DEPDIR)/libzoo_a-ToolParameters.Tpo" -c -o libzoo_a-ToolParameters.o `test -f 'libzoo/cli/ToolParameters.cpp' || echo '$(srcdir)/'`libzoo/cli/ToolParameters.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-ToolParameters.Tpo" "$(DEPDIR)/libzoo_a-ToolParameters.Po"; else rm -f "$(DEPDIR)/libzoo_a-ToolParameters.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/cli/ToolParameters.cpp' object='libzoo_a-ToolParameters.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-ToolParameters.o `test -f 'libzoo/cli/ToolParameters.cpp' || echo '$(srcdir)/'`libzoo/cli/ToolParameters.cpp
+
+libzoo_a-ToolParameters.obj: libzoo/cli/ToolParameters.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-ToolParameters.obj -MD -MP -MF "$(DEPDIR)/libzoo_a-ToolParameters.Tpo" -c -o libzoo_a-ToolParameters.obj `if test -f 'libzoo/cli/ToolParameters.cpp'; then $(CYGPATH_W) 'libzoo/cli/ToolParameters.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/cli/ToolParameters.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-ToolParameters.Tpo" "$(DEPDIR)/libzoo_a-ToolParameters.Po"; else rm -f "$(DEPDIR)/libzoo_a-ToolParameters.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/cli/ToolParameters.cpp' object='libzoo_a-ToolParameters.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-ToolParameters.obj `if test -f 'libzoo/cli/ToolParameters.cpp'; then $(CYGPATH_W) 'libzoo/cli/ToolParameters.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/cli/ToolParameters.cpp'; fi`
+
+libzoo_a-Bcl.o: libzoo/io/Bcl.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-Bcl.o -MD -MP -MF "$(DEPDIR)/libzoo_a-Bcl.Tpo" -c -o libzoo_a-Bcl.o `test -f 'libzoo/io/Bcl.cpp' || echo '$(srcdir)/'`libzoo/io/Bcl.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-Bcl.Tpo" "$(DEPDIR)/libzoo_a-Bcl.Po"; else rm -f "$(DEPDIR)/libzoo_a-Bcl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/io/Bcl.cpp' object='libzoo_a-Bcl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-Bcl.o `test -f 'libzoo/io/Bcl.cpp' || echo '$(srcdir)/'`libzoo/io/Bcl.cpp
+
+libzoo_a-Bcl.obj: libzoo/io/Bcl.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-Bcl.obj -MD -MP -MF "$(DEPDIR)/libzoo_a-Bcl.Tpo" -c -o libzoo_a-Bcl.obj `if test -f 'libzoo/io/Bcl.cpp'; then $(CYGPATH_W) 'libzoo/io/Bcl.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/io/Bcl.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-Bcl.Tpo" "$(DEPDIR)/libzoo_a-Bcl.Po"; else rm -f "$(DEPDIR)/libzoo_a-Bcl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/io/Bcl.cpp' object='libzoo_a-Bcl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-Bcl.obj `if test -f 'libzoo/io/Bcl.cpp'; then $(CYGPATH_W) 'libzoo/io/Bcl.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/io/Bcl.cpp'; fi`
+
+libzoo_a-FastOFStream.o: libzoo/io/FastOFStream.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-FastOFStream.o -MD -MP -MF "$(DEPDIR)/libzoo_a-FastOFStream.Tpo" -c -o libzoo_a-FastOFStream.o `test -f 'libzoo/io/FastOFStream.cpp' || echo '$(srcdir)/'`libzoo/io/FastOFStream.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-FastOFStream.Tpo" "$(DEPDIR)/libzoo_a-FastOFStream.Po"; else rm -f "$(DEPDIR)/libzoo_a-FastOFStream.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/io/FastOFStream.cpp' object='libzoo_a-FastOFStream.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-FastOFStream.o `test -f 'libzoo/io/FastOFStream.cpp' || echo '$(srcdir)/'`libzoo/io/FastOFStream.cpp
+
+libzoo_a-FastOFStream.obj: libzoo/io/FastOFStream.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-FastOFStream.obj -MD -MP -MF "$(DEPDIR)/libzoo_a-FastOFStream.Tpo" -c -o libzoo_a-FastOFStream.obj `if test -f 'libzoo/io/FastOFStream.cpp'; then $(CYGPATH_W) 'libzoo/io/FastOFStream.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/io/FastOFStream.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-FastOFStream.Tpo" "$(DEPDIR)/libzoo_a-FastOFStream.Po"; else rm -f "$(DEPDIR)/libzoo_a-FastOFStream.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/io/FastOFStream.cpp' object='libzoo_a-FastOFStream.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-FastOFStream.obj `if test -f 'libzoo/io/FastOFStream.cpp'; then $(CYGPATH_W) 'libzoo/io/FastOFStream.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/io/FastOFStream.cpp'; fi`
+
+libzoo_a-Logger.o: libzoo/util/Logger.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-Logger.o -MD -MP -MF "$(DEPDIR)/libzoo_a-Logger.Tpo" -c -o libzoo_a-Logger.o `test -f 'libzoo/util/Logger.cpp' || echo '$(srcdir)/'`libzoo/util/Logger.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-Logger.Tpo" "$(DEPDIR)/libzoo_a-Logger.Po"; else rm -f "$(DEPDIR)/libzoo_a-Logger.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/util/Logger.cpp' object='libzoo_a-Logger.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-Logger.o `test -f 'libzoo/util/Logger.cpp' || echo '$(srcdir)/'`libzoo/util/Logger.cpp
+
+libzoo_a-Logger.obj: libzoo/util/Logger.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-Logger.obj -MD -MP -MF "$(DEPDIR)/libzoo_a-Logger.Tpo" -c -o libzoo_a-Logger.obj `if test -f 'libzoo/util/Logger.cpp'; then $(CYGPATH_W) 'libzoo/util/Logger.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/util/Logger.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-Logger.Tpo" "$(DEPDIR)/libzoo_a-Logger.Po"; else rm -f "$(DEPDIR)/libzoo_a-Logger.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/util/Logger.cpp' object='libzoo_a-Logger.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-Logger.obj `if test -f 'libzoo/util/Logger.cpp'; then $(CYGPATH_W) 'libzoo/util/Logger.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/util/Logger.cpp'; fi`
+
+libzoo_a-TemporaryFilesManager.o: libzoo/util/TemporaryFilesManager.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-TemporaryFilesManager.o -MD -MP -MF "$(DEPDIR)/libzoo_a-TemporaryFilesManager.Tpo" -c -o libzoo_a-TemporaryFilesManager.o `test -f 'libzoo/util/TemporaryFilesManager.cpp' || echo '$(srcdir)/'`libzoo/util/TemporaryFilesManager.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-TemporaryFilesManager.Tpo" "$(DEPDIR)/libzoo_a-TemporaryFilesManager.Po"; else rm -f "$(DEPDIR)/libzoo_a-TemporaryFilesManager.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/util/TemporaryFilesManager.cpp' object='libzoo_a-TemporaryFilesManager.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-TemporaryFilesManager.o `test -f 'libzoo/util/TemporaryFilesManager.cpp' || echo '$(srcdir)/'`libzoo/util/TemporaryFilesManager.cpp
+
+libzoo_a-TemporaryFilesManager.obj: libzoo/util/TemporaryFilesManager.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-TemporaryFilesManager.obj -MD -MP -MF "$(DEPDIR)/libzoo_a-TemporaryFilesManager.Tpo" -c -o libzoo_a-TemporaryFilesManager.obj `if test -f 'libzoo/util/TemporaryFilesManager.cpp'; then $(CYGPATH_W) 'libzoo/util/TemporaryFilesManager.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/util/TemporaryFilesManager.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/libzoo_a-TemporaryFilesManager.Tpo" "$(DEPDIR)/libzoo_a-TemporaryFilesManager.Po"; else rm -f "$(DEPDIR)/libzoo_a-TemporaryFilesManager.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libzoo/util/TemporaryFilesManager.cpp' object='libzoo_a-TemporaryFilesManager.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo_a-TemporaryFilesManager.obj `if test -f 'libzoo/util/TemporaryFilesManager.cpp'; then $(CYGPATH_W) 'libzoo/util/TemporaryFilesManager.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/util/TemporaryFilesManager.cpp'; fi`
 
 OldBeetl-Beetl.o: shared/Beetl.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(OldBeetl_CXXFLAGS) $(CXXFLAGS) -MT OldBeetl-Beetl.o -MD -MP -MF "$(DEPDIR)/OldBeetl-Beetl.Tpo" -c -o OldBeetl-Beetl.o `test -f 'shared/Beetl.cpp' || echo '$(srcdir)/'`shared/Beetl.cpp; \

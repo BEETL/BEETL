@@ -18,7 +18,7 @@
 #ifndef BEETL_UNBWT_PARAMETERS_HH
 #define BEETL_UNBWT_PARAMETERS_HH
 
-#include "ToolParameters.hh"
+#include "libzoo/cli/ToolParameters.hh"
 
 #include <string>
 
@@ -27,24 +27,16 @@ namespace BeetlUnbwtParameters
 {
 
 // options: input format
-/*
+
 enum InputFormat
 {
-    INPUT_FORMAT_FASTA,
-    INPUT_FORMAT_FASTQ,
-    INPUT_FORMAT_CYC,
-    INPUT_FORMAT_SEQ,
-    INPUT_FORMAT_BCL,
+    INPUT_FORMAT_BWT_ASCII,
     INPUT_FORMAT_COUNT
 };
 
 static const string inputFormatLabels[] =
 {
-    "fasta",
-    "fastq",
-    "cyc",
-    "seq",
-    "bcl",
+    "BWT_ASCII",
     "" // end marker
 };
 
@@ -53,112 +45,18 @@ static const string inputFormatLabels[] =
 
 enum OutputFormat
 {
-    OUTPUT_FORMAT_ASCII,
-    OUTPUT_FORMAT_RLE,
-    OUTPUT_FORMAT_HUFFMAN,
+    OUTPUT_FORMAT_FASTA,
+    OUTPUT_FORMAT_FASTQ,
     OUTPUT_FORMAT_COUNT
 };
 
 static const string outputFormatLabels[] =
 {
-    "ASCII",
-    "RLE",
-    "Huffman",
+    "fasta",
+    "fastq",
     "" // end marker
 };
 
-
-// options: intermediate format
-
-enum IntermediateFormat
-{
-    INTERMEDIATE_FORMAT_ASCII,
-    INTERMEDIATE_FORMAT_RLE,
-    INTERMEDIATE_FORMAT_MULTIRLE,
-    INTERMEDIATE_FORMAT_HUFFMAN,
-    INTERMEDIATE_FORMAT_COUNT
-};
-
-static const string intermediateFormatLabels[] =
-{
-    "ASCII",
-    "RLE",
-    "multiRLE",
-    "Huffman",
-    "" // end marker
-};
-
-
-// options: intermediate storage medium
-
-enum IntermediateStorageMedium
-{
-    INTERMEDIATE_STORAGE_MEDIUM_DISK,
-    INTERMEDIATE_STORAGE_MEDIUM_RAM,
-    INTERMEDIATE_STORAGE_MEDIUM_COUNT
-};
-
-static const string intermediateStorageMediumLabels[] =
-{
-    "disk",
-    "RAM",
-    "" // end marker
-};
-
-
-// options: parallel prefetch on/off
-
-enum ParallelPrefetch
-{
-    PARALLEL_PREFETCH_OFF,
-    PARALLEL_PREFETCH_ON,
-    PARALLEL_PREFETCH_COUNT,
-};
-
-static const string parallelPrefetchLabels[] =
-{
-    "prefetch off",
-    "prefetch on",
-    "" // end marker
-};
-
-
-// options: parallel processing
-
-enum ParallelProcessing // todo: this should only be on/off; the number of cores should be part of the hardware resources
-{
-    PARALLEL_PROCESSING_OFF,
-    PARALLEL_PROCESSING_2CORES,
-    PARALLEL_PROCESSING_4CORES,
-    PARALLEL_PROCESSING_COUNT,
-};
-
-static const string parallelProcessingLabels[] =
-{
-    "1 core",
-    "2 cores",
-    "4 cores",
-    "" // end marker
-};
-
-
-// options: permute qualities off/on
-
-enum PermuteQualities
-{
-    PERMUTE_QUALITIES_OFF,
-    PERMUTE_QUALITIES_ON,
-    PERMUTE_QUALITIES_COUNT,
-};
-
-static const string permuteQualitiesLabels[] =
-{
-    "off",
-    "on",
-    "" // end marker
-};
-
-*/
 
 // options: process qualities off/on
 
@@ -216,71 +114,31 @@ static const string useVectorLabels[] =
 
 enum UnbwtOptions
 {
-    /*
-        OPTION_INPUT_FORMAT,
-        OPTION_OUTPUT_FORMAT,
-        OPTION_ALGORITHM,
-        OPTION_INTERMEDIATE_FORMAT,
-        OPTION_INTERMEDIATE_STORAGE_MEDIUM,
-        OPTION_PARALLEL_PREFETCH,
-        OPTION_PARALLEL_PROCESSING,
-    */
-    UNBWT_OPTION_PROCESS_QUALITIES,
-    UNBWT_OPTION_DECODE_DIRECTION,
-    UNBWT_OPTION_USE_VECTOR,
-    UNBWT_OPTION_COUNT // end marker
+    //    PARAMETER_PROCESS_QUALITIES,
+    PARAMETER_DECODE_DIRECTION,
+    PARAMETER_USE_VECTOR,
+    PARAMETER_COUNT // end marker
 };
-
-static const string unbwtOptionNames[] =
-{
-    /*
-        "input format",
-        "output format",
-        "algorithm",
-        "intermediate format",
-        "intermediate storage medium",
-        "parallel prefetch",
-        "parallel processing",
-    */
-    "process qualities",
-    "decode direction",
-    "use vector",
-    "" // end marker
-};
-
-static const string *unbwtOptionPossibleValues[] =
-{
-    /*
-        inputFormatLabels,
-        outputFormatLabels,
-        algorithmOptionLabels,
-        intermediateFormatLabels,
-        intermediateStorageMediumLabels,
-        parallelPrefetchLabels,
-        parallelProcessingLabels,
-    */
-    processQualitiesLabels,
-    decodeDirectionLabels,
-    useVectorLabels,
-    NULL // end marker
-};
-
 
 } // namespace BeetlUnbwtParameters
 
 
 class UnbwtParameters : public ToolParameters
 {
-    virtual const string **getOptionPossibleValues() const
-    {
-        return BeetlUnbwtParameters::unbwtOptionPossibleValues;
-    }
 public:
-    virtual const string getOptionName( const unsigned i ) const
+    UnbwtParameters()
     {
-        return BeetlUnbwtParameters::unbwtOptionNames[i];
+        using namespace BeetlUnbwtParameters;
+        addEntry( -1, "input filename prefix", "--input", "-i", "Input file name prefix (without -B0x)", "", TYPE_STRING | REQUIRED );
+        addEntry( -1, "output filename", "--output", "-o", "Output file name", "outUnBWT.fasta", TYPE_STRING | REQUIRED );
+        addEntry( -1, "input format", "--input-format", "", "Must be:", "detect", TYPE_CHOICE | REQUIRED, inputFormatLabels );
+        addEntry( -1, "output format", "--output-format", "", "", "detect", TYPE_CHOICE | REQUIRED, outputFormatLabels );
+        addEntry( PARAMETER_DECODE_DIRECTION, "decode direction", "--decode-direction", "-d", "", "backward", TYPE_CHOICE, decodeDirectionLabels );
+        addEntry( PARAMETER_USE_VECTOR, "use vector", "--use-vector", "", "", "on", TYPE_CHOICE, useVectorLabels );
+
+        addDefaultVerbosityAndHelpEntries();
     }
-    //    virtual const string getOptionPossibleValue( const unsigned i, const unsigned j ) const { return unbwtOptionPossibleValues[i][j]; }
+
 };
 
 

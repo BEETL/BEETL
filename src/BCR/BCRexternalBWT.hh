@@ -20,12 +20,14 @@
 
 #include "BWTCollection.hh"
 #include "BwtReader.hh"
-#include "parameters/ToolParameters.hh"
+#include "libzoo/cli/ToolParameters.hh"
 #include "parameters/SearchParameters.hh"
+#include "shared/FragmentedVector.hh"
 
 #include <fstream>
 #include <iostream>
 #include <map>
+
 
 
 class BCRexternalBWT : public SXSI::BWTCollection
@@ -45,49 +47,49 @@ public:
     int Recover1symbolReverse( char const * , char const * , uchar *, sortElement * );
     int RecoverNsymbolsReverse( char  const *, char const *, uchar *, uchar *newQual = 0 );
     int RecoverNsymbolsReverseByVector( char const *file1, char const *fileOutBwt, uchar *newSymb, uchar *newQual = 0 );
-    dataTypeNSeq recover1SequenceForward( char const * , char const * , sortElement , uchar *, dataTypelenSeq * ) ;
-    vector <int> recoverNSequenceForward( char const * , char const *, dataTypeNSeq );
-    int recoverNSequenceForwardSequentially( char const * , char const *, dataTypeNSeq );
+    SequenceNumber recover1SequenceForward( char const * , char const * , sortElement , uchar *, SequenceLength * ) ;
+    vector <int> recoverNSequenceForward( char const * , char const *, SequenceNumber );
+    int recoverNSequenceForwardSequentially( char const * , char const *, SequenceNumber );
     void storeBWT( uchar const *, uchar const *qual = NULL );
-    void storeBWT_parallelPile( uchar const *newSymb, uchar const *newQual, unsigned int parallelPile, dataTypeNSeq startIndex, dataTypeNSeq endIndex );
+    void storeBWT_parallelPile( uchar const *newSymb, uchar const *newQual, unsigned int parallelPile, SequenceNumber startIndex, SequenceNumber endIndex );
     void storeEntireBWT( const char * );
-    void storeSA( dataTypelenSeq );
+    void storeSA( SequenceLength );
     void storeEntirePairSA( const char * );
     void storeEntireSAfromPairSA( const char * );
     virtual void storeBWTandLCP( uchar const * );
     virtual void storeEntireLCP( const char * );
-    dataTypeNChar rankManySymbols( FILE &, dataTypeNChar *, dataTypeNChar, uchar * );
+    LetterNumber rankManySymbols( FILE &, LetterNumber *, LetterNumber, uchar * );
 #ifdef XXX
-    dataTypeNChar rankManySymbols( FILE &, LetterCount &, dataTypeNChar, uchar * ); // TEMP
+    LetterNumber rankManySymbols( FILE &, LetterCount &, LetterNumber, uchar * ); // TEMP
 #endif
-    dataTypeNChar rankManySymbolsByVector( FILE & , dataTypeNChar *, dataTypeNChar, uchar *, uchar *foundQual = 0, FILE *InFileBWTQual = 0 );
-    dataTypeNChar findRankInBWT ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar );
-    dataTypeNChar findRankInBWTbyVector ( char const *, char const *, dataTypedimAlpha, dataTypeNChar, uchar );
-    int rankInverseManyByVector ( char const * , char const * , dataTypeNSeq , uchar * );
-    int backwardSearchManyBCR( char const * , char const *, char const *, vector<string>, dataTypelenSeq );
-    int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , dataTypelenSeq , vector <int> & );
+    LetterNumber rankManySymbolsByVector( FILE & , LetterNumber *, LetterNumber, uchar *, uchar *foundQual = 0, FILE *InFileBWTQual = 0 );
+    LetterNumber findRankInBWT ( char const *, char const *, AlphabetSymbol, LetterNumber, uchar );
+    LetterNumber findRankInBWTbyVector ( char const *, char const *, AlphabetSymbol, LetterNumber, uchar );
+    int rankInverseManyByVector ( char const * , char const * , SequenceNumber , uchar * );
+    int backwardSearchManyBCR( char const * , char const *, char const *, vector<string>, SequenceLength );
+    int SearchAndLocateKmer ( char const * , char const * , char const * , vector<string> , SequenceLength , vector <int> & );
 private:
-    void InsertNsymbols( uchar const *, dataTypelenSeq, uchar const *qual = NULL );
-    void InsertNsymbols_parallelPile( uchar const *newSymb, dataTypelenSeq posSymb, uchar const *newQual, unsigned int parallelPile, dataTypeNSeq startIndex, dataTypeNSeq endIndex, vector< vector< sortElement > > &newVectTriplePerNewPile );
-    void InsertFirstsymbols( uchar const *, uchar const *qual = NULL );
-    int initializeUnbuildBCR( char const *, char const *, dataTypeNChar [] );
+    void InsertNsymbols( uchar const *, SequenceLength, uchar const *qual = NULL );
+    void InsertNsymbols_parallelPile( uchar const *newSymb, SequenceLength posSymb, uchar const *newQual, unsigned int parallelPile, SequenceNumber startIndex, SequenceNumber endIndex, vector< FragmentedVector< sortElement > > &newVectTriplePerNewPile );
+    void InitialiseTmpFiles();
+    void InsertFirstsymbols( uchar const *, uchar const *qual = NULL, const int cycle = 0 );
+    int initializeUnbuildBCR( char const *, char const *, LetterNumber [] );
     int computeNewPositionForBackSearch ( char const *, char const *, uchar );
     int computeNewPositionForBackSearchByVector ( char const *, char const *, uchar );
-    int computeManyNewPositionForBackSearchByVector( char const * , char const * , uchar *, dataTypeNSeq );
-    int computeVectorUnbuildBCR( char const *, char const *, dataTypeNChar [] );
+    int computeManyNewPositionForBackSearchByVector( char const * , char const * , uchar *, SequenceNumber );
+    int computeVectorUnbuildBCR( char const *, char const *, LetterNumber [] );
     int update_Pos_Pile( sortElement * );
-    int update_Pos_Pile_Blocks( dataTypeNChar *, dataTypeNChar *, dataTypedimAlpha, uchar );
-    int findBlockToRead( dataTypeNChar *, dataTypedimAlpha , dataTypeNChar *, dataTypeNChar * );
+    int update_Pos_Pile_Blocks( LetterNumber *, LetterNumber *, AlphabetSymbol, uchar );
+    int findBlockToRead( LetterNumber *, AlphabetSymbol , LetterNumber *, LetterNumber * );
 
 private:
     void pauseBetweenCyclesIfNeeded();
-    void dumpRamFileToFile( const char *filenameIn, const char *filenameOut );
-    void ReadFilesForCycle( const char *prefix, const dataTypelenSeq cycle, const dataTypeNSeq nText, uchar *newSymb, const bool processQualities, uchar *newQual );
-    BwtReaderBase *instantiateBwtReaderForFirstCycle( const char *filenameIn );
-    BwtWriterBase *instantiateBwtWriterForFirstCycle( const char *filenameOut );
+    void convertFileFromIntermediateToFinalFormat( const char *filenameIn, const char *filenameOut );
+    void ReadFilesForCycle( const char *prefix, const SequenceLength cycle, const SequenceLength readLength, const SequenceNumber nText, uchar *newSymb, const bool processQualities, uchar *newQual );
     BwtReaderBase *instantiateBwtReaderForIntermediateCycle( const char *filenameIn, bool allowDefrag = false );
     BwtWriterBase *instantiateBwtWriterForIntermediateCycle( const char *filenameOut );
     BwtWriterBase *instantiateBwtWriterForLastCycle( const char *filenameOut );
+    BwtWriterBase *pWriterBwt0_; // persistent file, as we only ever need to append (never insert) characters to it
     ToolParameters *toolParams_;
     BwtParameters *bwtParams_;
     UnbwtParameters *unbwtParams_;
