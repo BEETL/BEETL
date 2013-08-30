@@ -52,15 +52,15 @@ querying of BWTs.</p>
 <h3>Version 0.6.0 (27th August 2013)</h3>
 
 <ul>
-<li>Important: Harmonised file encodings: you may need to rebuild your BWT files or just convert bwt-B00 from BWT_ASCII to BWT_RLE with beetl-convert (bwt-B00 was always ASCII-encoded. It now follows the same encoding as the other piles)</li>
+<li><strong>Important</strong>: Harmonised file encodings - you may need to rebuild your BWT files or just convert bwt-B00 from BWT_ASCII to BWT_RLE with beetl-convert (bwt-B00 was always ASCII-encoded. It now follows the same encoding as the other piles)</li>
 <li>Now requires GCC with C++11 support (gcc 4.3 or above)</li>
 <li>New Markdown documentation style</li>
 <li>Faster beetl-compare and metaBEETL</li>
 <li>Lossless quality compression scripts added, even though they are not using BWT</li>
 <li>New features:
 <ul>
-<li>BWT creation with reverse-complemented reads (--add-rev-comp)</li>
-<li>BWT creation with multiple reads per sequence (--sequence-length)</li>
+<li>BWT creation with reverse-complemented reads <em>(--add-rev-comp)</em></li>
+<li>BWT creation with multiple reads per sequence <em>(--sequence-length)</em></li>
 </ul>
 </li>
 <li>Support for BCL and BCL.gz in beetl-convert</li>
