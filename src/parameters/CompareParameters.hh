@@ -114,6 +114,7 @@ public:
         addEntry( -1, "generate seq num B", "--generate-seq-numB", "", "Propagate breakpoints to output read numbers. Requires {inputB}-end-pos file", "", TYPE_SWITCH );
         addEntry( -1, "memory limit MB", "--memory-limit", "-M", "RAM constraint in MB", "smallest of ulimit -v and /proc/meminfo", TYPE_INT | REQUIRED );
         addEntry( -1, "no comparison skip", "--no-comparison-skip", "", "Don't skip already processed comparisons (slower, but smoother output)", "", TYPE_SWITCH );
+        addEntry( -1, "pause between cycles", "--pause-between-cycles", "", "Wait for a key press after each cycle", "", TYPE_SWITCH );
 
         //        addEntry( -1, "setB metadata", "--genome-metadata", "-c", "For Metagenomics mode only: Input filename \"extended\" prefix for Set B's metadata (for files \"prefix[0-6]\")", "${inputB}-C0", TYPE_STRING );
         addEntry( -1, "taxonomy", "--taxonomy", "-t", "For Metagenomics mode only: Input filename for Set B's taxonomy information", "", TYPE_STRING );

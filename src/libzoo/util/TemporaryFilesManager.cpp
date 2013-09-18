@@ -138,7 +138,7 @@ void TemporaryFilesManager::cleanup()
                 else
                 {
                     Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Waiting for files to synchronise before deleting temp directory. " << attemptRemaining << " attempts remaining..." << endl;
-                    system( "sync" );
+                    ( void ) system( "sync" );
                     sleep( 1 );
                 }
             }
@@ -187,7 +187,10 @@ TemporaryRamFile::TemporaryRamFile( const char *filename, const char *mode, cons
     , currentPos_( 0 )
 {
     Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "TemporaryRamFile::TemporaryRamFile " << filename_ << " , mode=" << mode_ << endl;
-    TemporaryRamFile *existingRamFile = existingRamFiles[filename_];
+
+    TemporaryRamFile *existingRamFile;
+    #pragma omp critical (ACCESS_EXISTING_RAM_FILES)
+    existingRamFile = existingRamFiles[filename_];
 
     switch ( mode[0] )
     {
@@ -201,6 +204,7 @@ TemporaryRamFile::TemporaryRamFile( const char *filename, const char *mode, cons
             const uint64_t reserveRAM = max<uint64_t>( maxRAM, 1 ); // minimum RAM = 1 byte
             buf_.reset( new vector<char>() );
             buf_->reserve( reserveRAM );
+            #pragma omp critical (ACCESS_EXISTING_RAM_FILES)
             existingRamFiles[filename_] = this;
         }
         break;
@@ -232,6 +236,7 @@ TemporaryRamFile *TemporaryRamFile::fopen( const char *filename, const char *mod
         return result;
     else
     {
+        #pragma omp critical (ACCESS_EXISTING_RAM_FILES)
         existingRamFiles[string( filename )] = NULL;
         delete result;
         return NULL;
@@ -242,27 +247,30 @@ bool TemporaryRamFile::remove( const char *filename )
 {
     Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "TemporaryRamFile::remove " << filename << endl;
 
-    std::map<string, TemporaryRamFile * >::iterator it = existingRamFiles.find( filename );
-    if ( it != existingRamFiles.end() )
+    bool ret = false;
+    #pragma omp critical (ACCESS_EXISTING_RAM_FILES)
     {
-        TemporaryRamFile *existingRamFile = it->second;
-        delete existingRamFile;
-        existingRamFiles.erase( it );
+        std::map<string, TemporaryRamFile * >::iterator it = existingRamFiles.find( filename );
+        if ( it != existingRamFiles.end() )
+        {
+            TemporaryRamFile *existingRamFile = it->second;
+            delete existingRamFile;
+            existingRamFiles.erase( it );
 
-        // delete real file
-        const string &tempPath = TemporaryFilesManager::get().tempPath_;
-        string fullFilename;
-        if ( tempPath.empty() )
-            fullFilename = string( filename );
-        else
-            fullFilename = tempPath + "/" + string( filename );
+            // delete real file
+            const string &tempPath = TemporaryFilesManager::get().tempPath_;
+            string fullFilename;
+            if ( tempPath.empty() )
+                fullFilename = string( filename );
+            else
+                fullFilename = tempPath + "/" + string( filename );
 
-        ::remove( fullFilename.c_str() );
+            ::remove( fullFilename.c_str() );
 
-        return true;
+            ret = true;
+        }
     }
-    else
-        return false;
+    return ret;
 }
 
 void TemporaryRamFile::close()

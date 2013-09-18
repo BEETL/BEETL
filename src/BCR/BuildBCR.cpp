@@ -24,6 +24,7 @@
 #include "PredictiveEncoding.hh"
 #include "SeqReader.hh"
 #include "Timer.hh"
+#include "Tools.hh"
 #include "TransposeFasta.hh"
 #include "libzoo/util/Logger.hh"
 
@@ -33,10 +34,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-//#define USE_OPENMP
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif //ifdef USE_OPENMP
+#ifdef _OPENMP
+# include <omp.h>
+#endif //ifdef _OPENMP
 
 using namespace std;
 using namespace BeetlBwtParameters;
@@ -305,13 +305,13 @@ BwtWriterBase *BCRexternalBWT::instantiateBwtWriterForLastCycle( const char *fil
 
 int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtParameters *bwtParams )
 {
-#ifdef USE_OPENMP
+#ifdef _OPENMP
     //    if ( bwtParams->getValue( PARAMETER_PARALLEL_PROCESSING ) != PARALLEL_PROCESSING_OFF )
     {
         // Use nested openmp parallelisation
         omp_set_nested( 1 );
     }
-#endif //ifdef USE_OPENMP
+#endif //ifdef _OPENMP
 
     const bool permuteQualities = ( bwtParams_->getValue( PARAMETER_PROCESS_QUALITIES ) == PROCESS_QUALITIES_PERMUTE );
     const bool generateCycleQualities = ( bwtParams_->getValue( PARAMETER_GENERATE_CYCLE_QUAL ) != GENERATE_CYCLE_QUAL_OFF );
@@ -2945,24 +2945,5 @@ void BCRexternalBWT::storeEntireLCP( const char *fn )
 void BCRexternalBWT::pauseBetweenCyclesIfNeeded()
 {
     if ( bwtParams_->getValue( PARAMETER_PAUSE_BETWEEN_CYCLES ) == true )
-    {
-        static int skip = 0;
-        if ( skip )
-        {
-            clog << "Iteration complete. Still continuing for " << skip << " iteration." << endl;
-            --skip;
-        }
-        else
-        {
-            fflush( 0 );
-            clog << "Iteration complete" << endl;
-            clog << " Press Return to continue, or enter a number of cycles to continue for..." << endl;
-            string input;
-            getline( cin, input );
-            stringstream ss( input );
-            ss >> skip;
-            if ( skip )
-                --skip;
-        }
-    }
+        pauseBetweenCycles();
 }

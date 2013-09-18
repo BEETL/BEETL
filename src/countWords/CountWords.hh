@@ -28,6 +28,7 @@
 #include "IntervalHandlerReference.hh"
 #include "IntervalHandlerMetagenome.hh"
 #include "IntervalHandlerSplice.hh"
+#include "parameters/CompareParameters.hh"
 
 #include <string>
 
@@ -42,9 +43,7 @@ class CountWords : public Algorithm
 public:
     CountWords( bool, bool, char, int, int, const vector<string> &, const vector<string> &
                 , const vector<string> &, const string &, bool testDB, uint minWord, string prefix, string subset
-                , const bool doesPropagateBkptToSeqNumInSetA = false
-                        , const bool doesPropagateBkptToSeqNumInSetB = false
-                                , const bool noComparisonSkip = true
+                , const CompareParameters *compareParams = NULL
               );
 
     virtual ~CountWords() {}
@@ -82,8 +81,6 @@ private:
     //because the fileNumbers and taxa do not have to be checked before the minimal wordLength is reached
     //uint minWordLength_;
     const string subset_; // Compute only the results that have this string as a suffix' suffix
-    const bool doesPropagateBkptToSeqNumInSetA_;
-    const bool doesPropagateBkptToSeqNumInSetB_;
-    const bool noComparisonSkip_;
+    const CompareParameters *compareParams_;
 };
 #endif

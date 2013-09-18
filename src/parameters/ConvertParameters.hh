@@ -101,6 +101,7 @@ public:
         addEntry( -1, "input format", "--input-format", "", "", "detect", TYPE_CHOICE | REQUIRED, inputFormatLabels );
         addEntry( -1, "output format", "--output-format", "", "", "detect", TYPE_CHOICE | REQUIRED, outputFormatLabels );
         addEntry( -1, "sequence length", "--sequence-length", "-l", "If specified, cut the end of longer sequences and pads the start of shorter ones", "", TYPE_INT );
+        addEntry( -1, "remove padding", "--remove-padding", "", "For FastQ->FastQ only: Remove 'N' bases from the beginning and end of reads", "", TYPE_SWITCH );
         addEntry( -1, "use missing data from", "--use-missing-data-from", "", "e.g. for FASTA->FASTQ: use the qualities from this file", "", TYPE_STRING );
 
         addDefaultVerbosityAndHelpEntries();

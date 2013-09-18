@@ -76,5 +76,6 @@ bool hasSuffix( const string &fullString, const string &suffix );
 void detectInputBwtProperties( const string &prefix, vector<string> &filenames, bool &isBwtCompressed, string &availableFileLetters );
 
 int safeRename( const string &from, const string &to );
+void pauseBetweenCycles();
 
 #endif

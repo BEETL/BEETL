@@ -29,9 +29,9 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-#ifdef USE_OPENMP
+#ifdef _OPENMP
 #include <omp.h>
-#endif //ifdef USE_OPENMP
+#endif //ifdef _OPENMP
 
 #include "../redist/gzstream.hh"
 
@@ -43,9 +43,9 @@ BclRunFolder::BclRunFolder( const string &runFolder, const string &laneFormat, c
     , cycleCount_( 0 )
     , laneAndTileIndex_( -1 )
 {
-#ifdef USE_OPENMP
+#ifdef _OPENMP
     omp_set_nested( 1 );
-#endif //ifdef USE_OPENMP
+#endif //ifdef _OPENMP
 
     generateLanesAndTilesList( laneFormat, tileFormat );
 }
@@ -221,21 +221,19 @@ void BclRunFolder::initReader( const string &lane, const string &tile, const uns
             newFile = new igzstream( filename.c_str() );
         }
         if ( !newFile->good() )
-            #pragma omp critical
+            #pragma omp critical (IO)
         {
             cerr << "Error opening " << filename << ". Aborting." << endl;
             exit( -1 );
         }
 
-        //#pragma omp critical
-        //        cerr << "BclRunFolder: Opening " << filename << endl;
         bclFiles_[i - firstCycle_] = newFile;
 
         // Check length
         unsigned int readCountCheck;
         newFile->read( reinterpret_cast<char *>( &readCountCheck ), 4 );
         if ( readCountCheck != readCount_ )
-            #pragma omp critical
+            #pragma omp critical (IO)
         {
             cerr << "Error: " << filename << " reports " << readCountCheck << " entries instead of " << readCount_ << "." << endl;
             exit( -1 );
@@ -281,7 +279,7 @@ bool BclRunFolder::getRead( vector< unsigned int > &bclValues, bool *passFilter 
             }
             else
             {
-                #pragma omp critical
+                #pragma omp critical (BCL_ERROR)
                 error = true;
             }
         }

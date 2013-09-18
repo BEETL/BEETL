@@ -1,1 +1,1 @@
-TESTS = test-new-beetl #test-old-Beetl
+TESTS = test-beetl-correct test-beetl-compare test-beetl-bwt

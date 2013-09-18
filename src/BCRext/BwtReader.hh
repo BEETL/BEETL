@@ -141,7 +141,6 @@ public:
     void initIndex( const LetterCount &current );
 
     //  bool getRun(void);
-
 protected:
 
 

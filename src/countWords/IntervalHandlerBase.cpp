@@ -17,4 +17,27 @@
 
 #include "IntervalHandlerBase.hh"
 
+void IntervalHandlerBase::countString( char *bwtSubstring, int length, LetterCount &countsThisRange )
+{
+    for ( int i = 0; i < length; i++ )
+        countsThisRange += bwtSubstring[i];
+}
 
+void IntervalHandlerBase::foundInAOnly(
+    const int pileNum,
+    const LetterCount &countsSoFarA,
+    char *bwtSubstring,
+    LetterCount &countsThisRangeA,
+    const Range &thisRangeA,
+    AlphabetFlag &propagateIntervalA
+)
+{
+    countString( bwtSubstring, thisRangeA.num_, countsThisRangeA );
+    foundInAOnly(
+        pileNum,
+        countsSoFarA,
+        countsThisRangeA,
+        thisRangeA,
+        propagateIntervalA
+    );
+}

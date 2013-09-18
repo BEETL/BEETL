@@ -13,6 +13,13 @@ Documentation in: doc/BEETL.md
 
 *** Release notes ***
 
+Version 0.7.0 (18th September 2013)
+
+- New beetl-correct tool
+- Updated regression tests
+- Detection of required libraries and OpenMP in configure script
+
+
 Version 0.6.0 (27th August 2013)
 
 - Important: Harmonised file encodings: you may need to rebuild your BWT files or just convert bwt-B00 from BWT_ASCII to BWT_RLE with beetl-convert (bwt-B00 was always ASCII-encoded. It now follows the same encoding as the other piles)

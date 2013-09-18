@@ -18,8 +18,13 @@
 #include "CountWords.hh"
 
 #include "Timer.hh"
+#include "Tools.hh"
 #include "config.h"
 #include "libzoo/util/Logger.hh"
+
+#ifdef _OPENMP
+# include <omp.h>
+#endif //ifdef _OPENMP
 
 using namespace std;
 
@@ -29,15 +34,21 @@ CountWords::CountWords( bool inputACompressed,
                         int paramN, int paramK, const vector<string> &setA,
                         const vector<string> &setB, const vector<string> &setC,
                         const string &ncbiTax, bool testDB, unsigned int minWordLen, string prefix, string subset
-                        , const bool doesPropagateBkptToSeqNumInSetA
-                        , const bool doesPropagateBkptToSeqNumInSetB
-                        , const bool noComparisonSkip
+                        , const CompareParameters *compareParams
                       ) :
     setA_( setA ), setB_( setB ), setC_( setC ), subset_( subset )
-    , doesPropagateBkptToSeqNumInSetA_( doesPropagateBkptToSeqNumInSetA )
-    , doesPropagateBkptToSeqNumInSetB_( doesPropagateBkptToSeqNumInSetB )
-    , noComparisonSkip_( true ) // Always set to 1 for BEETL release 0.6, as this feature isn't tested // real value: noComparisonSkip
+    , compareParams_( compareParams )
 {
+
+    if ( compareParams_ == NULL )
+    {
+        // Legacy mode, used only by the OldBeetl executable: We create a CompareParameters structure with default values
+        compareParams_ = new CompareParameters;
+        ( *compareParams_ )[ "pause between cycles" ] = false;
+        ( *compareParams_ )[ "generate seq num A" ] = false;
+        ( *compareParams_ )[ "generate seq num B" ] = false;
+        ( *compareParams_ )[ "no comparison skip" ] = true;
+    }
 
 #ifdef XXX
     // get memory allocated
@@ -87,6 +98,10 @@ void CountWords::run( void )
     LetterCountEachPile countsPerPileB, countsCumulativeB;
     bool referenceMode( false ); // if false, use splice junction mode
     bool metagenomeMode( false );
+    bool doPauseBetweenCycles = ( *compareParams_ )["pause between cycles"];
+    bool doesPropagateBkptToSeqNumInSetA = ( *compareParams_ )["generate seq num A"];
+    bool doesPropagateBkptToSeqNumInSetB = ( *compareParams_ )["generate seq num B"];
+    bool noComparisonSkip = ( *compareParams_ )["no comparison skip"];
 
     //Christina:
     //now three different possibilities for count words, so a little parsing is needed here
@@ -119,7 +134,7 @@ void CountWords::run( void )
             FILE *mergC = fopen( setC_[i].c_str(), "r" );
             if ( mergC == NULL )
             {
-                #pragma omp critical
+                #pragma omp critical (IO)
                 {
                     cout << "Could not open File \"" << setC_[i] << "\"" << endl;
                 }
@@ -129,7 +144,7 @@ void CountWords::run( void )
         }
         Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
         {
-            #pragma omp critical
+            #pragma omp critical (IO)
             {
                 Logger::out() << "i=" << i << ", alphabet[i]=" << alphabet[i] << endl;
                 Logger::out() << "setA[i]=" << setA_[i] << ", setB[i]=" << setB_[i] << endl;
@@ -150,7 +165,7 @@ void CountWords::run( void )
 
         Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
         {
-            #pragma omp critical
+            #pragma omp critical (IO)
             {
                 countsPerPileA[i].print();
                 countsPerPileB[i].print();
@@ -205,23 +220,29 @@ void CountWords::run( void )
             {
                 // get rid of any ranges with N in them
                 if ( countsPerPileA[i].count_[j] != 0 )
-                    rA.addRange( j, i, thisWord,
-                                 ( countsCumulativeA[i - 1].count_[j]
-                                   | ( matchFlag * ( LetterNumber )( countsPerPileB[i].count_[j] != 0 ) ) ),
-                                 countsPerPileA[i].count_[j], false, subset_, 1 );
+                    rA.addRange( Range(  thisWord,
+                                         ( countsCumulativeA[i - 1].count_[j]
+                                           | ( matchFlag * ( LetterNumber )( countsPerPileB[i].count_[j] != 0 ) ) ),
+                                         countsPerPileA[i].count_[j], false )
+                                 , j, i, subset_, 1 );
                 if ( countsPerPileB[i].count_[j] != 0 )
-                    rB.addRange( j, i, thisWord,
-                                 ( countsCumulativeB[i - 1].count_[j]
-                                   | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ),
-                                 countsPerPileB[i].count_[j], false, subset_, 1 );
+                    rB.addRange( Range( thisWord,
+                                        ( countsCumulativeB[i - 1].count_[j]
+                                          | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ),
+                                        countsPerPileB[i].count_[j], false )
+                                 , j, i, subset_, 1 );
             } // ~if
         } // ~for j
     } // ~for i
 
+    if ( doPauseBetweenCycles )
+        pauseBetweenCycles();
 
-    LetterCount countsSoFarA, countsSoFarB;
-    LetterNumber currentPosA, currentPosB;
-    LetterNumber numRanges, numSingletonRanges;
+#if defined(PROPAGATE_PREFIX) and defined(_OPENMP)
+    // We need to disable parallelisation when PROPAGATE_PREFIX is activated, because of the shared 'thisWord' variable
+    omp_set_num_threads( 1 );
+#endif
+
     //  Range thisRangeA,thisRangeB;
     rA.clear();
     rB.clear();
@@ -234,15 +255,22 @@ void CountWords::run( void )
         thisWord.resize( c + 3 );
 #endif
 
-        numRanges = 0;
-        numSingletonRanges = 0;
+        LetterNumber numRanges = 0;
+        LetterNumber numSingletonRanges = 0;
 
         rA.swap();
         rB.swap();
 
         //    pTemp=pNext;pNext=pThis;pThis=pTemp;
-        for ( int i( 1 ); i < alphabetSize; ++i )
+        #pragma omp parallel for
+        for ( int i = 1; i < alphabetSize; ++i )
         {
+            LetterCount countsSoFarA, countsSoFarB;
+            LetterNumber currentPosA, currentPosB;
+
+            RangeStoreExternal parallel_rA( rA );
+            RangeStoreExternal parallel_rB( rB );
+
             inBwtA[i]->rewindFile();
             inBwtB[i]->rewindFile();
             currentPosA = 0;
@@ -271,16 +299,16 @@ void CountWords::run( void )
             for ( int j( 1 ); j < alphabetSize; ++j )
             {
                 Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "positions - A: " << currentPosA << " B: " << currentPosB << endl;
-                rA.setPortion( i, j );
-                rB.setPortion( i, j );
+                parallel_rA.setPortion( i, j );
+                parallel_rB.setPortion( i, j );
 
                 BackTracker backTracker( inBwtA[i], inBwtB[i]
                                          , currentPosA, currentPosB
-                                         , rA, rB, countsSoFarA, countsSoFarB
+                                         , parallel_rA, parallel_rB, countsSoFarA, countsSoFarB
                                          , minOcc, numCycles, subset_, c + 2
-                                         , doesPropagateBkptToSeqNumInSetA_
-                                         , doesPropagateBkptToSeqNumInSetB_
-                                         , noComparisonSkip_
+                                         , doesPropagateBkptToSeqNumInSetA
+                                         , doesPropagateBkptToSeqNumInSetB
+                                         , noComparisonSkip
                                        );
                 if ( referenceMode == true )
                 {
@@ -297,19 +325,26 @@ void CountWords::run( void )
                     IntervalHandlerSplice intervalHandler( minOcc );
                     backTracker( i, thisWord, intervalHandler );
                 }
+
+                #pragma omp atomic
                 numRanges += backTracker.numRanges_;
+                #pragma omp atomic
                 numSingletonRanges += backTracker.numSingletonRanges_;
 
             } // ~for j
             //cerr << "Done i " << i <<endl;
+            parallel_rA.clear( false );
+            parallel_rB.clear( false );
         }     // ~for i
-        rA.clear();
-        rB.clear();
+        rA.clear( true );
+        rB.clear( true );
         cerr << "Finished cycle " << c << ": ranges=" << numRanges
              << " singletons=" << numSingletonRanges
              << " usage: " << timer << endl;
 
-        //    return 0; // %%%
+        if ( doPauseBetweenCycles )
+            pauseBetweenCycles();
+
         if ( numRanges == 0 ) break;
     } // ~for c
 } // countWords::run()
@@ -361,4 +396,3 @@ void CountWords::loadFileNumToTaxIds( const string &taxIdNames )
     }
     //cout << " fineNumToTaxIds " << fileNumToTaxIds.size() <<endl;
 }
-

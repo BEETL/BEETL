@@ -301,7 +301,6 @@ void BwtWriterRunLength::flush()
 // BwtWriterIncrementalRunLength member function definitions
 //
 
-uint BwtWriterIncrementalRunLength::nextFileNum_ = 0;
 vector< vector<unsigned char> > ramFiles( 1000 ); //TODO: make this '1000' dynamic (the array resize just needs to be put in an openmp critical section)
 
 BwtWriterIncrementalRunLength::BwtWriterIncrementalRunLength( const string &fileName )

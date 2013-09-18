@@ -1,0 +1,78 @@
+#!/bin/bash
+
+## Copyright (c) 2013 Illumina, Inc.
+##
+## 
+## This software is covered by the "Illumina Non-Commercial Use Software
+## and Source Code License Agreement" and any user of this software or
+## source file is bound by the terms therein (see accompanying file
+## Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
+##
+
+## test-beetl-correct
+## Regression tests for beetl-correct
+## Author: Lilian Janin
+
+
+abscommand="$(cd "${0%/*}" 2>/dev/null; echo "$PWD"/"${0##*/}")"
+abspath=`dirname "$abscommand"`
+
+BEETL_CONVERT=`pwd`/../src/frontends/beetl-convert
+BEETL_BWT=`pwd`/../src/frontends/beetl-bwt
+BEETL_CORRECT=`pwd`/../src/frontends/beetl-correct
+BEETL_CORRECT_APPLY=`pwd`/../src/frontends/align-corrector-strings
+
+DATA_DIR=${abspath}/data
+INPUT_FASTA=${DATA_DIR}/testBeetlCorrect.30x10k.fasta
+OUTPUT_DIR=${PWD}/testBeetlCorrect
+CORRECTIONS_CSV=${OUTPUT_DIR}/corrections.csv
+
+# BWT creation
+          rm -rf ${OUTPUT_DIR}
+          mkdir -p ${OUTPUT_DIR}
+          # Removed --input-format=${inputFormat} to check the format autodetection
+          COMMAND="${BEETL_BWT} -i ${INPUT_FASTA} -o ${OUTPUT_DIR}/out --generate-end-pos-file --add-rev-comp"
+          echo ${COMMAND}
+          echo ${COMMAND} > ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+
+# Correction
+          COMMAND="${BEETL_CORRECT} -i ${OUTPUT_DIR}/out -o ${CORRECTIONS_CSV} -L 10000 -e 10000 -k 30 -w 13"
+          echo ${COMMAND}
+          echo ${COMMAND} >> ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+
+# Corrections applied to fasta
+          COMMAND="${BEETL_CORRECT_APPLY} -i ${INPUT_FASTA} -c ${CORRECTIONS_CSV} -o ${OUTPUT_DIR}/corrected.fasta --input-reads-format=fasta --output-reads-format=fasta -a no-indels -q '?' --min-witness-length=14"
+          echo ${COMMAND}
+          echo ${COMMAND} >> ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+# Md5sum check
+          cd ${OUTPUT_DIR}
+          COMMAND="md5sum -c ${DATA_DIR}/testBeetlCorrect.out.md5"
+          echo ${COMMAND}
+          echo ${COMMAND} >> ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi

@@ -78,6 +78,11 @@ SeqReaderFile *SeqReaderFile::getReader( FILE *pFile )
     } // ~else
 } // ~getReader
 
+void SeqReaderFile::rewindFile()
+{
+    rewind( pFile_ );
+}
+
 const char *SeqReaderFile::thisSeq( void )
 {
     return bufSeq_;

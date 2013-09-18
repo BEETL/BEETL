@@ -150,7 +150,7 @@ void BCRext::run( void )
 
     //  FILE* inPtr;
     //  FILE* inNum;
-    FILE *outDollarBwt;
+    BwtWriterBase *outDollarBwt;
 
     vector<char> bwtBuf;
     // extra byte accounts for a fact that inserted BWT characters
@@ -230,7 +230,13 @@ void BCRext::run( void )
 
     fileName = TmpFilename( fileStem, "-B0", 0 ).str();
     readWriteCheck( fileName.c_str(), true );
-    outDollarBwt = fopen( fileName.c_str(), "w" );
+    //outDollarBwt = fopen( fileName.c_str(), "w" );
+    if ( useImplicitSort_ || useAsciiEncoder_ )
+        outDollarBwt = new BwtWriterASCII( fileName.c_str() );
+    else if ( useHuffmanEncoder_ )
+        outDollarBwt = new BwtWriterHuffman( fileName.c_str() );
+    else if ( useRunlengthEncoder_ )
+        outDollarBwt = new BwtWriterRunLength( fileName.c_str() );
 
 
     for ( int j( 1 ); j < alphabetSize; j++ )
@@ -321,11 +327,14 @@ void BCRext::run( void )
         // (those preceding terminator characters)
         dollars.count_[thisPile]++;
 
-        if ( fwrite( readBuffer.seqBufBase_ + seqSize - 1, sizeof ( char ), 1, outDollarBwt ) != 1 )
-        {
-            cerr << "Could not write to Dollar Pile. Aborting." << endl;
-            exit( EXIT_FAILURE );
-        }
+        /*
+                if ( fwrite( readBuffer.seqBufBase_ + seqSize - 1, sizeof ( char ), 1, outDollarBwt ) != 1 )
+                {
+                    cerr << "Could not write to Dollar Pile. Aborting." << endl;
+                    exit( EXIT_FAILURE );
+                }
+        */
+        ( *outDollarBwt )( readBuffer.seqBufBase_ + seqSize - 1, 1 );
 
         //    fprintf( outSeq[thisPile], "%s", readBuffer.seqBufBase_);
         readBuffer.convertFromASCII();
@@ -375,7 +384,7 @@ void BCRext::run( void )
     } // ~while
     while ( !seqReader->allRead() );
 
-    fclose ( outDollarBwt );
+    delete outDollarBwt;
 
     Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << prefix << "Read " << seqNum << " sequences" << endl;
     for ( int i( 1 ); i < alphabetSize; i++ )

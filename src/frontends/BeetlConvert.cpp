@@ -99,7 +99,7 @@ void launchBeetlConvert()
         missingDataFile.open( params.getStringValue( "use missing data from" ).c_str() );
     }
 
-    if ( params.getStringValue( "input format" ) == params.getStringValue( "output format" ) )
+    if ( params.getStringValue( "input format" ) == params.getStringValue( "output format" ) && params[ "input format" ] != INPUT_FORMAT_FASTQ )
     {
         cerr << "Error: same input and output formats" << endl;
         exit ( 1 );
@@ -132,7 +132,7 @@ void launchBeetlConvert()
             SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
             TransposeFasta trasp;
             trasp.init( pReader );
-            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
+            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false );
             delete pReader;
             return;
         }
@@ -184,7 +184,7 @@ void launchBeetlConvert()
             SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
             TransposeFasta trasp;
             trasp.init( pReader );
-            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
+            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false );
             delete pReader;
             return;
         }
@@ -193,6 +193,51 @@ void launchBeetlConvert()
             // FASTQ -> BWT_*
             cerr << "Error: This is not a simple file conversion. Try \"beetl bwt\"" << endl;
             exit ( 1 );
+        }
+        else if ( params["output format"] == OUTPUT_FORMAT_FASTQ )
+        {
+            // FASTQ -> FASTQ, only available with remove-padding
+            if ( params["remove padding"] == false )
+            {
+                cerr << "Error: FASTQ->FASTQ is only available with --remove-padding" << endl;
+                exit( 1 );
+            }
+            ifstream inputStream( params.getStringValue( "input filename" ).c_str() );
+            ofstream outputStream( params.getStringValue( "output filename" ).c_str() );
+            string str1, str2, str3, str4;
+            while ( getline( inputStream, str1 ) &&
+                    getline( inputStream, str2 ) &&
+                    getline( inputStream, str3 ) &&
+                    getline( inputStream, str4 ) )
+            {
+                assert( !str1.empty() && str1[0] == '@' );
+                outputStream << str1 << '\n';
+                assert( str2.size() == str4.size() && "Bases and Qualities must have the same length" );
+                if ( !str2.empty() )
+                {
+                    int firstValidIndex = 0;
+                    int lastValidIndex = str2.size() - 1;
+                    while ( firstValidIndex < str2.size() && str2[firstValidIndex] == 'N' )
+                        ++firstValidIndex;
+                    while ( lastValidIndex >= 0 && str2[lastValidIndex] == 'N' )
+                        --lastValidIndex;
+                    if ( firstValidIndex > lastValidIndex )
+                    {
+                        clog << "Warning: Read full of 'N': " << str1 << endl;
+                        str2 = str2[0];
+                        str4 = str4[0];
+                    }
+                    else
+                    {
+                        str2 = str2.substr( firstValidIndex, lastValidIndex - firstValidIndex + 1 );
+                        str4 = str4.substr( firstValidIndex, lastValidIndex - firstValidIndex + 1 );
+                    }
+                }
+                outputStream << str2 << '\n';
+                outputStream << str3 << '\n';
+                outputStream << str4 << '\n';
+            }
+            return;
         }
     }
     else if ( params["input format"] == INPUT_FORMAT_SEQ )
@@ -256,7 +301,7 @@ void launchBeetlConvert()
             SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
             TransposeFasta trasp;
             trasp.init( pReader );
-            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
+            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false );
             delete pReader;
             return;
         }
@@ -273,14 +318,14 @@ void launchBeetlConvert()
         {
             // CYC -> FASTA
             TransposeFasta trasp;
-            trasp.convertFromCycFileToFastaOrFastq( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
+            trasp.convertFromCycFileToFastaOrFastq( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false );
             return;
         }
         else if ( params["output format"] == OUTPUT_FORMAT_FASTQ )
         {
             // CYC -> FASTQ
             TransposeFasta trasp;
-            trasp.convertFromCycFileToFastaOrFastq( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ) );
+            trasp.convertFromCycFileToFastaOrFastq( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false );
             return;
         }
         else if ( params["output format"] == OUTPUT_FORMAT_SEQ )
@@ -675,6 +720,16 @@ int main( const int argc, const char **argv )
         if ( ! ( params["input format"] == INPUT_FORMAT_FASTQ && ( params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_FASTA ) ) )
         {
             cerr << "Error: --sequence-length is currently only implemented for FASTQ->SEQ and FASTQ->FASTA conversions." << endl;
+            exit( 1 );
+        }
+    }
+
+    // Check for unsupported cases
+    if ( params["remove padding"] == true )
+    {
+        if ( ! ( params["input format"] == INPUT_FORMAT_FASTQ && params["output format"] == OUTPUT_FORMAT_FASTQ ) )
+        {
+            cerr << "Error: --remove-padding is currently only implemented for FASTQ->FASTQ conversions." << endl;
             exit( 1 );
         }
     }

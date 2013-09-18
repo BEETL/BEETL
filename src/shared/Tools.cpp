@@ -369,3 +369,25 @@ int safeRename( const string &from, const string &to )
     }
     return 0;
 }
+
+void pauseBetweenCycles()
+{
+    static int skip = 0;
+    if ( skip )
+    {
+        clog << "Iteration complete. Still continuing for " << skip << " iteration." << endl;
+        --skip;
+    }
+    else
+    {
+        fflush( 0 );
+        clog << "Iteration complete" << endl;
+        clog << " Press Return to continue, or enter a number of cycles to continue for..." << endl;
+        string input;
+        getline( cin, input );
+        stringstream ss( input );
+        ss >> skip;
+        if ( skip )
+            --skip;
+    }
+}

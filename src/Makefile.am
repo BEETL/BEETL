@@ -1,12 +1,14 @@
 SUBDIRS = . frontends metagenomics
 
+AM_CXXFLAGS = ${OPENMP_CXXFLAGS}
+
 bin_PROGRAMS = OldBeetl
 noinst_LIBRARIES = libzoo.a liball.a
 
 OldBeetl_SOURCES = shared/Beetl.cpp
 OldBeetl_LDADD = liball.a libzoo.a ${BOOST_LDADD}
 OldBeetl_LDFLAGS = ${BOOST_LDFLAGS}
-OldBeetl_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords
+OldBeetl_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords ${OPENMP_CXXFLAGS}
 
 # Unfinished tool?
 #indexBwt_SOURCES = BCRext/IndexBwt.cpp
@@ -36,9 +38,21 @@ liball_a_SOURCES = \
 	countWords/IntervalHandlerMetagenome.cpp \
 	countWords/IntervalHandlerReference.cpp \
 	countWords/IntervalHandlerSplice.cpp \
-	countWords/RangeStore.cpp
+	countWords/Range.cpp \
+	countWords/RangeStore.cpp \
+	errors/OneBwtBackTracker.cpp \
+	errors/HiTEC.cpp \
+	errors/WitnessReader.cpp \
+	errors/HiTECIntervalHandler.cpp \
+	errors/BwtCorrectorIntervalHandler.cpp \
+	errors/BwtCorrector.cpp \
+	errors/HiTECErrorLocation.cpp \
+	errors/HiTECStats.cpp \
+	errors/CorrectionAligner.cpp \
+	errors/ErrorInfo.cpp \
+	errors/ErrorCorrectionRange.cpp
 
-liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords ${BOOST_CXXFLAGS}
+liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
 
 
 libzoo_a_SOURCES = \
@@ -49,7 +63,7 @@ libzoo_a_SOURCES = \
 	libzoo/util/Logger.cpp \
 	libzoo/util/TemporaryFilesManager.cpp
 
-libzoo_a_CXXFLAGS = -I$(srcdir) ${BOOST_CXXFLAGS}
+libzoo_a_CXXFLAGS = -I$(srcdir) ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
 
 
 # Unused file?

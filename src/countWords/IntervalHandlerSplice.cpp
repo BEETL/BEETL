@@ -67,6 +67,7 @@ void IntervalHandlerSplice::foundInBoth
 
         isBreakpointDetected = true;
 #ifdef PROPAGATE_PREFIX
+        #pragma omp critical (IO)
         Logger::out( LOG_ALWAYS_SHOW )
                 << "BKPT"
                 << ' ' << thisRangeB.word_
@@ -84,6 +85,7 @@ void IntervalHandlerSplice::foundInBoth
                 << ':' << countsThisRangeB.count_[5]
                 << endl;
 #else
+        #pragma omp critical (IO)
         Logger::out( LOG_ALWAYS_SHOW )
                 << "BKPT"
                 << ' ' << alphabet[pileNum]
@@ -132,6 +134,7 @@ void IntervalHandlerSplice::foundInAOnly
 {
     if ( countsThisRangeA.count_[0] > 0 )
     {
+        #pragma omp critical (IO)
         Logger::out( LOG_ALWAYS_SHOW )
                 << "READ"
 #ifdef PROPAGATE_PREFIX
@@ -169,6 +172,7 @@ void IntervalHandlerSplice::foundInBOnly
 {
     if ( countsThisRangeB.count_[0] > 0 )
     {
+        #pragma omp critical (IO)
         Logger::out( LOG_ALWAYS_SHOW )
                 << "INBS"
 #ifdef PROPAGATE_PREFIX

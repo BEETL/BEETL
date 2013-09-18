@@ -37,12 +37,14 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = beetl-bwt$(EXEEXT) beetl-unbwt$(EXEEXT) \
 	beetl-convert$(EXEEXT) beetl-search$(EXEEXT) \
-	beetl-compare$(EXEEXT)
+	beetl-compare$(EXEEXT) beetl-correct$(EXEEXT) \
+	align-corrector-strings$(EXEEXT) beetl-hitec$(EXEEXT)
 subdir = src/frontends
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/beetl.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
+	$(top_srcdir)/m4/openmp.m4 $(top_srcdir)/m4/ax_check_zlib.m4 \
 	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -52,10 +54,16 @@ CONFIG_CLEAN_FILES = beetl
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
+am_align_corrector_strings_OBJECTS =  \
+	align_corrector_strings-AlignCorrectorStrings.$(OBJEXT)
+align_corrector_strings_OBJECTS =  \
+	$(am_align_corrector_strings_OBJECTS)
+am__DEPENDENCIES_1 =
+align_corrector_strings_DEPENDENCIES = ../liball.a ../libzoo.a \
+	$(am__DEPENDENCIES_1)
 am_beetl_bwt_OBJECTS = beetl_bwt-BeetlBwt.$(OBJEXT) \
 	beetl_bwt-Common.$(OBJEXT) beetl_bwt-DatasetMetadata.$(OBJEXT)
 beetl_bwt_OBJECTS = $(am_beetl_bwt_OBJECTS)
-am__DEPENDENCIES_1 =
 beetl_bwt_DEPENDENCIES = ../liball.a ../libzoo.a $(am__DEPENDENCIES_1)
 am_beetl_compare_OBJECTS = beetl_compare-BeetlCompare.$(OBJEXT) \
 	beetl_compare-Common.$(OBJEXT)
@@ -65,6 +73,14 @@ beetl_compare_DEPENDENCIES = ../liball.a ../libzoo.a \
 am_beetl_convert_OBJECTS = beetl_convert-BeetlConvert.$(OBJEXT)
 beetl_convert_OBJECTS = $(am_beetl_convert_OBJECTS)
 beetl_convert_DEPENDENCIES = ../liball.a ../libzoo.a \
+	$(am__DEPENDENCIES_1)
+am_beetl_correct_OBJECTS = beetl_correct-BeetlCorrect.$(OBJEXT)
+beetl_correct_OBJECTS = $(am_beetl_correct_OBJECTS)
+beetl_correct_DEPENDENCIES = ../liball.a ../libzoo.a \
+	$(am__DEPENDENCIES_1)
+am_beetl_hitec_OBJECTS = beetl_hitec-BeetlHiTEC.$(OBJEXT)
+beetl_hitec_OBJECTS = $(am_beetl_hitec_OBJECTS)
+beetl_hitec_DEPENDENCIES = ../liball.a ../libzoo.a \
 	$(am__DEPENDENCIES_1)
 am_beetl_search_OBJECTS = beetl_search-BeetlSearch.$(OBJEXT)
 beetl_search_OBJECTS = $(am_beetl_search_OBJECTS)
@@ -84,12 +100,14 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(beetl_bwt_SOURCES) $(beetl_compare_SOURCES) \
-	$(beetl_convert_SOURCES) $(beetl_search_SOURCES) \
-	$(beetl_unbwt_SOURCES)
-DIST_SOURCES = $(beetl_bwt_SOURCES) $(beetl_compare_SOURCES) \
-	$(beetl_convert_SOURCES) $(beetl_search_SOURCES) \
-	$(beetl_unbwt_SOURCES)
+SOURCES = $(align_corrector_strings_SOURCES) $(beetl_bwt_SOURCES) \
+	$(beetl_compare_SOURCES) $(beetl_convert_SOURCES) \
+	$(beetl_correct_SOURCES) $(beetl_hitec_SOURCES) \
+	$(beetl_search_SOURCES) $(beetl_unbwt_SOURCES)
+DIST_SOURCES = $(align_corrector_strings_SOURCES) $(beetl_bwt_SOURCES) \
+	$(beetl_compare_SOURCES) $(beetl_convert_SOURCES) \
+	$(beetl_correct_SOURCES) $(beetl_hitec_SOURCES) \
+	$(beetl_search_SOURCES) $(beetl_unbwt_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -111,6 +129,7 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -133,6 +152,7 @@ LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 OBJEXT = @OBJEXT@
+OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -180,23 +200,33 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+AM_CXXFLAGS = ${OPENMP_CXXFLAGS}
 AM_LDFLAGS = -L${BOOST_ROOT}/lib
 bin_SCRIPTS = beetl
 beetl_bwt_SOURCES = BeetlBwt.cpp Common.cpp DatasetMetadata.cpp
 beetl_bwt_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
-beetl_bwt_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
+beetl_bwt_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
 beetl_unbwt_SOURCES = BeetlUnbwt.cpp
 beetl_unbwt_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
-beetl_unbwt_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
+beetl_unbwt_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
 beetl_convert_SOURCES = BeetlConvert.cpp
 beetl_convert_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD} -lz
-beetl_convert_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
+beetl_convert_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
 beetl_search_SOURCES = BeetlSearch.cpp
 beetl_search_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
-beetl_search_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
+beetl_search_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
 beetl_compare_SOURCES = BeetlCompare.cpp Common.cpp
 beetl_compare_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
-beetl_compare_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext
+beetl_compare_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
+beetl_correct_SOURCES = BeetlCorrect.cpp
+beetl_correct_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
+beetl_correct_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
+align_corrector_strings_SOURCES = AlignCorrectorStrings.cpp
+align_corrector_strings_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
+align_corrector_strings_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
+beetl_hitec_SOURCES = BeetlHiTEC.cpp
+beetl_hitec_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
+beetl_hitec_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
 all: all-am
 
 .SUFFIXES:
@@ -255,6 +285,9 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+align-corrector-strings$(EXEEXT): $(align_corrector_strings_OBJECTS) $(align_corrector_strings_DEPENDENCIES) 
+	@rm -f align-corrector-strings$(EXEEXT)
+	$(CXXLINK) $(align_corrector_strings_LDFLAGS) $(align_corrector_strings_OBJECTS) $(align_corrector_strings_LDADD) $(LIBS)
 beetl-bwt$(EXEEXT): $(beetl_bwt_OBJECTS) $(beetl_bwt_DEPENDENCIES) 
 	@rm -f beetl-bwt$(EXEEXT)
 	$(CXXLINK) $(beetl_bwt_LDFLAGS) $(beetl_bwt_OBJECTS) $(beetl_bwt_LDADD) $(LIBS)
@@ -264,6 +297,12 @@ beetl-compare$(EXEEXT): $(beetl_compare_OBJECTS) $(beetl_compare_DEPENDENCIES)
 beetl-convert$(EXEEXT): $(beetl_convert_OBJECTS) $(beetl_convert_DEPENDENCIES) 
 	@rm -f beetl-convert$(EXEEXT)
 	$(CXXLINK) $(beetl_convert_LDFLAGS) $(beetl_convert_OBJECTS) $(beetl_convert_LDADD) $(LIBS)
+beetl-correct$(EXEEXT): $(beetl_correct_OBJECTS) $(beetl_correct_DEPENDENCIES) 
+	@rm -f beetl-correct$(EXEEXT)
+	$(CXXLINK) $(beetl_correct_LDFLAGS) $(beetl_correct_OBJECTS) $(beetl_correct_LDADD) $(LIBS)
+beetl-hitec$(EXEEXT): $(beetl_hitec_OBJECTS) $(beetl_hitec_DEPENDENCIES) 
+	@rm -f beetl-hitec$(EXEEXT)
+	$(CXXLINK) $(beetl_hitec_LDFLAGS) $(beetl_hitec_OBJECTS) $(beetl_hitec_LDADD) $(LIBS)
 beetl-search$(EXEEXT): $(beetl_search_OBJECTS) $(beetl_search_DEPENDENCIES) 
 	@rm -f beetl-search$(EXEEXT)
 	$(CXXLINK) $(beetl_search_LDFLAGS) $(beetl_search_OBJECTS) $(beetl_search_LDADD) $(LIBS)
@@ -296,12 +335,15 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_bwt-BeetlBwt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_bwt-Common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_bwt-DatasetMetadata.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_compare-BeetlCompare.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_compare-Common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_convert-BeetlConvert.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_correct-BeetlCorrect.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_hitec-BeetlHiTEC.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_search-BeetlSearch.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_unbwt-BeetlUnbwt.Po@am__quote@
 
@@ -318,6 +360,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+align_corrector_strings-AlignCorrectorStrings.o: AlignCorrectorStrings.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(align_corrector_strings_CXXFLAGS) $(CXXFLAGS) -MT align_corrector_strings-AlignCorrectorStrings.o -MD -MP -MF "$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo" -c -o align_corrector_strings-AlignCorrectorStrings.o `test -f 'AlignCorrectorStrings.cpp' || echo '$(srcdir)/'`AlignCorrectorStrings.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo" "$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Po"; else rm -f "$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='AlignCorrectorStrings.cpp' object='align_corrector_strings-AlignCorrectorStrings.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(align_corrector_strings_CXXFLAGS) $(CXXFLAGS) -c -o align_corrector_strings-AlignCorrectorStrings.o `test -f 'AlignCorrectorStrings.cpp' || echo '$(srcdir)/'`AlignCorrectorStrings.cpp
+
+align_corrector_strings-AlignCorrectorStrings.obj: AlignCorrectorStrings.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(align_corrector_strings_CXXFLAGS) $(CXXFLAGS) -MT align_corrector_strings-AlignCorrectorStrings.obj -MD -MP -MF "$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo" -c -o align_corrector_strings-AlignCorrectorStrings.obj `if test -f 'AlignCorrectorStrings.cpp'; then $(CYGPATH_W) 'AlignCorrectorStrings.cpp'; else $(CYGPATH_W) '$(srcdir)/AlignCorrectorStrings.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo" "$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Po"; else rm -f "$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='AlignCorrectorStrings.cpp' object='align_corrector_strings-AlignCorrectorStrings.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(align_corrector_strings_CXXFLAGS) $(CXXFLAGS) -c -o align_corrector_strings-AlignCorrectorStrings.obj `if test -f 'AlignCorrectorStrings.cpp'; then $(CYGPATH_W) 'AlignCorrectorStrings.cpp'; else $(CYGPATH_W) '$(srcdir)/AlignCorrectorStrings.cpp'; fi`
 
 beetl_bwt-BeetlBwt.o: BeetlBwt.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_bwt_CXXFLAGS) $(CXXFLAGS) -MT beetl_bwt-BeetlBwt.o -MD -MP -MF "$(DEPDIR)/beetl_bwt-BeetlBwt.Tpo" -c -o beetl_bwt-BeetlBwt.o `test -f 'BeetlBwt.cpp' || echo '$(srcdir)/'`BeetlBwt.cpp; \
@@ -402,6 +458,34 @@ beetl_convert-BeetlConvert.obj: BeetlConvert.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='BeetlConvert.cpp' object='beetl_convert-BeetlConvert.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_convert_CXXFLAGS) $(CXXFLAGS) -c -o beetl_convert-BeetlConvert.obj `if test -f 'BeetlConvert.cpp'; then $(CYGPATH_W) 'BeetlConvert.cpp'; else $(CYGPATH_W) '$(srcdir)/BeetlConvert.cpp'; fi`
+
+beetl_correct-BeetlCorrect.o: BeetlCorrect.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_correct_CXXFLAGS) $(CXXFLAGS) -MT beetl_correct-BeetlCorrect.o -MD -MP -MF "$(DEPDIR)/beetl_correct-BeetlCorrect.Tpo" -c -o beetl_correct-BeetlCorrect.o `test -f 'BeetlCorrect.cpp' || echo '$(srcdir)/'`BeetlCorrect.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_correct-BeetlCorrect.Tpo" "$(DEPDIR)/beetl_correct-BeetlCorrect.Po"; else rm -f "$(DEPDIR)/beetl_correct-BeetlCorrect.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='BeetlCorrect.cpp' object='beetl_correct-BeetlCorrect.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_correct_CXXFLAGS) $(CXXFLAGS) -c -o beetl_correct-BeetlCorrect.o `test -f 'BeetlCorrect.cpp' || echo '$(srcdir)/'`BeetlCorrect.cpp
+
+beetl_correct-BeetlCorrect.obj: BeetlCorrect.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_correct_CXXFLAGS) $(CXXFLAGS) -MT beetl_correct-BeetlCorrect.obj -MD -MP -MF "$(DEPDIR)/beetl_correct-BeetlCorrect.Tpo" -c -o beetl_correct-BeetlCorrect.obj `if test -f 'BeetlCorrect.cpp'; then $(CYGPATH_W) 'BeetlCorrect.cpp'; else $(CYGPATH_W) '$(srcdir)/BeetlCorrect.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_correct-BeetlCorrect.Tpo" "$(DEPDIR)/beetl_correct-BeetlCorrect.Po"; else rm -f "$(DEPDIR)/beetl_correct-BeetlCorrect.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='BeetlCorrect.cpp' object='beetl_correct-BeetlCorrect.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_correct_CXXFLAGS) $(CXXFLAGS) -c -o beetl_correct-BeetlCorrect.obj `if test -f 'BeetlCorrect.cpp'; then $(CYGPATH_W) 'BeetlCorrect.cpp'; else $(CYGPATH_W) '$(srcdir)/BeetlCorrect.cpp'; fi`
+
+beetl_hitec-BeetlHiTEC.o: BeetlHiTEC.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_hitec_CXXFLAGS) $(CXXFLAGS) -MT beetl_hitec-BeetlHiTEC.o -MD -MP -MF "$(DEPDIR)/beetl_hitec-BeetlHiTEC.Tpo" -c -o beetl_hitec-BeetlHiTEC.o `test -f 'BeetlHiTEC.cpp' || echo '$(srcdir)/'`BeetlHiTEC.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_hitec-BeetlHiTEC.Tpo" "$(DEPDIR)/beetl_hitec-BeetlHiTEC.Po"; else rm -f "$(DEPDIR)/beetl_hitec-BeetlHiTEC.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='BeetlHiTEC.cpp' object='beetl_hitec-BeetlHiTEC.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_hitec_CXXFLAGS) $(CXXFLAGS) -c -o beetl_hitec-BeetlHiTEC.o `test -f 'BeetlHiTEC.cpp' || echo '$(srcdir)/'`BeetlHiTEC.cpp
+
+beetl_hitec-BeetlHiTEC.obj: BeetlHiTEC.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_hitec_CXXFLAGS) $(CXXFLAGS) -MT beetl_hitec-BeetlHiTEC.obj -MD -MP -MF "$(DEPDIR)/beetl_hitec-BeetlHiTEC.Tpo" -c -o beetl_hitec-BeetlHiTEC.obj `if test -f 'BeetlHiTEC.cpp'; then $(CYGPATH_W) 'BeetlHiTEC.cpp'; else $(CYGPATH_W) '$(srcdir)/BeetlHiTEC.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/beetl_hitec-BeetlHiTEC.Tpo" "$(DEPDIR)/beetl_hitec-BeetlHiTEC.Po"; else rm -f "$(DEPDIR)/beetl_hitec-BeetlHiTEC.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='BeetlHiTEC.cpp' object='beetl_hitec-BeetlHiTEC.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_hitec_CXXFLAGS) $(CXXFLAGS) -c -o beetl_hitec-BeetlHiTEC.obj `if test -f 'BeetlHiTEC.cpp'; then $(CYGPATH_W) 'BeetlHiTEC.cpp'; else $(CYGPATH_W) '$(srcdir)/BeetlHiTEC.cpp'; fi`
 
 beetl_search-BeetlSearch.o: BeetlSearch.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_search_CXXFLAGS) $(CXXFLAGS) -MT beetl_search-BeetlSearch.o -MD -MP -MF "$(DEPDIR)/beetl_search-BeetlSearch.Tpo" -c -o beetl_search-BeetlSearch.o `test -f 'BeetlSearch.cpp' || echo '$(srcdir)/'`BeetlSearch.cpp; \

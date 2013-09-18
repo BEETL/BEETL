@@ -1,0 +1,230 @@
+/**
+ ** Copyright (c) 2011 Illumina, Inc.
+ **
+ **
+ ** This software is covered by the "Illumina Non-Commercial Use Software
+ ** and Source Code License Agreement" and any user of this software or
+ ** source file is bound by the terms therein (see accompanying file
+ ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
+ **
+ ** This file is part of the BEETL software package.
+ **
+ ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
+ ** Lightweight BWT Construction for Very Large String Collections.
+ ** Proceedings of CPM 2011, pp.219-231
+ **
+ **/
+
+#include "BwtCorrectorIntervalHandler.hh"
+
+#include "ErrorCorrectionRange.hh"
+
+using namespace std;
+
+
+bool BwtCorrectorIntervalHandler::defaultDetermineErrors( LetterCount intervalLetterCount, int &correct )
+{
+    bool hasErrors = false;
+    bool correctLetterSet = false;
+    for ( int i = 1; i < alphabetSize; i++ )
+        if ( intervalLetterCount.count_[i] >= minOccurrences_ )
+            if ( correctLetterSet )
+                return false;
+            else
+            {
+                correct = i;
+                correctLetterSet = true;
+            }
+        else if ( intervalLetterCount.count_[i] > 0 )
+            hasErrors = true;
+
+    if ( ( correctLetterSet == false ) || ( hasErrors == false ) )
+        return false;
+    else
+        return true;
+}
+
+void BwtCorrectorIntervalHandler::foundInBoth
+( const int pileNum,
+  const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
+  const Range &thisRangeA, const Range &thisRangeB,
+  AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
+  bool &isBreakpointDetected )
+{
+
+} // ~foundInBoth
+
+void BwtCorrectorIntervalHandler::foundInAOnly
+( const int pileNum,
+  const LetterCount &countsSoFarA,
+  const LetterCount &countsThisRangeA,
+  const Range &thisRangeA,
+  AlphabetFlag &propagateIntervalA )
+{
+
+}
+
+void BwtCorrectorIntervalHandler::foundInAOnly(
+    const int pileNum,
+    const LetterCount &countsSoFarA,
+    char *bwtSubstring,
+    LetterCount &countsThisRangeA,
+    const Range &thisRangeBaseA,
+    AlphabetFlag &propagateIntervalA,
+    IntervalType ( &errorIntervalType )[alphabetSize],
+    vector<LetterNumber> ( &correctionForBwtPosns )[alphabetSize],
+    vector<LetterNumber> ( &errorsForBwtPosns )[alphabetSize],
+    int cycle
+)
+{
+    const ErrorCorrectionRange &thisRangeA = dynamic_cast< const ErrorCorrectionRange & >( thisRangeBaseA );
+
+    countString( bwtSubstring, thisRangeA.num_, countsThisRangeA );
+    int correct;
+
+#ifdef PROPAGATE_PREFIX
+    int intervalWordLength_ = thisRangeA.word_.size();
+    assert( thisRangeA.word_.size() == cycle );
+#else
+    int intervalWordLength_ = cycle;
+#endif
+
+    if ( thisRangeA.intervalType_ == INTERVAL_TYPE_DEFAULT )
+        if ( thisRangeA.num_ <= minOccurrences_ )
+        {
+            for ( int i = 0; i < alphabetSize; i++ )
+                propagateIntervalA[i] = false;
+            return;
+        }
+
+    if ( intervalWordLength_ < minWitnessLength_ )
+        return;
+
+    if ( thisRangeA.intervalType_ == INTERVAL_TYPE_ERROR )
+    {
+        //non-dollar backward extensions of the error interval are flagged as error intervals with
+        //same bwtpos...
+
+        int totalRangeSize = 0;
+        for ( int i = 0; i < alphabetSize; i++ )
+            totalRangeSize += countsThisRangeA.count_[i];
+
+        int totalErrors = thisRangeA.errBwtPosns_.size();
+        assert( totalErrors == totalRangeSize );
+
+        //we may have more than one dollar in this interval, hence the end of more than one read.
+        //thus we must keep tally of the dollars as we scan through the BWT substring to find where they are
+        //(we need to do this to find the BWT positions of the dollars, so we can look them up in the errorStore_ and
+        //update the seqNum field of their error object). this way we make sure each error object gets assigned to
+        //its intended read.
+        int dollarCount = 0;
+
+        for ( int relPos = 0; relPos < totalErrors; relPos++ )
+        {
+            if ( bwtSubstring[relPos] == alphabet[0] )
+            {
+                if ( errorStore_[thisRangeA.errBwtPosns_[relPos]].seqNum == -1 )
+                {
+                    errorStore_[thisRangeA.errBwtPosns_[relPos]].seqNum = countsSoFarA.count_[0] + dollarCount;
+                    errorStore_[thisRangeA.errBwtPosns_[relPos]].readEnd = intervalWordLength_;
+                }
+                dollarCount++;
+            }
+
+            //non-dollar letters need to be backward extended so we can get closer to finding their terminating characters
+            //hence, we.... tag the 'A' (for example) extension of this error interval with the BWT positions
+            for ( int i = 1; i < alphabetSize; i++ )
+            {
+                // tag the 'A' (for example) extension of this error interval with the BWT positions (of the original
+                // error containing range) corresponding to 'A's in this range.
+                errorIntervalType[i] = INTERVAL_TYPE_ERROR;
+                if ( bwtSubstring[relPos] == alphabet[i] )
+                    errorsForBwtPosns[i].push_back( thisRangeA.errBwtPosns_[relPos] );
+            }
+        }
+        return;
+    }
+
+    if ( defaultDetermineErrors( countsThisRangeA, correct ) )
+        //'correct' is the letter we believe is the correct one for the interval
+        //when scanning along the bwtSubstring, anything other than a dollar or this 'correct' letter is treated as an error
+        for ( int relativePos = 0; relativePos < thisRangeA.num_; relativePos++ )
+            if ( bwtSubstring[relativePos] != alphabet[correct] && bwtSubstring[relativePos] != '$' )
+            {
+                //we have identified that bwtSubstring[relativePos] is not the correct letter for this range and not a dollar
+                //so call it putative error...
+                char putativeError = bwtSubstring[relativePos];
+
+                LetterNumber errBwtPos = relativePos;
+                for ( int i = 0; i < alphabetSize; i++ )
+                    errBwtPos += countsSoFarA.count_[i];
+
+                if ( errorStore_.find( errBwtPos ) == errorStore_.end() )
+                {
+                    ErrorInfo newError;
+                    newError.firstCycle = intervalWordLength_;
+                    newError.lastCycle = intervalWordLength_;
+                    newError.corrector += alphabet[correct];
+                    errorStore_[errBwtPos] = newError;
+
+                    //finding putative error for the first time, so flag next generation of intervals...
+
+                    //flag the 'extend by putativeError' interval as error type...
+                    errorIntervalType[whichPile[putativeError]] = INTERVAL_TYPE_ERROR;
+
+                    //flag the 'extend by correct letter' interval as corrector type...
+                    errorIntervalType[correct] = INTERVAL_TYPE_CORRECTOR;
+
+                    //tag the 'extend by putativeError' interval and 'extend by correct letter' interval
+                    //with position of putativeError in the BWT...
+                    errorsForBwtPosns[whichPile[putativeError]].push_back( errBwtPos );
+                    correctionForBwtPosns[correct].push_back( errBwtPos );
+                }
+                else
+                {
+                    //re-finding, so don't flag any intervals... just update 'last cycle we saw this error'
+                    errorStore_[errBwtPos].lastCycle = intervalWordLength_;
+                }
+            }
+
+    //corrector interval...
+    if ( thisRangeA.intervalType_ == INTERVAL_TYPE_CORRECTOR )
+    {
+        //does one backward extension 'dominate' the others?
+        int rangelength = 0;
+        for ( int i = 1; i < alphabetSize; i++ )
+            rangelength += countsThisRangeA.count_[i];
+        int dominator = 0;
+
+        for ( int i = 1; i < alphabetSize; i++ )
+            if ( countsThisRangeA.count_[i] >= minOccurrences_ )
+                dominator = i;
+
+        if ( ( dominator > 0 ) && ( rangelength > 0 ) )
+        {
+            //if so, we'll flag the extension by the 'dominator' as corrector type...
+            errorIntervalType[dominator] = INTERVAL_TYPE_CORRECTOR;
+
+            //now for each BWT position with which this corrector interval is tagged, we'll
+            //extend the corrector string of the corresponding error objects in the error store...
+            //and add it to BWT positions with which the extension by the 'dominator' is tagged...
+            for ( int errNo = 0; errNo < thisRangeA.bwtPosns_.size(); errNo++ )
+            {
+                errorStore_[thisRangeA.bwtPosns_[errNo]].corrector += alphabet[dominator];
+                correctionForBwtPosns[dominator].push_back( thisRangeA.bwtPosns_[errNo] );
+            }
+        }
+    }
+}
+
+
+void BwtCorrectorIntervalHandler::foundInBOnly
+( const int pileNum,
+  const LetterCount &countsSoFarB,
+  const LetterCount &countsThisRangeB,
+  const Range &thisRangeB,
+  AlphabetFlag &propagateIntervalB )
+{
+
+}
+

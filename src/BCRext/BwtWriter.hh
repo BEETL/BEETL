@@ -150,7 +150,6 @@ struct BwtWriterIncrementalRunLength : public BwtWriterFile
 
 private:
     uint fileNum_;
-    static uint nextFileNum_;
     uint fileNumInReader_;
     size_t filePosInReader_;
     LetterNumber remainingRunLengthInReader_;

@@ -40,6 +40,7 @@ subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
+	$(top_srcdir)/m4/openmp.m4 $(top_srcdir)/m4/ax_check_zlib.m4 \
 	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -65,7 +66,17 @@ am_liball_a_OBJECTS = liball_a-BCRext.$(OBJEXT) \
 	liball_a-IntervalHandlerMetagenome.$(OBJEXT) \
 	liball_a-IntervalHandlerReference.$(OBJEXT) \
 	liball_a-IntervalHandlerSplice.$(OBJEXT) \
-	liball_a-RangeStore.$(OBJEXT)
+	liball_a-Range.$(OBJEXT) liball_a-RangeStore.$(OBJEXT) \
+	liball_a-OneBwtBackTracker.$(OBJEXT) liball_a-HiTEC.$(OBJEXT) \
+	liball_a-WitnessReader.$(OBJEXT) \
+	liball_a-HiTECIntervalHandler.$(OBJEXT) \
+	liball_a-BwtCorrectorIntervalHandler.$(OBJEXT) \
+	liball_a-BwtCorrector.$(OBJEXT) \
+	liball_a-HiTECErrorLocation.$(OBJEXT) \
+	liball_a-HiTECStats.$(OBJEXT) \
+	liball_a-CorrectionAligner.$(OBJEXT) \
+	liball_a-ErrorInfo.$(OBJEXT) \
+	liball_a-ErrorCorrectionRange.$(OBJEXT)
 liball_a_OBJECTS = $(am_liball_a_OBJECTS)
 libzoo_a_AR = $(AR) $(ARFLAGS)
 libzoo_a_LIBADD =
@@ -120,6 +131,7 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -142,6 +154,7 @@ LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 OBJEXT = @OBJEXT@
+OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -190,11 +203,12 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 SUBDIRS = . frontends metagenomics
+AM_CXXFLAGS = ${OPENMP_CXXFLAGS}
 noinst_LIBRARIES = libzoo.a liball.a
 OldBeetl_SOURCES = shared/Beetl.cpp
 OldBeetl_LDADD = liball.a libzoo.a ${BOOST_LDADD}
 OldBeetl_LDFLAGS = ${BOOST_LDFLAGS}
-OldBeetl_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords
+OldBeetl_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords ${OPENMP_CXXFLAGS}
 
 # Unfinished tool?
 #indexBwt_SOURCES = BCRext/IndexBwt.cpp
@@ -222,9 +236,21 @@ liball_a_SOURCES = \
 	countWords/IntervalHandlerMetagenome.cpp \
 	countWords/IntervalHandlerReference.cpp \
 	countWords/IntervalHandlerSplice.cpp \
-	countWords/RangeStore.cpp
+	countWords/Range.cpp \
+	countWords/RangeStore.cpp \
+	errors/OneBwtBackTracker.cpp \
+	errors/HiTEC.cpp \
+	errors/WitnessReader.cpp \
+	errors/HiTECIntervalHandler.cpp \
+	errors/BwtCorrectorIntervalHandler.cpp \
+	errors/BwtCorrector.cpp \
+	errors/HiTECErrorLocation.cpp \
+	errors/HiTECStats.cpp \
+	errors/CorrectionAligner.cpp \
+	errors/ErrorInfo.cpp \
+	errors/ErrorCorrectionRange.cpp
 
-liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords ${BOOST_CXXFLAGS}
+liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
 libzoo_a_SOURCES = \
 	libzoo/cli/Common.cpp \
 	libzoo/cli/ToolParameters.cpp \
@@ -233,7 +259,7 @@ libzoo_a_SOURCES = \
 	libzoo/util/Logger.cpp \
 	libzoo/util/TemporaryFilesManager.cpp
 
-libzoo_a_CXXFLAGS = -I$(srcdir) ${BOOST_CXXFLAGS}
+libzoo_a_CXXFLAGS = -I$(srcdir) ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
 all: all-recursive
 
 .SUFFIXES:
@@ -318,15 +344,26 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-BWTCollection.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-BackTracker.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-BuildBCR.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-BwtCorrector.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-BwtCorrectorIntervalHandler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-BwtReader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-BwtWriter.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-CorrectionAligner.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-CountWords.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-ErrorCorrectionRange.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-ErrorInfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-Filename.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-HiTEC.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-HiTECErrorLocation.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-HiTECIntervalHandler.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-HiTECStats.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-IntervalHandlerBase.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-IntervalHandlerMetagenome.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-IntervalHandlerReference.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-IntervalHandlerSplice.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-OneBwtBackTracker.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-PredictiveEncoding.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-Range.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-RangeStore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-ReadBuffer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-SeqReader.Po@am__quote@
@@ -334,6 +371,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-Timer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-Tools.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-TransposeFasta.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liball_a-WitnessReader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libzoo_a-Bcl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libzoo_a-Common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libzoo_a-FastOFStream.Po@am__quote@
@@ -649,6 +687,20 @@ liball_a-IntervalHandlerSplice.obj: countWords/IntervalHandlerSplice.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-IntervalHandlerSplice.obj `if test -f 'countWords/IntervalHandlerSplice.cpp'; then $(CYGPATH_W) 'countWords/IntervalHandlerSplice.cpp'; else $(CYGPATH_W) '$(srcdir)/countWords/IntervalHandlerSplice.cpp'; fi`
 
+liball_a-Range.o: countWords/Range.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-Range.o -MD -MP -MF "$(DEPDIR)/liball_a-Range.Tpo" -c -o liball_a-Range.o `test -f 'countWords/Range.cpp' || echo '$(srcdir)/'`countWords/Range.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-Range.Tpo" "$(DEPDIR)/liball_a-Range.Po"; else rm -f "$(DEPDIR)/liball_a-Range.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='countWords/Range.cpp' object='liball_a-Range.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-Range.o `test -f 'countWords/Range.cpp' || echo '$(srcdir)/'`countWords/Range.cpp
+
+liball_a-Range.obj: countWords/Range.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-Range.obj -MD -MP -MF "$(DEPDIR)/liball_a-Range.Tpo" -c -o liball_a-Range.obj `if test -f 'countWords/Range.cpp'; then $(CYGPATH_W) 'countWords/Range.cpp'; else $(CYGPATH_W) '$(srcdir)/countWords/Range.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-Range.Tpo" "$(DEPDIR)/liball_a-Range.Po"; else rm -f "$(DEPDIR)/liball_a-Range.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='countWords/Range.cpp' object='liball_a-Range.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-Range.obj `if test -f 'countWords/Range.cpp'; then $(CYGPATH_W) 'countWords/Range.cpp'; else $(CYGPATH_W) '$(srcdir)/countWords/Range.cpp'; fi`
+
 liball_a-RangeStore.o: countWords/RangeStore.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-RangeStore.o -MD -MP -MF "$(DEPDIR)/liball_a-RangeStore.Tpo" -c -o liball_a-RangeStore.o `test -f 'countWords/RangeStore.cpp' || echo '$(srcdir)/'`countWords/RangeStore.cpp; \
 @am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-RangeStore.Tpo" "$(DEPDIR)/liball_a-RangeStore.Po"; else rm -f "$(DEPDIR)/liball_a-RangeStore.Tpo"; exit 1; fi
@@ -662,6 +714,160 @@ liball_a-RangeStore.obj: countWords/RangeStore.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='countWords/RangeStore.cpp' object='liball_a-RangeStore.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-RangeStore.obj `if test -f 'countWords/RangeStore.cpp'; then $(CYGPATH_W) 'countWords/RangeStore.cpp'; else $(CYGPATH_W) '$(srcdir)/countWords/RangeStore.cpp'; fi`
+
+liball_a-OneBwtBackTracker.o: errors/OneBwtBackTracker.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-OneBwtBackTracker.o -MD -MP -MF "$(DEPDIR)/liball_a-OneBwtBackTracker.Tpo" -c -o liball_a-OneBwtBackTracker.o `test -f 'errors/OneBwtBackTracker.cpp' || echo '$(srcdir)/'`errors/OneBwtBackTracker.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-OneBwtBackTracker.Tpo" "$(DEPDIR)/liball_a-OneBwtBackTracker.Po"; else rm -f "$(DEPDIR)/liball_a-OneBwtBackTracker.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/OneBwtBackTracker.cpp' object='liball_a-OneBwtBackTracker.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-OneBwtBackTracker.o `test -f 'errors/OneBwtBackTracker.cpp' || echo '$(srcdir)/'`errors/OneBwtBackTracker.cpp
+
+liball_a-OneBwtBackTracker.obj: errors/OneBwtBackTracker.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-OneBwtBackTracker.obj -MD -MP -MF "$(DEPDIR)/liball_a-OneBwtBackTracker.Tpo" -c -o liball_a-OneBwtBackTracker.obj `if test -f 'errors/OneBwtBackTracker.cpp'; then $(CYGPATH_W) 'errors/OneBwtBackTracker.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/OneBwtBackTracker.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-OneBwtBackTracker.Tpo" "$(DEPDIR)/liball_a-OneBwtBackTracker.Po"; else rm -f "$(DEPDIR)/liball_a-OneBwtBackTracker.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/OneBwtBackTracker.cpp' object='liball_a-OneBwtBackTracker.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-OneBwtBackTracker.obj `if test -f 'errors/OneBwtBackTracker.cpp'; then $(CYGPATH_W) 'errors/OneBwtBackTracker.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/OneBwtBackTracker.cpp'; fi`
+
+liball_a-HiTEC.o: errors/HiTEC.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-HiTEC.o -MD -MP -MF "$(DEPDIR)/liball_a-HiTEC.Tpo" -c -o liball_a-HiTEC.o `test -f 'errors/HiTEC.cpp' || echo '$(srcdir)/'`errors/HiTEC.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-HiTEC.Tpo" "$(DEPDIR)/liball_a-HiTEC.Po"; else rm -f "$(DEPDIR)/liball_a-HiTEC.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/HiTEC.cpp' object='liball_a-HiTEC.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-HiTEC.o `test -f 'errors/HiTEC.cpp' || echo '$(srcdir)/'`errors/HiTEC.cpp
+
+liball_a-HiTEC.obj: errors/HiTEC.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-HiTEC.obj -MD -MP -MF "$(DEPDIR)/liball_a-HiTEC.Tpo" -c -o liball_a-HiTEC.obj `if test -f 'errors/HiTEC.cpp'; then $(CYGPATH_W) 'errors/HiTEC.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/HiTEC.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-HiTEC.Tpo" "$(DEPDIR)/liball_a-HiTEC.Po"; else rm -f "$(DEPDIR)/liball_a-HiTEC.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/HiTEC.cpp' object='liball_a-HiTEC.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-HiTEC.obj `if test -f 'errors/HiTEC.cpp'; then $(CYGPATH_W) 'errors/HiTEC.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/HiTEC.cpp'; fi`
+
+liball_a-WitnessReader.o: errors/WitnessReader.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-WitnessReader.o -MD -MP -MF "$(DEPDIR)/liball_a-WitnessReader.Tpo" -c -o liball_a-WitnessReader.o `test -f 'errors/WitnessReader.cpp' || echo '$(srcdir)/'`errors/WitnessReader.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-WitnessReader.Tpo" "$(DEPDIR)/liball_a-WitnessReader.Po"; else rm -f "$(DEPDIR)/liball_a-WitnessReader.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/WitnessReader.cpp' object='liball_a-WitnessReader.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-WitnessReader.o `test -f 'errors/WitnessReader.cpp' || echo '$(srcdir)/'`errors/WitnessReader.cpp
+
+liball_a-WitnessReader.obj: errors/WitnessReader.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-WitnessReader.obj -MD -MP -MF "$(DEPDIR)/liball_a-WitnessReader.Tpo" -c -o liball_a-WitnessReader.obj `if test -f 'errors/WitnessReader.cpp'; then $(CYGPATH_W) 'errors/WitnessReader.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/WitnessReader.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-WitnessReader.Tpo" "$(DEPDIR)/liball_a-WitnessReader.Po"; else rm -f "$(DEPDIR)/liball_a-WitnessReader.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/WitnessReader.cpp' object='liball_a-WitnessReader.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-WitnessReader.obj `if test -f 'errors/WitnessReader.cpp'; then $(CYGPATH_W) 'errors/WitnessReader.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/WitnessReader.cpp'; fi`
+
+liball_a-HiTECIntervalHandler.o: errors/HiTECIntervalHandler.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-HiTECIntervalHandler.o -MD -MP -MF "$(DEPDIR)/liball_a-HiTECIntervalHandler.Tpo" -c -o liball_a-HiTECIntervalHandler.o `test -f 'errors/HiTECIntervalHandler.cpp' || echo '$(srcdir)/'`errors/HiTECIntervalHandler.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-HiTECIntervalHandler.Tpo" "$(DEPDIR)/liball_a-HiTECIntervalHandler.Po"; else rm -f "$(DEPDIR)/liball_a-HiTECIntervalHandler.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/HiTECIntervalHandler.cpp' object='liball_a-HiTECIntervalHandler.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-HiTECIntervalHandler.o `test -f 'errors/HiTECIntervalHandler.cpp' || echo '$(srcdir)/'`errors/HiTECIntervalHandler.cpp
+
+liball_a-HiTECIntervalHandler.obj: errors/HiTECIntervalHandler.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-HiTECIntervalHandler.obj -MD -MP -MF "$(DEPDIR)/liball_a-HiTECIntervalHandler.Tpo" -c -o liball_a-HiTECIntervalHandler.obj `if test -f 'errors/HiTECIntervalHandler.cpp'; then $(CYGPATH_W) 'errors/HiTECIntervalHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/HiTECIntervalHandler.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-HiTECIntervalHandler.Tpo" "$(DEPDIR)/liball_a-HiTECIntervalHandler.Po"; else rm -f "$(DEPDIR)/liball_a-HiTECIntervalHandler.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/HiTECIntervalHandler.cpp' object='liball_a-HiTECIntervalHandler.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-HiTECIntervalHandler.obj `if test -f 'errors/HiTECIntervalHandler.cpp'; then $(CYGPATH_W) 'errors/HiTECIntervalHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/HiTECIntervalHandler.cpp'; fi`
+
+liball_a-BwtCorrectorIntervalHandler.o: errors/BwtCorrectorIntervalHandler.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-BwtCorrectorIntervalHandler.o -MD -MP -MF "$(DEPDIR)/liball_a-BwtCorrectorIntervalHandler.Tpo" -c -o liball_a-BwtCorrectorIntervalHandler.o `test -f 'errors/BwtCorrectorIntervalHandler.cpp' || echo '$(srcdir)/'`errors/BwtCorrectorIntervalHandler.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-BwtCorrectorIntervalHandler.Tpo" "$(DEPDIR)/liball_a-BwtCorrectorIntervalHandler.Po"; else rm -f "$(DEPDIR)/liball_a-BwtCorrectorIntervalHandler.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/BwtCorrectorIntervalHandler.cpp' object='liball_a-BwtCorrectorIntervalHandler.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-BwtCorrectorIntervalHandler.o `test -f 'errors/BwtCorrectorIntervalHandler.cpp' || echo '$(srcdir)/'`errors/BwtCorrectorIntervalHandler.cpp
+
+liball_a-BwtCorrectorIntervalHandler.obj: errors/BwtCorrectorIntervalHandler.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-BwtCorrectorIntervalHandler.obj -MD -MP -MF "$(DEPDIR)/liball_a-BwtCorrectorIntervalHandler.Tpo" -c -o liball_a-BwtCorrectorIntervalHandler.obj `if test -f 'errors/BwtCorrectorIntervalHandler.cpp'; then $(CYGPATH_W) 'errors/BwtCorrectorIntervalHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/BwtCorrectorIntervalHandler.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-BwtCorrectorIntervalHandler.Tpo" "$(DEPDIR)/liball_a-BwtCorrectorIntervalHandler.Po"; else rm -f "$(DEPDIR)/liball_a-BwtCorrectorIntervalHandler.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/BwtCorrectorIntervalHandler.cpp' object='liball_a-BwtCorrectorIntervalHandler.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-BwtCorrectorIntervalHandler.obj `if test -f 'errors/BwtCorrectorIntervalHandler.cpp'; then $(CYGPATH_W) 'errors/BwtCorrectorIntervalHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/BwtCorrectorIntervalHandler.cpp'; fi`
+
+liball_a-BwtCorrector.o: errors/BwtCorrector.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-BwtCorrector.o -MD -MP -MF "$(DEPDIR)/liball_a-BwtCorrector.Tpo" -c -o liball_a-BwtCorrector.o `test -f 'errors/BwtCorrector.cpp' || echo '$(srcdir)/'`errors/BwtCorrector.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-BwtCorrector.Tpo" "$(DEPDIR)/liball_a-BwtCorrector.Po"; else rm -f "$(DEPDIR)/liball_a-BwtCorrector.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/BwtCorrector.cpp' object='liball_a-BwtCorrector.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-BwtCorrector.o `test -f 'errors/BwtCorrector.cpp' || echo '$(srcdir)/'`errors/BwtCorrector.cpp
+
+liball_a-BwtCorrector.obj: errors/BwtCorrector.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-BwtCorrector.obj -MD -MP -MF "$(DEPDIR)/liball_a-BwtCorrector.Tpo" -c -o liball_a-BwtCorrector.obj `if test -f 'errors/BwtCorrector.cpp'; then $(CYGPATH_W) 'errors/BwtCorrector.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/BwtCorrector.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-BwtCorrector.Tpo" "$(DEPDIR)/liball_a-BwtCorrector.Po"; else rm -f "$(DEPDIR)/liball_a-BwtCorrector.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/BwtCorrector.cpp' object='liball_a-BwtCorrector.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-BwtCorrector.obj `if test -f 'errors/BwtCorrector.cpp'; then $(CYGPATH_W) 'errors/BwtCorrector.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/BwtCorrector.cpp'; fi`
+
+liball_a-HiTECErrorLocation.o: errors/HiTECErrorLocation.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-HiTECErrorLocation.o -MD -MP -MF "$(DEPDIR)/liball_a-HiTECErrorLocation.Tpo" -c -o liball_a-HiTECErrorLocation.o `test -f 'errors/HiTECErrorLocation.cpp' || echo '$(srcdir)/'`errors/HiTECErrorLocation.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-HiTECErrorLocation.Tpo" "$(DEPDIR)/liball_a-HiTECErrorLocation.Po"; else rm -f "$(DEPDIR)/liball_a-HiTECErrorLocation.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/HiTECErrorLocation.cpp' object='liball_a-HiTECErrorLocation.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-HiTECErrorLocation.o `test -f 'errors/HiTECErrorLocation.cpp' || echo '$(srcdir)/'`errors/HiTECErrorLocation.cpp
+
+liball_a-HiTECErrorLocation.obj: errors/HiTECErrorLocation.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-HiTECErrorLocation.obj -MD -MP -MF "$(DEPDIR)/liball_a-HiTECErrorLocation.Tpo" -c -o liball_a-HiTECErrorLocation.obj `if test -f 'errors/HiTECErrorLocation.cpp'; then $(CYGPATH_W) 'errors/HiTECErrorLocation.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/HiTECErrorLocation.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-HiTECErrorLocation.Tpo" "$(DEPDIR)/liball_a-HiTECErrorLocation.Po"; else rm -f "$(DEPDIR)/liball_a-HiTECErrorLocation.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/HiTECErrorLocation.cpp' object='liball_a-HiTECErrorLocation.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-HiTECErrorLocation.obj `if test -f 'errors/HiTECErrorLocation.cpp'; then $(CYGPATH_W) 'errors/HiTECErrorLocation.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/HiTECErrorLocation.cpp'; fi`
+
+liball_a-HiTECStats.o: errors/HiTECStats.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-HiTECStats.o -MD -MP -MF "$(DEPDIR)/liball_a-HiTECStats.Tpo" -c -o liball_a-HiTECStats.o `test -f 'errors/HiTECStats.cpp' || echo '$(srcdir)/'`errors/HiTECStats.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-HiTECStats.Tpo" "$(DEPDIR)/liball_a-HiTECStats.Po"; else rm -f "$(DEPDIR)/liball_a-HiTECStats.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/HiTECStats.cpp' object='liball_a-HiTECStats.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-HiTECStats.o `test -f 'errors/HiTECStats.cpp' || echo '$(srcdir)/'`errors/HiTECStats.cpp
+
+liball_a-HiTECStats.obj: errors/HiTECStats.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-HiTECStats.obj -MD -MP -MF "$(DEPDIR)/liball_a-HiTECStats.Tpo" -c -o liball_a-HiTECStats.obj `if test -f 'errors/HiTECStats.cpp'; then $(CYGPATH_W) 'errors/HiTECStats.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/HiTECStats.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-HiTECStats.Tpo" "$(DEPDIR)/liball_a-HiTECStats.Po"; else rm -f "$(DEPDIR)/liball_a-HiTECStats.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/HiTECStats.cpp' object='liball_a-HiTECStats.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-HiTECStats.obj `if test -f 'errors/HiTECStats.cpp'; then $(CYGPATH_W) 'errors/HiTECStats.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/HiTECStats.cpp'; fi`
+
+liball_a-CorrectionAligner.o: errors/CorrectionAligner.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-CorrectionAligner.o -MD -MP -MF "$(DEPDIR)/liball_a-CorrectionAligner.Tpo" -c -o liball_a-CorrectionAligner.o `test -f 'errors/CorrectionAligner.cpp' || echo '$(srcdir)/'`errors/CorrectionAligner.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-CorrectionAligner.Tpo" "$(DEPDIR)/liball_a-CorrectionAligner.Po"; else rm -f "$(DEPDIR)/liball_a-CorrectionAligner.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/CorrectionAligner.cpp' object='liball_a-CorrectionAligner.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-CorrectionAligner.o `test -f 'errors/CorrectionAligner.cpp' || echo '$(srcdir)/'`errors/CorrectionAligner.cpp
+
+liball_a-CorrectionAligner.obj: errors/CorrectionAligner.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-CorrectionAligner.obj -MD -MP -MF "$(DEPDIR)/liball_a-CorrectionAligner.Tpo" -c -o liball_a-CorrectionAligner.obj `if test -f 'errors/CorrectionAligner.cpp'; then $(CYGPATH_W) 'errors/CorrectionAligner.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/CorrectionAligner.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-CorrectionAligner.Tpo" "$(DEPDIR)/liball_a-CorrectionAligner.Po"; else rm -f "$(DEPDIR)/liball_a-CorrectionAligner.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/CorrectionAligner.cpp' object='liball_a-CorrectionAligner.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-CorrectionAligner.obj `if test -f 'errors/CorrectionAligner.cpp'; then $(CYGPATH_W) 'errors/CorrectionAligner.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/CorrectionAligner.cpp'; fi`
+
+liball_a-ErrorInfo.o: errors/ErrorInfo.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-ErrorInfo.o -MD -MP -MF "$(DEPDIR)/liball_a-ErrorInfo.Tpo" -c -o liball_a-ErrorInfo.o `test -f 'errors/ErrorInfo.cpp' || echo '$(srcdir)/'`errors/ErrorInfo.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-ErrorInfo.Tpo" "$(DEPDIR)/liball_a-ErrorInfo.Po"; else rm -f "$(DEPDIR)/liball_a-ErrorInfo.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/ErrorInfo.cpp' object='liball_a-ErrorInfo.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-ErrorInfo.o `test -f 'errors/ErrorInfo.cpp' || echo '$(srcdir)/'`errors/ErrorInfo.cpp
+
+liball_a-ErrorInfo.obj: errors/ErrorInfo.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-ErrorInfo.obj -MD -MP -MF "$(DEPDIR)/liball_a-ErrorInfo.Tpo" -c -o liball_a-ErrorInfo.obj `if test -f 'errors/ErrorInfo.cpp'; then $(CYGPATH_W) 'errors/ErrorInfo.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/ErrorInfo.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-ErrorInfo.Tpo" "$(DEPDIR)/liball_a-ErrorInfo.Po"; else rm -f "$(DEPDIR)/liball_a-ErrorInfo.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/ErrorInfo.cpp' object='liball_a-ErrorInfo.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-ErrorInfo.obj `if test -f 'errors/ErrorInfo.cpp'; then $(CYGPATH_W) 'errors/ErrorInfo.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/ErrorInfo.cpp'; fi`
+
+liball_a-ErrorCorrectionRange.o: errors/ErrorCorrectionRange.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-ErrorCorrectionRange.o -MD -MP -MF "$(DEPDIR)/liball_a-ErrorCorrectionRange.Tpo" -c -o liball_a-ErrorCorrectionRange.o `test -f 'errors/ErrorCorrectionRange.cpp' || echo '$(srcdir)/'`errors/ErrorCorrectionRange.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-ErrorCorrectionRange.Tpo" "$(DEPDIR)/liball_a-ErrorCorrectionRange.Po"; else rm -f "$(DEPDIR)/liball_a-ErrorCorrectionRange.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/ErrorCorrectionRange.cpp' object='liball_a-ErrorCorrectionRange.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-ErrorCorrectionRange.o `test -f 'errors/ErrorCorrectionRange.cpp' || echo '$(srcdir)/'`errors/ErrorCorrectionRange.cpp
+
+liball_a-ErrorCorrectionRange.obj: errors/ErrorCorrectionRange.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT liball_a-ErrorCorrectionRange.obj -MD -MP -MF "$(DEPDIR)/liball_a-ErrorCorrectionRange.Tpo" -c -o liball_a-ErrorCorrectionRange.obj `if test -f 'errors/ErrorCorrectionRange.cpp'; then $(CYGPATH_W) 'errors/ErrorCorrectionRange.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/ErrorCorrectionRange.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/liball_a-ErrorCorrectionRange.Tpo" "$(DEPDIR)/liball_a-ErrorCorrectionRange.Po"; else rm -f "$(DEPDIR)/liball_a-ErrorCorrectionRange.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='errors/ErrorCorrectionRange.cpp' object='liball_a-ErrorCorrectionRange.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o liball_a-ErrorCorrectionRange.obj `if test -f 'errors/ErrorCorrectionRange.cpp'; then $(CYGPATH_W) 'errors/ErrorCorrectionRange.cpp'; else $(CYGPATH_W) '$(srcdir)/errors/ErrorCorrectionRange.cpp'; fi`
 
 libzoo_a-Common.o: libzoo/cli/Common.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo_a-Common.o -MD -MP -MF "$(DEPDIR)/libzoo_a-Common.Tpo" -c -o libzoo_a-Common.o `test -f 'libzoo/cli/Common.cpp' || echo '$(srcdir)/'`libzoo/cli/Common.cpp; \

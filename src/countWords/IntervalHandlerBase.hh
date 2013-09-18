@@ -37,12 +37,23 @@ struct IntervalHandlerBase
 {
     virtual ~IntervalHandlerBase() {}
 
+    void countString( char *bwtSubstring, int length, LetterCount &countsThisRange );
+
     virtual void foundInBoth
     ( const int pileNum,
       const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
       const Range &thisRangeA, const Range &thisRangeB,
       AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
       bool &isBreakpointDetected ) = 0;
+
+    virtual void foundInAOnly(
+        const int pileNum,
+        const LetterCount &countsSoFarA,
+        char *bwtSubstring,
+        LetterCount &countsThisRangeA,
+        const Range &thisRangeA,
+        AlphabetFlag &propagateIntervalA
+    );
 
     virtual void foundInAOnly
     ( const int pileNum,

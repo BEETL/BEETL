@@ -1,0 +1,87 @@
+#!/bin/bash
+
+## Copyright (c) 2013 Illumina, Inc.
+##
+## 
+## This software is covered by the "Illumina Non-Commercial Use Software
+## and Source Code License Agreement" and any user of this software or
+## source file is bound by the terms therein (see accompanying file
+## Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
+##
+
+## test-beetl-compare
+## Regression tests for beetl-compare
+## Author: Lilian Janin
+
+
+abscommand="$(cd "${0%/*}" 2>/dev/null; echo "$PWD"/"${0##*/}")"
+abspath=`dirname "$abscommand"`
+
+BEETL_CONVERT=`pwd`/../src/frontends/beetl-convert
+BEETL_BWT=`pwd`/../src/frontends/beetl-bwt
+BEETL_COMPARE=`pwd`/../src/frontends/beetl-compare
+
+DATA_DIR=${abspath}/data
+INPUT1_FASTA=${DATA_DIR}/testBeetlCompare.dataset1.fasta
+INPUT2_FASTA=${DATA_DIR}/testBeetlCompare.dataset2.fasta
+OUTPUT_DIR=${PWD}/testBeetlCompare
+COMPARE_OUT=${OUTPUT_DIR}/compare.out
+
+
+# Directory initialisation
+          rm -rf ${OUTPUT_DIR}
+          mkdir -p ${OUTPUT_DIR}
+
+
+# BWT1 creation
+          COMMAND="${BEETL_BWT} -i ${INPUT1_FASTA} -o ${OUTPUT_DIR}/bwt1 --generate-end-pos-file --add-rev-comp"
+          echo ${COMMAND}
+          echo ${COMMAND} > ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+
+# BWT2 creation
+          COMMAND="${BEETL_BWT} -i ${INPUT2_FASTA} -o ${OUTPUT_DIR}/bwt2 --generate-end-pos-file --add-rev-comp"
+          echo ${COMMAND}
+          echo ${COMMAND} > ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+
+# Comparison
+          COMMAND="${BEETL_COMPARE} -a ${OUTPUT_DIR}/bwt1 -b ${OUTPUT_DIR}/bwt2 -m split"
+          echo ${COMMAND}
+          echo ${COMMAND} >> ${OUTPUT_DIR}/command
+          ${COMMAND} > ${COMPARE_OUT}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+
+# Check that we get 8 BKPT
+          COMMAND="grep -c BKPT ${COMPARE_OUT}"
+          echo ${COMMAND}
+          echo ${COMMAND} >> ${OUTPUT_DIR}/command
+          RESULT=`${COMMAND}`
+          echo " => ${RESULT} (expecting 8)"
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+          if [ ${RESULT} != 8 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi

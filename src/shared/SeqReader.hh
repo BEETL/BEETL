@@ -55,6 +55,7 @@ public:
     virtual const char *thisName( void );
     virtual bool allRead( void ) const;
     virtual int length( void ) const;
+    void rewindFile();
 protected:
     FILE *pFile_;
     char bufSeq_[1 + maxSeqSize];

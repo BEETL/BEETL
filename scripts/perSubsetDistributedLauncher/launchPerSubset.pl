@@ -84,6 +84,8 @@ my $usage =
     "Usage: $programName [options]\n"
   . "\t-j, --jobs=4|16|64           - Specifies the number of jobs (commands) to run simultaneously.\n"
   . "\t-c, --command=STRING         - Command to run. The --subset=xx parameter will be added at the end\n"
+  . "\t-q, --use-qsub               - Launch the commands using qsub\n"
+  . "\t-o, --output-aggregate=FILE  - Concatenate these output filenames from each subdirectory\n"
 
   . "\t--help                       - prints usage guide\n"
   . "\t--version                    - prints version information\n"
@@ -168,7 +170,7 @@ foreach my $subset (@subsets)
   }
   else
   {
-    $cmd2 = "${cmd} >script.out 2>script.err &";
+    $cmd2 = "${cmd} >script.out 2>script.err";
     print "Launching in ${cwd}: \"${cmd2}\"\n";
   }
   launchCommand( ${cmd2} );

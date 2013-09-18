@@ -159,9 +159,7 @@ void launchBeetlCompare()
             , params["min kmer length"]
             , params["output filename prefix"]
             , params["subset"]
-            , params["generate seq num A"]
-            , params["generate seq num B"]
-            , params["no comparison skip"]
+            , &params
                                            );
 
     // run the "main" method

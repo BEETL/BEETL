@@ -12,9 +12,10 @@ Usage: beetl [--version] [--help] <COMMAND> [ARGS]
 Available commands:
     bwt       Encode a set of nucleotide sequences using Burrows-Wheeler transform
     unbwt     Decode nucleotide sequences dataset from its BWT
-    convert   Convert between file formats
-    search    Search within a BWT dataset
+    correct   Correct sequencing errors in a BWT
     compare   Compare two BWT datasets
+    search    Search within a BWT dataset
+    convert   Convert between file formats
 
 View sub-commands with:
     beetl <COMMAND> --help

@@ -465,14 +465,14 @@ ResourceEstimate estimateResourcesFor( BwtParameters &paramValues )
 
             uint64_t dataRw = dataRead + dataWritten;
 
-            //#ifdef USE_OPENMP
+            //#ifdef _OPENMP
             //always activated at the moment            if ( paramValues[PARAMETER_PARALLEL_PREFETCH] == true )
             {
                 unsigned int prefetchRam = nReads / 1024 / 1024;
                 result.ramRssMBytes += prefetchRam;
             }
             //else
-            //#endif // ifdef USE_OPENMP
+            //#endif // ifdef _OPENMP
             {
                 uint64_t prefetchTime = static_cast<uint64_t>( datasetMetadata.nBases /  hardwareConstraints.diskMaxSpeedPerProcess / 1024 / 1024 ) + 1;
                 result.timeSeconds += prefetchTime;
@@ -608,11 +608,11 @@ void printUsage()
     cout << "    LCP      : length of Longest Common Prefix shared between a BWT letter and the next one. Stored using 4 bytes per BWT letter in files with -Lxx suffix." << endl;
     cout << "               (Note: forces algorithm=bcr, non-parallel and intermediate-format=ascii)" << endl;
     cout << "    PBE      : prediction-based encoding" << endl;
-#ifndef USE_OPENMP
+#ifndef _OPENMP
     cout << endl;
     cout << "Warning:" << endl;
     cout << "    This version of BEETL hasn't been compiled with OpenMP parallelisation. Performance may be degraded." << endl;
-#endif //ifndef USE_OPENMP
+#endif //ifndef _OPENMP
     cout << endl;
 }
 

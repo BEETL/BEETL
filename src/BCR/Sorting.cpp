@@ -22,11 +22,10 @@
 #include <cstdlib>
 #include <vector>
 
-//#define USE_OPENMP
-#ifdef USE_OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #include <parallel/algorithm>
-#endif //ifdef USE_OPENMP
+#endif //ifdef _OPENMP
 
 
 bool cmpSortEl ( sortElement a, sortElement b )
@@ -39,9 +38,9 @@ bool cmpSortEl ( sortElement a, sortElement b )
 
 void quickSort( vector< sortElement > &v )
 {
-#ifdef USE_OPENMP
+#ifdef _OPENMP
     __gnu_parallel::sort( v.begin(), v.end(), cmpSortEl );
-#else //ifdef USE_OPENMP
+#else //ifdef _OPENMP
     sort( v.begin(), v.end(), cmpSortEl );
-#endif //ifdef USE_OPENMP
+#endif //ifdef _OPENMP
 }

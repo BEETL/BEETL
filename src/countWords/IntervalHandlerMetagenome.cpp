@@ -121,10 +121,13 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
             }
         }
 #ifdef MET_DEBUG
-        Logger::out( LOG_ALWAYS_SHOW ) << i << endl;
-        for ( map<int, int>::iterator it = taxaCount.begin(); it != taxaCount.end(); it++ )
-            Logger::out( LOG_ALWAYS_SHOW ) << ( *it ).first << ' ' << ( *it ).second << endl;
-        Logger::out( LOG_ALWAYS_SHOW ) << i << " taxa " << taxaCount.size() << endl;
+        #pragma omp critical (IO)
+        {
+            Logger::out( LOG_ALWAYS_SHOW ) << i << endl;
+            for ( map<int, int>::iterator it = taxaCount.begin(); it != taxaCount.end(); it++ )
+                Logger::out( LOG_ALWAYS_SHOW ) << ( *it ).first << ' ' << ( *it ).second << endl;
+            Logger::out( LOG_ALWAYS_SHOW ) << i << " taxa " << taxaCount.size() << endl;
+        }
 #endif
         taxSame[i] = sameTaxa;
         //if there was only one possible taxa no outliner is possible
@@ -283,6 +286,7 @@ void IntervalHandlerMetagenome::foundInBoth
             // get the unique file numbers where this Range can be found
             getFileNumbersForRange( pileNum, thisRangeB.pos_, thisRangeB.num_, fileNumbers );
             // test if word is singleton in the files
+            #pragma omp critical (IO)
             Logger::out( LOG_ALWAYS_SHOW ) << "file numbers size " << fileNumbers.size() << " range " << thisRangeB.num_ << endl;
             if ( fileNumbers.size() <= thisRangeB.num_ )
             {
@@ -297,6 +301,7 @@ void IntervalHandlerMetagenome::foundInBoth
                     {
                         //taxaCountPerWordLength[thisRangeB.word_.length()][sharedTaxa[i]] += 1;
 #ifdef PROPAGATE_PREFIX
+                        #pragma omp critical (IO)
                         Logger::out( LOG_ALWAYS_SHOW ) << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
 #else
                         assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
@@ -329,29 +334,32 @@ void IntervalHandlerMetagenome::foundInBoth
         if ( printBKPT && ( differentProp || belowMinDepthBecauseOfEndOfReads ) )
         {
             isBreakpointDetected = true;
-            Logger::out( LOG_ALWAYS_SHOW )
-                    << "BKPT"
+            #pragma omp critical (IO)
+            {
+                Logger::out( LOG_ALWAYS_SHOW )
+                        << "BKPT"
 #ifdef PROPAGATE_PREFIX
-                    << ' ' << thisRangeB.word_
+                        << ' ' << thisRangeB.word_
 #endif
-                    << ' ' << countsThisRangeA.count_[0]
-                    << ':' << countsThisRangeA.count_[1]
-                    << ':' << countsThisRangeA.count_[2]
-                    << ':' << countsThisRangeA.count_[3]
-                    << ':' << countsThisRangeA.count_[4]
-                    << ':' << countsThisRangeA.count_[5]
-                    << ' ' << countsThisRangeB.count_[0]
-                    << ':' << countsThisRangeB.count_[1]
-                    << ':' << countsThisRangeB.count_[2]
-                    << ':' << countsThisRangeB.count_[3]
-                    << ':' << countsThisRangeB.count_[4]
-                    << ':' << countsThisRangeB.count_[5]
-                    << ' ' << ( thisRangeB.pos_ & matchMask )
-                    << ' ';
-            if ( printBKPTdetails )
-                for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
-                    Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[f] << ':';
-            Logger::out( LOG_ALWAYS_SHOW ) << endl;
+                        << ' ' << countsThisRangeA.count_[0]
+                        << ':' << countsThisRangeA.count_[1]
+                        << ':' << countsThisRangeA.count_[2]
+                        << ':' << countsThisRangeA.count_[3]
+                        << ':' << countsThisRangeA.count_[4]
+                        << ':' << countsThisRangeA.count_[5]
+                        << ' ' << countsThisRangeB.count_[0]
+                        << ':' << countsThisRangeB.count_[1]
+                        << ':' << countsThisRangeB.count_[2]
+                        << ':' << countsThisRangeB.count_[3]
+                        << ':' << countsThisRangeB.count_[4]
+                        << ':' << countsThisRangeB.count_[5]
+                        << ' ' << ( thisRangeB.pos_ & matchMask )
+                        << ' ';
+                if ( printBKPTdetails )
+                    for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
+                        Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[f] << ':';
+                Logger::out( LOG_ALWAYS_SHOW ) << endl;
+            }
         }
 
 #ifdef PROPAGATE_PREFIX
@@ -387,29 +395,32 @@ void IntervalHandlerMetagenome::foundInBoth
                     {
                         //                        if ( !( differentProp || belowMinDepthBecauseOfEndOfReads ) )
                         //                            Logger::out( LOG_ALWAYS_SHOW ) << "ending"; // == This MTAXA is due to maxLengthReached
-                        Logger::out( LOG_ALWAYS_SHOW )
-                                << "MTAXA " << i
-                                << ' ' << sharedTaxa[i]
+                        #pragma omp critical (IO)
+                        {
+                            Logger::out( LOG_ALWAYS_SHOW )
+                                    << "MTAXA " << i
+                                    << ' ' << sharedTaxa[i]
 #ifdef PROPAGATE_PREFIX
-                                << ' ' << thisRangeB.word_
+                                    << ' ' << thisRangeB.word_
 #endif
-                                << ' ' << ( thisRangeB.pos_ & matchMask )
-                                << ' ' << countsThisRangeA.count_[0]
-                                << ':' << countsThisRangeA.count_[1]
-                                << ':' << countsThisRangeA.count_[2]
-                                << ':' << countsThisRangeA.count_[3]
-                                << ':' << countsThisRangeA.count_[4]
-                                << ':' << countsThisRangeA.count_[5]
-                                << ' ' << countsThisRangeB.count_[0]
-                                << ':' << countsThisRangeB.count_[1]
-                                << ':' << countsThisRangeB.count_[2]
-                                << ':' << countsThisRangeB.count_[3]
-                                << ':' << countsThisRangeB.count_[4]
-                                << ':' << countsThisRangeB.count_[5]
-                                << ' ';
-                        for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
-                            Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[f] << ':';
-                        Logger::out( LOG_ALWAYS_SHOW ) << endl;
+                                    << ' ' << ( thisRangeB.pos_ & matchMask )
+                                    << ' ' << countsThisRangeA.count_[0]
+                                    << ':' << countsThisRangeA.count_[1]
+                                    << ':' << countsThisRangeA.count_[2]
+                                    << ':' << countsThisRangeA.count_[3]
+                                    << ':' << countsThisRangeA.count_[4]
+                                    << ':' << countsThisRangeA.count_[5]
+                                    << ' ' << countsThisRangeB.count_[0]
+                                    << ':' << countsThisRangeB.count_[1]
+                                    << ':' << countsThisRangeB.count_[2]
+                                    << ':' << countsThisRangeB.count_[3]
+                                    << ':' << countsThisRangeB.count_[4]
+                                    << ':' << countsThisRangeB.count_[5]
+                                    << ' ';
+                            for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
+                                Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[f] << ':';
+                            Logger::out( LOG_ALWAYS_SHOW ) << endl;
+                        }
                         break;
                     }//~if shared taxa
                 }//~for loop for the taxonomic levels
@@ -476,6 +487,7 @@ void IntervalHandlerMetagenome::foundInBOnly
                         {
                             // print the smallest possible information to keep the output small
 #ifdef PROPAGATE_PREFIX
+                            #pragma omp critical (IO)
                             Logger::out( LOG_ALWAYS_SHOW ) << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
 #else
                             assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
@@ -488,12 +500,14 @@ void IntervalHandlerMetagenome::foundInBOnly
                     for ( unsigned int i( 5 ) ; i != 0; i-- )
                     {
                         if ( sameTaxa[i] )
+                            #pragma omp critical (IO)
                         {
                             Logger::out( LOG_ALWAYS_SHOW ) << "BTAXA " << taxLevel[i] <<  ' ' << sharedTaxa[i] << ' ' << thisRangeB.word_ << ' ' ;
                             Logger::out( LOG_ALWAYS_SHOW ) << ( thisRangeB.pos_ & matchMask ) << ' ' << thisRangeB.num_ << endl;
                         }
                     }
                     if ( sameTaxa[taxLevelSize - 1] )
+                        #pragma omp critical (IO)
                     {
                         speciesFound = true;
 
@@ -514,6 +528,7 @@ void IntervalHandlerMetagenome::foundInBOnly
                         Logger::out( LOG_ALWAYS_SHOW ) << endl;
                     }
                     if ( fileNumbers.size() == 1 )
+                        #pragma omp critical (IO)
                     {
                         Logger::out( LOG_ALWAYS_SHOW )
                         "BSINGLE"

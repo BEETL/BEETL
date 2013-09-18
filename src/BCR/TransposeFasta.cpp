@@ -59,7 +59,7 @@ TransposeFasta::~TransposeFasta()
 }
 
 
-bool TransposeFasta::convert( const string &input, const string &output )
+bool TransposeFasta::convert( const string &input, const string &output, bool generatedFilesAreTemporary )
 {
     vector<vector<uchar> > bufQual;
     vector<FILE *> outputFilesQual;
@@ -89,12 +89,14 @@ bool TransposeFasta::convert( const string &input, const string &output )
     {
         Filename fn( output, i, "" );
         outputFiles_[i] = fopen( fn, "w" );
-        TemporaryFilesManager::get().addFilename( fn );
+        if ( generatedFilesAreTemporary )
+            TemporaryFilesManager::get().addFilename( fn );
         if ( processQualities_ )
         {
             Filename fnQual( output + "qual.", i, "" );
             outputFilesQual[i] = fopen( fnQual, "w" );
-            TemporaryFilesManager::get().addFilename( fnQual );
+            if ( generatedFilesAreTemporary )
+                TemporaryFilesManager::get().addFilename( fnQual );
         }
     }
 
@@ -271,7 +273,7 @@ bool TransposeFasta::inputCycFile( const string &cycPrefix )
 }
 
 
-bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPrefix, const string &fileOutput )
+bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPrefix, const string &fileOutput, bool generatedFilesAreTemporary )
 {
     bool outputIsFastq = hasSuffix( fileOutput, ".fastq" );
     vector <FILE *> inFilesCyc;

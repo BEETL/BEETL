@@ -50,7 +50,7 @@ Running `beetl --help` shows a high-level description of each BEETL tool:
 
     beetl bwt       Encode a set of nucleotide sequences using Burrows-Wheeler transform
     beetl unbwt     Decode nucleotide sequences dataset from its BWT
-    beetl correct   Correct sequencing errors in a BWT (coming soon!)
+    beetl correct   Correct sequencing errors in a BWT
     beetl compare   Compare two BWT datasets
     beetl search    Search within a BWT dataset
     beetl convert   Convert between file formats
@@ -68,13 +68,16 @@ Examples
     beetl-unbwt -i myBWT -o output.fasta
 
 
-### Error correction using BWT (coming soon!)
+### Error correction using BWT
 
     # BWT creation from FASTA
     beetl-bwt -i input.fasta --add-rev-comp --generate-end-pos-file
     
-    # BWT correction with default output file 'aligned.corrections.fasta'
-    beetl-correct -a BWT -i input.fasta --input-index-prefix=outBWT --input-format=bwt-rle -L 2000000 -e 10000
+    # BWT correction, generating a list of corrections
+    beetl-correct -i outBwt -o corrections.csv -L 2000000 -e 10000 -k 30 -w 13
+
+    # Applying corrections to origing fasta file
+    align-corrector-strings -i input.fasta -c corrections.csv -o corrected.fasta --input-reads-format=fasta --output-reads-format=fasta -a no-indels -q '?' --min-witness-length=14
 
 
 ### Tumour-normal comparison using BWT

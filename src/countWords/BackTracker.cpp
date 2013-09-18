@@ -133,17 +133,13 @@ void BackTracker::operator() ( int i, string &thisWord, IntervalHandlerBase &int
 #endif
                     hasChild = true;
 
+                    Range newRange( thisWord,
+                                    countsSoFarA_.count_[l],
+                                    countsThisRangeA.count_[l],
+                                    thisRangeA.isBkptExtension_ );
                     if ( noComparisonSkip_ ||
-                         rA_.isRangeKnown( l, i, thisWord,
-                                           countsSoFarA_.count_[l],
-                                           countsThisRangeA.count_[l],
-                                           thisRangeA.isBkptExtension_,
-                                           subset_, cycle_ ) )
-                        rA_.addRange( l, i, thisWord,
-                                      countsSoFarA_.count_[l],
-                                      countsThisRangeA.count_[l],
-                                      thisRangeA.isBkptExtension_,
-                                      subset_, cycle_ );
+                         !rA_.isRangeKnown( newRange, l, i, subset_, cycle_ ) )
+                        rA_.addRange( newRange, l, i, subset_, cycle_ );
                 } // ~if
             } // ~for l
 
@@ -220,17 +216,13 @@ void BackTracker::operator() ( int i, string &thisWord, IntervalHandlerBase &int
                     thisWord[0] = alphabet[l];
 #endif
 
+                    Range newRange( thisWord,
+                                    countsSoFarB_.count_[l],
+                                    countsThisRangeB.count_[l],
+                                    thisRangeB.isBkptExtension_ );
                     if ( noComparisonSkip_ ||
-                         rB_.isRangeKnown( l, i, thisWord,
-                                           countsSoFarB_.count_[l],
-                                           countsThisRangeB.count_[l],
-                                           thisRangeB.isBkptExtension_,
-                                           subset_, cycle_ ) )
-                        rB_.addRange( l, i, thisWord,
-                                      countsSoFarB_.count_[l],
-                                      countsThisRangeB.count_[l],
-                                      thisRangeB.isBkptExtension_,
-                                      subset_, cycle_ );
+                         !rB_.isRangeKnown( newRange, l, i, subset_, cycle_ ) )
+                        rB_.addRange( newRange, l, i, subset_, cycle_ );
                 } // ~if
             } // ~for l
             /*
@@ -329,40 +321,29 @@ void BackTracker::operator() ( int i, string &thisWord, IntervalHandlerBase &int
                     ( ( ( propagateIntervalA_[l] == true )
                         && ( propagateIntervalB_[l] == true ) ) ? matchFlag : 0 );
 
-                    bool isRangeKnownA = noComparisonSkip_ ||
-                                         rA_.isRangeKnown( l, i, thisWord,
-                                                           ( countsSoFarA_.count_[l]
-                                                                   | thisFlag ),
-                                                           countsThisRangeA.count_[l],
-                                                           thisRangeA.isBkptExtension_,
-                                                           subset_, cycle_ );
-                    bool isRangeKnownB = noComparisonSkip_ ||
-                                         rB_.isRangeKnown( l, i, thisWord,
-                                                           ( countsSoFarB_.count_[l]
-                                                                   | thisFlag ),
-                                                           countsThisRangeB.count_[l],
-                                                           thisRangeB.isBkptExtension_,
-                                                           subset_, cycle_ );
+                    Range newRangeA( thisWord,
+                                     ( countsSoFarA_.count_[l]
+                                       | thisFlag ),
+                                     countsThisRangeA.count_[l],
+                                     thisRangeA.isBkptExtension_ );
+                    Range newRangeB( thisWord,
+                                     ( countsSoFarB_.count_[l]
+                                       | thisFlag ),
+                                     countsThisRangeB.count_[l],
+                                     thisRangeB.isBkptExtension_ );
+
+                    bool doAddRangeA = noComparisonSkip_ || !rA_.isRangeKnown( newRangeA, l, i, subset_, cycle_ );
+                    bool doAddRangeB = noComparisonSkip_ || !rB_.isRangeKnown( newRangeB, l, i, subset_, cycle_ );
                     if ( thisFlag )
                     {
-                        isRangeKnownA = isRangeKnownB = isRangeKnownA || isRangeKnownB;
+                        doAddRangeA = doAddRangeB = doAddRangeA || doAddRangeB;
                     }
 
-                    if ( propagateIntervalA_[l] == true && isRangeKnownA )
-                        rA_.addRange( l, i, thisWord,
-                                      ( countsSoFarA_.count_[l]
-                                        | thisFlag ),
-                                      countsThisRangeA.count_[l],
-                                      thisRangeA.isBkptExtension_,
-                                      subset_, cycle_ );
+                    if ( propagateIntervalA_[l] == true && doAddRangeA )
+                        rA_.addRange( newRangeA, l, i, subset_, cycle_ );
                     // if (countsThisRangeB.count_[l]>0)
-                    if ( propagateIntervalB_[l] == true && isRangeKnownB )
-                        rB_.addRange( l, i, thisWord,
-                                      ( countsSoFarB_.count_[l]
-                                        | thisFlag ),
-                                      countsThisRangeB.count_[l],
-                                      thisRangeB.isBkptExtension_,
-                                      subset_, cycle_ );
+                    if ( propagateIntervalB_[l] == true && doAddRangeB )
+                        rB_.addRange( newRangeB, l, i, subset_, cycle_ );
                 } // ~if
             } // ~for
 

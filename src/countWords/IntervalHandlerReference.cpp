@@ -93,6 +93,7 @@ void IntervalHandlerReference::foundInBoth
     {
         isBreakpointDetected = true;
 #ifdef PROPAGATE_PREFIX
+        #pragma omp critical (IO)
         Logger::out( LOG_ALWAYS_SHOW )
                 << "BKPT"
                 << ' ' << thisRangeB.word_
@@ -111,6 +112,7 @@ void IntervalHandlerReference::foundInBoth
                 << ':' << countsThisRangeB.count_[5]
                 << endl;
 #else
+        #pragma omp critical (IO)
         Logger::out( LOG_ALWAYS_SHOW )
                 << "BKPT"
                 << ' ' << alphabet[pileNum]
@@ -175,6 +177,7 @@ void IntervalHandlerReference::foundInAOnly
     } // ~for l
 
     if ( significantPath == false )
+        #pragma omp critical (IO)
     {
         Logger::out( LOG_ALWAYS_SHOW ) << "READ ";
 #ifdef PROPAGATE_PREFIX
@@ -190,6 +193,7 @@ void IntervalHandlerReference::foundInAOnly
 #ifdef OLD
     // For now this is same as for Splice - continue until all reads found
     if ( countsThisRangeA.count_[0] > 0 )
+        #pragma omp critical (IO)
     {
         Logger::out( LOG_ALWAYS_SHOW ) << "READ " << thisRangeA.word_;
         Logger::out( LOG_ALWAYS_SHOW ) << " " << thisRangeA.pos_;
