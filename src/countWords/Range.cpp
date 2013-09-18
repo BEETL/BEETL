@@ -243,7 +243,7 @@ RangeState &RangeState::operator<<( const Range &r )
 RangeState &RangeState::operator>>( Range &r )
 {
 #ifdef PROPAGATE_PREFIX
-    this->getSeq( thisRange.word_ );
+    getSeq( r.word_ );
 #endif
     if ( !r.readFrom( pFile_, *this ) )
     {

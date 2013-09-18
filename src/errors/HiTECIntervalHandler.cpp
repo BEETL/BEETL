@@ -47,7 +47,6 @@ void ErrorIntervalHandler::foundInAOnly
         stringstream ss;
 #ifdef PROPAGATE_PREFIX
         ss << thisRangeA.word_.at( thisRangeA.word_.length() - 1 );
-        assert( thisRangeA.word_.at( thisRangeA.word_.length() - 1 ) == alphabe
 #else
         ss << alphabet[pileNum];
 #endif
