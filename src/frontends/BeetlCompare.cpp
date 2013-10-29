@@ -42,28 +42,15 @@ void printUsage()
     params.printUsage();
 
     cout << "Notes:" << endl;
-    cout << "    Mode = split       : Set B are reads of a reference" << endl;
-    cout << "    Mode = reference   : Set B is a reference genome" << endl;
-    cout << "    Mode = metagenomics: Set B are merged reference genomes. Switches metagenome classifier on." << endl;
+    cout << "    Mode = tumour-normal: Set A = tumour, set B = normal" << endl;
+    cout << "    Mode = splice       : Set A = DNA; set B = RNA" << endl;
+    cout << "    Mode = reference    : Set B is a reference genome" << endl;
+    cout << "    Mode = metagenomics : Set B are merged reference genomes. Switches metagenome classifier on." << endl;
     cout << endl;
 }
 
 void launchBeetlCompare()
 {
-    char whichHandler = 'X';
-    switch ( params["mode"] )
-    {
-        case MODE_SPLIT:
-            whichHandler = 's';
-            break;
-        case MODE_REFERENCE:
-            whichHandler = 'r';
-            break;
-        case MODE_METAGENOMICS:
-            whichHandler = 'm';
-            break;
-    }
-
     vector<string> setA_filenames;
     vector<string> setB_filenames;
     vector<string> setB_C_filenames;
@@ -144,12 +131,12 @@ void launchBeetlCompare()
 
     bool reportMinLength = ( params["report min length"] == REPORT_MINLENGTH_ON );
 
-    Logger::out( LOG_ALWAYS_SHOW ) << "\nLaunching the following configuration of Beetl-compare:" << endl;
-    params.print( Logger::out( LOG_ALWAYS_SHOW ), false );
-    Logger::out( LOG_ALWAYS_SHOW ) << endl;
+    Logger::out() << "\nLaunching the following configuration of Beetl-compare:" << endl;
+    params.print( Logger::out(), false );
+    Logger::out() << endl;
 
     Algorithm *pcountWords = new CountWords( setA_isBwtCompressed, setB_isBwtCompressed
-            , whichHandler
+            , 'X'
             , params["min occ"]
             , params["max length"]
             , setA_filenames, setB_filenames

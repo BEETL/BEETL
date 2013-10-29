@@ -313,7 +313,7 @@ int main( int numArgs, char **args )
                         whichHandler = 'r';
                         break;
                     case 's' :
-                        cout << "-> split mode set " << endl;
+                        cout << "-> splice mode set " << endl;
                         whichHandler = 's';
                         break;
                     case 'm' :

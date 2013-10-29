@@ -28,10 +28,15 @@ using namespace std;
 
 void IntervalHandlerReference::foundInBoth
 ( const int pileNum,
-  const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
-  const Range &thisRangeA, const Range &thisRangeB,
-  AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
-  bool &isBreakpointDetected )
+  const LetterCount &countsThisRangeA,
+  const LetterCount &countsThisRangeB,
+  const Range &thisRangeA,
+  const Range &thisRangeB,
+  AlphabetFlag &propagateIntervalA,
+  AlphabetFlag &propagateIntervalB,
+  bool &isBreakpointDetected,
+  const int cycle
+)
 {
     bool significantNonRef( false );
     //  LetterNumber maxSignalAOnly(0), maxSignalBOnly(0);
@@ -92,9 +97,9 @@ void IntervalHandlerReference::foundInBoth
     if ( significantNonRef == true )
     {
         isBreakpointDetected = true;
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
         #pragma omp critical (IO)
-        Logger::out( LOG_ALWAYS_SHOW )
+        Logger::out()
                 << "BKPT"
                 << ' ' << thisRangeB.word_
                 << ' ' << ( thisRangeB.pos_ & matchMask )
@@ -113,7 +118,7 @@ void IntervalHandlerReference::foundInBoth
                 << endl;
 #else
         #pragma omp critical (IO)
-        Logger::out( LOG_ALWAYS_SHOW )
+        Logger::out()
                 << "BKPT"
                 << ' ' << alphabet[pileNum]
                 << ' ' << countsThisRangeA.count_[0]
@@ -128,8 +133,8 @@ void IntervalHandlerReference::foundInBoth
                 << ':' << countsThisRangeB.count_[3]
                 << ':' << countsThisRangeB.count_[4]
                 << ':' << countsThisRangeB.count_[5]
-                << ' ' << thisRangeA.pos_
-                << ' ' << thisRangeB.pos_
+                << ' ' << ( thisRangeA.pos_ & matchMask )
+                << ' ' << ( thisRangeB.pos_ & matchMask )
                 << endl;
 #endif
     }
@@ -156,8 +161,11 @@ void IntervalHandlerReference::foundInAOnly
 ( const int pileNum,
   const LetterCount &countsSoFarA,
   const LetterCount &countsThisRangeA,
-  const Range &thisRangeA,
-  AlphabetFlag &propagateIntervalA )
+  const char *bwtSubstring,
+  Range &thisRangeA,
+  AlphabetFlag &propagateIntervalA,
+  const int cycle
+)
 {
 
     bool significantPath( false );
@@ -179,14 +187,14 @@ void IntervalHandlerReference::foundInAOnly
     if ( significantPath == false )
         #pragma omp critical (IO)
     {
-        Logger::out( LOG_ALWAYS_SHOW ) << "READ ";
-#ifdef PROPAGATE_PREFIX
-        Logger::out( LOG_ALWAYS_SHOW ) << thisRangeA.word_;
+        Logger::out() << "READ ";
+#ifdef PROPAGATE_SEQUENCE
+        Logger::out() << thisRangeA.word_;
 #endif
-        Logger::out( LOG_ALWAYS_SHOW ) << " " << thisRangeA.pos_;
+        Logger::out() << " " << thisRangeA.pos_;
         for ( int l( 0 ); l < alphabetSize; l++ )
-            Logger::out( LOG_ALWAYS_SHOW ) << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
-        Logger::out( LOG_ALWAYS_SHOW ) << endl;
+            Logger::out() << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
+        Logger::out() << endl;
     }
 
 
@@ -195,11 +203,11 @@ void IntervalHandlerReference::foundInAOnly
     if ( countsThisRangeA.count_[0] > 0 )
         #pragma omp critical (IO)
     {
-        Logger::out( LOG_ALWAYS_SHOW ) << "READ " << thisRangeA.word_;
-        Logger::out( LOG_ALWAYS_SHOW ) << " " << thisRangeA.pos_;
+        Logger::out() << "READ " << thisRangeA.word_;
+        Logger::out() << " " << thisRangeA.pos_;
         for ( int l( 0 ); l < alphabetSize; l++ )
-            Logger::out( LOG_ALWAYS_SHOW ) << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
-        Logger::out( LOG_ALWAYS_SHOW ) << endl;
+            Logger::out() << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];
+        Logger::out() << endl;
     }
     // TBD print out IDs of discovered reads
 
@@ -217,8 +225,11 @@ void IntervalHandlerReference::foundInBOnly
 ( const int pileNum,
   const LetterCount &countsSoFarB,
   const LetterCount &countsThisRangeB,
-  const Range &thisRangeB,
-  AlphabetFlag &propagateIntervalB )
+  const char *bwtSubstring,
+  Range &thisRangeB,
+  AlphabetFlag &propagateIntervalB,
+  const int cycle
+)
 {
     // TBD
 }

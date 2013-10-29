@@ -114,7 +114,8 @@ enum BwtCorrectorParameterIds
     PARAMETER_DONT_RUN,
     PARAMETER_WRITE_CORRECTED_READS_ONLY,
     PARAMETER_CORRECTIONS_FILE,
-    PARAMETER_CORRECTED_READS_FILE
+    PARAMETER_CORRECTED_READS_FILE,
+    PARAMETER_MIN_SUPPORT
 };
 
 class BwtCorrectorParameters : public ToolParameters
@@ -131,7 +132,7 @@ public:
         addEntry( PARAMETER_DONT_RUN, "don't run", "--dont-run", "-X", "Don't run the algorithm - just show execution plan", "", TYPE_SWITCH );
         addEntry( -1, "subset", "--subset", "", "Restrict computation to this suffix - Used for distributed computing", "", TYPE_STRING );
         addEntry( PARAMETER_CORRECTIONS_FILE, "corrections output filename", "--corrections-file", "-o", "File to which corrections are written", "", TYPE_STRING | REQUIRED );
-
+        addEntry( PARAMETER_MIN_SUPPORT, "min support", "--minimum-support", "", "Fixed minimum occurrences for a base in an interval to be 'correct'", "", TYPE_INT );
         addDefaultVerbosityAndHelpEntries();
     }
 

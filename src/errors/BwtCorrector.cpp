@@ -16,15 +16,15 @@
  **/
 
 #include "BwtCorrector.hh"
+
 #include "BCRext.hh"
 #include "BCRexternalBWT.hh"
-
 #include "Timer.hh"
 #include "config.h"
-
 #include "parameters/BwtParameters.hh"
 #include "libzoo/util/Logger.hh"
 #include "libzoo/util/TemporaryFilesManager.hh"
+
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -32,6 +32,28 @@
 
 using namespace std;
 using namespace BeetlBwtParameters;
+
+int BwtCorrector::getMinSupport( int cycle )
+{
+    //Decide on minimum support to use based on cycle.
+    //Always use "min support" parameter if it is set,
+    //otherwise re-calculate based on cycle as done in HiTEC algorithm.
+    if ( minSupport_ == 0 )
+    {
+        HiTECStats stats(
+            errorRate_,
+            genomeLength_,
+            numberOfReads_,
+            readLength_
+        );
+
+        return stats.CalculateSupport(
+                   max<int>( stats.Calculate_wM(), cycle + 1 )
+               );
+    }
+    else
+        return minSupport_;
+}
 
 ErrorStore BwtCorrector::findErrors()
 {
@@ -48,7 +70,7 @@ ErrorStore BwtCorrector::findErrors()
     RangeStoreExternal r;
 
     int numCycles( readLength_ );
-    int minOcc( numberOfReads_ );
+    //    int minOcc( numberOfReads_ );
 
     for ( int i( 0 ); i < alphabetSize; i++ )
     {
@@ -56,10 +78,10 @@ ErrorStore BwtCorrector::findErrors()
         fileNameSS << indexPrefix_ << "-B0" << i;
         string fileName = fileNameSS.str().c_str();
         if ( compressIntermediateBwts == true )
-            inBwt[i] = new BwtReaderRunLength( fileName );
+            inBwt[i] = new BwtReaderRunLengthIndex( fileName );
         else
             inBwt[i] = new BwtReaderASCII( fileName );
-        inBwt[i]->readAndCount( countsPerPile[i] );
+        inBwt[i]->  readAndCount( countsPerPile[i] );
     }
 
     countsCumulative = countsPerPile;
@@ -75,7 +97,7 @@ ErrorStore BwtCorrector::findErrors()
     {
         for ( int j( 1 ); j < alphabetSize; ++j )
         {
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
             thisWord.clear();
             thisWord += alphabet[j];
             thisWord += alphabet[i];
@@ -104,30 +126,22 @@ ErrorStore BwtCorrector::findErrors()
     r.clear();
     for ( int c( 0 ); c < numCycles; ++c )
     {
-        HiTECStats stats(
-            errorRate_,
-            genomeLength_,
-            numberOfReads_,
-            readLength_
-        );
+        int minimumSupport = getMinSupport( c );
 
-        int minimumSupport = stats.CalculateSupport(
-                                 max<int>( stats.Calculate_wM(), c + 1 )
-                             );
         cout << "cycle: " << c << endl;
 
         Logger_if( LOG_SHOW_IF_VERBOSE )
         {
-            Logger::out( LOG_SHOW_IF_VERBOSE ) << "   time now: " << timer.timeNow();
-            Logger::out( LOG_SHOW_IF_VERBOSE ) << "   usage: " << timer << endl;
+            Logger::out() << "   time now: " << timer.timeNow();
+            Logger::out() << "   usage: " << timer << endl;
         }
 
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
         thisWord.resize( c + 3 );
 #endif
         numRanges = 0;
         numSingletonRanges = 0;
-        r.swap();
+        r.setCycleNum( c + 1 );
 
         for ( int i( 1 ); i < alphabetSize; ++i )
         {
@@ -154,16 +168,16 @@ ErrorStore BwtCorrector::findErrors()
                     currentPos,
                     r,
                     countsSoFar,
-                    minOcc,
-                    numCycles,
+                    //                    numCycles,
                     subset_,
                     c + 2,
                     true,
                     true // skip-already-processed-intervals deactivated
                 );
 
-                BwtCorrectorIntervalHandler intervalHandler( result, minWitnessLength_, minimumSupport );
-                backTracker( i, thisWord, intervalHandler );
+                BwtCorrectorIntervalHandler intervalHandler( result, minWitnessLength_, minimumSupport, c + 2 );
+                ErrorCorrectionRange rangeObject;
+                backTracker.process( i, thisWord, intervalHandler, rangeObject );
 
                 numRanges += backTracker.numRanges_;
                 numSingletonRanges += backTracker.numSingletonRanges_;

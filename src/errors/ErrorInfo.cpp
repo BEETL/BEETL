@@ -50,6 +50,10 @@ void ErrorInfo::SetReadNumbersToOriginal( char *endPosFileName, vector<ErrorInfo
 
     SequenceNumber numText = 0;
     numchar = fread ( &numText, sizeof( SequenceNumber ), 1 , InFileEndPos );
+    uint8_t subSequenceCount = 0;
+    numchar = fread ( &subSequenceCount, sizeof( uint8_t ), 1 , InFileEndPos );
+    uint8_t hasRevComp = 0;
+    numchar = fread ( &hasRevComp, sizeof( uint8_t ), 1 , InFileEndPos );
 
     numchar = 0;
     sortElement triple;
@@ -61,9 +65,12 @@ void ErrorInfo::SetReadNumbersToOriginal( char *endPosFileName, vector<ErrorInfo
     {
         numchar = fread ( &triple.seqN, sizeof( SequenceNumber ), 1 , InFileEndPos );
         checkIfEqual( numchar, 1 );
-        numchar = fread ( &triple.posN, sizeof( LetterNumber ), 1 , InFileEndPos );
-        checkIfEqual( numchar, 1 );
-        numchar = fread ( &triple.pileN, sizeof( AlphabetSymbol ), 1 , InFileEndPos );
+        //        numchar = fread ( &triple.posN, sizeof( LetterNumber ), 1 , InFileEndPos );
+        //        checkIfEqual( numchar, 1 );
+        //        numchar = fread ( &triple.pileN, sizeof( AlphabetSymbol ), 1 , InFileEndPos );
+        //        checkIfEqual( numchar, 1 );
+        uint8_t subSequenceNum;
+        numchar = fread ( &subSequenceNum, sizeof( uint8_t ), 1 , InFileEndPos );
         checkIfEqual( numchar, 1 );
 
         while (

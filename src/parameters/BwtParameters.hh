@@ -184,6 +184,23 @@ static const string generateCycleBwtLabels[] =
 };
 
 
+// options: paired-reads input
+
+enum PairedReadsInput
+{
+    PAIRED_READS_INPUT_NONE,
+    PAIRED_READS_INPUT_ALL1ALL2,
+    PAIRED_READS_INPUT_COUNT
+};
+
+static const string pairedReadsInputLabels[] =
+{
+    "none",
+    "all1all2",
+    "" // end marker
+};
+
+
 // options: generate cycle qualities off/pbe
 
 enum GenerateCycleQual
@@ -222,6 +239,7 @@ enum BwtParameterIds
     PARAMETER_ADD_REV_COMP,
     PARAMETER_REVERSE,
     PARAMETER_SUB_SEQUENCE_LENGTH,
+    PARAMETER_PAIRED_READS_INPUT,
     PARAMETER_SINGLE_CYCLE,
     PARAMETER_CONCATENATE_OUTPUT,
     PARAMETER_SAP_ORDERING,
@@ -257,6 +275,7 @@ public:
         addEntry( PARAMETER_ADD_REV_COMP, "add reverse complement", "--add-rev-comp", "", "Add reverse complemented sequences", "", TYPE_SWITCH );
         addEntry( PARAMETER_REVERSE, "reverse", "--reverse", "", "Process cycles in reverse order", "", TYPE_SWITCH );
         addEntry( PARAMETER_SUB_SEQUENCE_LENGTH, "sub-sequence length", "--sub-sequence-length", "", "Split sequences into two sub-sequences. Useful for paired reads", "", TYPE_INT );
+        addEntry( PARAMETER_PAIRED_READS_INPUT, "paired-reads input", "--paired-reads-input", "", "If your input file contains paired reads", "none", TYPE_CHOICE, pairedReadsInputLabels );
         addEntry( PARAMETER_SAP_ORDERING, "SAP ordering", "--sap-ordering", "", "Use SAP ordering (see SAP note below)", "", TYPE_SWITCH );
         addEntry( PARAMETER_GENERATE_ENDPOSFILE, "generate endPosFile", "--generate-end-pos-file", "", "Generate mapping between BWT '$' signs and sequence numbers", "", TYPE_SWITCH );
         addEntry( PARAMETER_GENERATE_LCP, "generate LCP", "--generate-lcp", "", "Generate Longest Common Prefix lengths (see LCP note below)", "", TYPE_SWITCH );

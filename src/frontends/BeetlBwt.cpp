@@ -208,11 +208,12 @@ void recursiveGenerateInputCombinationsAndRunEstimate( BwtParameters &intermedia
         }
         else
         {
-            const string *possibleValues = intermediateParams.entries_[depth].possibleValues;
+            static const string switchPossibleValues[] = { "0", "1", "" };
+            const string *possibleValues = ( intermediateParams.entries_[depth].flags & TYPE_SWITCH ) ? switchPossibleValues : intermediateParams.entries_[depth].possibleValues;
             for ( int i = 0; possibleValues[i] != ""; ++i )
             {
                 BwtParameters newParams = intermediateParams;
-                newParams.entries_[depth] = i;
+                newParams.entries_[depth].silentSet( i );
                 recursiveGenerateInputCombinationsAndRunEstimate( newParams, depth + 1 );
             }
         }
@@ -314,13 +315,13 @@ void calculateResourceRequirements()
     */
 
     // Filter out estimates above the memory limit
-    Logger::out( LOG_ALWAYS_SHOW ) << "RAM constraint: " << memoryLimitMB << " MB" << endl;
+    Logger::out() << "RAM constraint: " << memoryLimitMB << " MB" << endl;
     bool filteringOutTopPicks = true;
     for ( unsigned int i = 0; i < allEstimates.size(); ++i )
     {
         if ( allEstimates[i].second.ramRssMBytes > memoryLimitMB )
         {
-            Logger::out( filteringOutTopPicks ? LOG_SHOW_IF_VERBOSE : LOG_FOR_DEBUGGING ) << "RAM too low for: " << allEstimates[i] << endl;
+            Logger_if( filteringOutTopPicks ? LOG_SHOW_IF_VERBOSE : LOG_FOR_DEBUGGING ) Logger::out() << "RAM too low for: " << allEstimates[i] << endl;
             allEstimates.erase( allEstimates.begin() + i );
             --i;
         }
@@ -550,12 +551,12 @@ void launchBeetlBwt( BwtParamsAndEstimate &config )
     const string &inputFilename = config.first["input filename"];
     const string &outputFilename = config.first["output filename"];
 
-    Logger::out( LOG_ALWAYS_SHOW ) << "\nLaunching the following configuration of Beetl-bwt:" << endl;
-    config.first.print( Logger::out( LOG_ALWAYS_SHOW ), false );
-    Logger::out( LOG_ALWAYS_SHOW ) << endl;
+    Logger::out() << "\nLaunching the following configuration of Beetl-bwt:" << endl;
+    config.first.print( Logger::out(), false );
+    Logger::out() << endl;
 
-    Logger::out( LOG_ALWAYS_SHOW ) << "Estimated RAM consumption: " << config.second.ramRssMBytes << " MB" << endl;
-    Logger::out( LOG_ALWAYS_SHOW ) << endl;
+    Logger::out() << "Estimated RAM consumption: " << config.second.ramRssMBytes << " MB" << endl;
+    Logger::out() << endl;
 
     switch ( config.first[PARAMETER_ALGORITHM] )
     {

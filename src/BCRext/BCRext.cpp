@@ -827,7 +827,7 @@ void BCRext::run( void )
         }
     }
 
-    Logger::out( LOG_ALWAYS_SHOW ) << "Final output files are named " << prefix_ << "-Bxx and similar" << endl;
+    Logger::out() << "Final output files are named " << prefix_ << "-Bxx and similar" << endl;
 }
 
 

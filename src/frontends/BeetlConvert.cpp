@@ -23,6 +23,7 @@
 #include "libzoo/io/Bcl.hh"
 #include "LetterCount.hh"
 #include "SeqReader.hh"
+#include "SequenceExtractor.hh"
 #include "TransposeFasta.hh"
 #include "config.h"
 #include "parameters/ConvertParameters.hh"
@@ -42,6 +43,7 @@ using namespace BeetlConvertParameters;
 
 
 ConvertParameters params;
+SequenceExtractor sequenceExtractor;
 static const char binToBase[4] = { 'A', 'C', 'G', 'T' };
 
 void printUsage()
@@ -97,6 +99,12 @@ void launchBeetlConvert()
     if ( params["use missing data from"].isSet() )
     {
         missingDataFile.open( params.getStringValue( "use missing data from" ).c_str() );
+    }
+
+    if ( params["extract sequences"].isSet() )
+    {
+        string seqNumFilename = params["extract sequences"];
+        sequenceExtractor.init( seqNumFilename );
     }
 
     if ( params.getStringValue( "input format" ) == params.getStringValue( "output format" ) && params[ "input format" ] != INPUT_FORMAT_FASTQ )
@@ -196,13 +204,14 @@ void launchBeetlConvert()
         }
         else if ( params["output format"] == OUTPUT_FORMAT_FASTQ )
         {
-            // FASTQ -> FASTQ, only available with remove-padding
-            if ( params["remove padding"] == false )
-            {
-                cerr << "Error: FASTQ->FASTQ is only available with --remove-padding" << endl;
-                exit( 1 );
-            }
-            ifstream inputStream( params.getStringValue( "input filename" ).c_str() );
+            // FASTQ -> FASTQ
+            istream *inputStreamPtr = NULL;
+            string inputFilename = params.getStringValue( "input filename" );
+            if ( inputFilename == "-" )
+                inputStreamPtr = &std::cin;
+            else
+                inputStreamPtr = new ifstream( inputFilename );
+            istream &inputStream( *inputStreamPtr );
             ofstream outputStream( params.getStringValue( "output filename" ).c_str() );
             string str1, str2, str3, str4;
             while ( getline( inputStream, str1 ) &&
@@ -211,10 +220,14 @@ void launchBeetlConvert()
                     getline( inputStream, str4 ) )
             {
                 assert( !str1.empty() && str1[0] == '@' );
+
+                if ( !sequenceExtractor.doWeExtractNextSequence() )
+                    continue;
+
                 outputStream << str1 << '\n';
-                assert( str2.size() == str4.size() && "Bases and Qualities must have the same length" );
-                if ( !str2.empty() )
+                if ( params["remove padding"] == true && !str2.empty() )
                 {
+                    assert( str2.size() == str4.size() && "Bases and Qualities must have the same length" );
                     int firstValidIndex = 0;
                     int lastValidIndex = str2.size() - 1;
                     while ( firstValidIndex < str2.size() && str2[firstValidIndex] == 'N' )
@@ -325,7 +338,7 @@ void launchBeetlConvert()
         {
             // CYC -> FASTQ
             TransposeFasta trasp;
-            trasp.convertFromCycFileToFastaOrFastq( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false );
+            trasp.convertFromCycFileToFastaOrFastq( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false, &sequenceExtractor );
             return;
         }
         else if ( params["output format"] == OUTPUT_FORMAT_SEQ )
@@ -570,7 +583,7 @@ void launchBeetlConvert()
 
                 // Open output quality file
                 ostringstream ossQual;
-                ossQual << params.getStringValue( "output filename" ) << ".qual" << "." << cycleNum;
+                ossQual << params.getStringValue( "output filename" ) << "." << cycleNum << ".qual";
                 string outputFilenameQual = ossQual.str();
                 outCycQual.push_back( new ofstream( outputFilenameQual.c_str(), ios_base::binary ) );
             }

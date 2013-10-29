@@ -19,6 +19,7 @@
 #define DEFINED_ALPHABET_HH
 
 #include "Config.hh"
+#include "Types.hh"
 
 
 // Convention is that first char is the string terminator char and
@@ -112,6 +113,11 @@ static const int whichPile[] =
     nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv, nv
 };
 #endif
+
+
+// Used by BackTracker classes
+typedef bool AlphabetFlag[alphabetSize];
+
 
 #endif
 

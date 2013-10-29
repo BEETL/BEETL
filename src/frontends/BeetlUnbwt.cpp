@@ -39,9 +39,9 @@ void launchBeetlUnbwt()
     const string &inputFilename = params["input filename prefix"];
     const string &outputFilename = params["output filename"];
 
-    Logger::out( LOG_ALWAYS_SHOW ) << "\nLaunching the following configuration of Beetl-unbwt:" << endl;
-    params.print( Logger::out( LOG_ALWAYS_SHOW ), false );
-    Logger::out( LOG_ALWAYS_SHOW ) << endl;
+    Logger::out() << "\nLaunching the following configuration of Beetl-unbwt:" << endl;
+    params.print( Logger::out(), false );
+    Logger::out() << endl;
 
     int bcrMode = 1 ; // 1=decode BWT
     CompressionFormatType outputCompression = compressionIncrementalRunLength; // not used

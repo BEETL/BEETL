@@ -39,48 +39,58 @@ using std::vector;
 struct IntervalHandlerMetagenome : public IntervalHandlerBase
 {
     IntervalHandlerMetagenome( unsigned int minOcc,
-                               vector<FILE *> mergeCSet,
-                               vector< vector< int> > fileNumToTaxIds,
+                               vector<string> &filenamesCSet,
+                               const vector<char *> &mmappedCFiles,
+                               vector< vector< int> > &fileNumToTaxIds,
                                bool testDB,
                                uint minWordLength,
-                               uint maxWordLength )
-        : minOcc_( minOcc ), mergeCSet_( mergeCSet ),
-          fileNumToTaxIds_( fileNumToTaxIds ), testDB_( testDB ),
-          minWordLength_( minWordLength ),
-          maxWordLength_( maxWordLength ) {}
+                               uint maxWordLength );
 
-    virtual ~IntervalHandlerMetagenome() {}
+    virtual ~IntervalHandlerMetagenome();
 
     virtual void foundInBoth
     ( const int pileNum,
-      const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
-      const Range &thisRangeA, const Range &thisRangeB,
-      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
-      bool &isBreakpointDetected );
+      const LetterCount &countsThisRangeA,
+      const LetterCount &countsThisRangeB,
+      const Range &thisRangeA,
+      const Range &thisRangeB,
+      AlphabetFlag &propagateIntervalA,
+      AlphabetFlag &propagateIntervalB,
+      bool &isBreakpointDetected,
+      const int cycle
+    );
 
     virtual void foundInAOnly
     ( const int pileNum,
       const LetterCount &countsSoFarA,
       const LetterCount &countsThisRangeA,
-      const Range &thisRangeA,
-      AlphabetFlag &propagateIntervalA );
+      const char *bwtSubstring,
+      Range &thisRangeA,
+      AlphabetFlag &propagateIntervalA,
+      const int cycle
+    );
 
     virtual void foundInBOnly
     ( const int pileNum,
       const LetterCount &countsSoFarB,
       const LetterCount &countsThisRangeB,
-      const Range &thisRangeB,
-      AlphabetFlag &propagateIntervalB );
+      const char *bwtSubstring,
+      Range &thisRangeB,
+      AlphabetFlag &propagateIntervalB,
+      const int cycle
+    );
 
     vector<bool> intervalInSameTaxa( vector<uint> &sharedTaxIds, vector<MetagFileNumRefType> &fileNumbers );
     void getFileNumbersForRange( const int &pileNum, const LetterNumber &bwtPosition, const uint &num, vector<MetagFileNumRefType> &fileNumbers );
 
     const LetterNumber minOcc_;
-    //setC of the mering algorithm from Tony,
+    //setC of the merging algorithm from Tony,
     //for each bwt positions there should be a (unsigned short) fileNumber indicating from which file the suffix came from
-    vector<FILE *> mergeCSet_;
+    vector<int> cSetFileDescs_;
+    vector<off_t> posInFile_;
+    const vector<char *> mmappedCFiles_;
     //for each fileNumber there should be the same amount of taxIds, this can stop at any level it will be filled up with zeros
-    vector< vector< int> > fileNumToTaxIds_;
+    vector< vector< int> > &fileNumToTaxIds_;
 
     bool testDB_;
     //minimal word length. Not exactly needed but speeds the algorithm up,

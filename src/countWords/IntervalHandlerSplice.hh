@@ -22,8 +22,6 @@
 #include "IntervalHandlerBase.hh"
 
 
-//#define PROPAGATE_PREFIX 1
-
 //
 // IntervalHandler
 //
@@ -36,24 +34,35 @@ struct IntervalHandlerSplice : public IntervalHandlerBase
     virtual ~IntervalHandlerSplice() {}
     virtual void foundInBoth
     ( const int pileNum,
-      const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
-      const Range &thisRangeA, const Range &thisRangeB,
-      AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
-      bool &isBreakpointDetected );
+      const LetterCount &countsThisRangeA,
+      const LetterCount &countsThisRangeB,
+      const Range &thisRangeA,
+      const Range &thisRangeB,
+      AlphabetFlag &propagateIntervalA,
+      AlphabetFlag &propagateIntervalB,
+      bool &isBreakpointDetected,
+      const int cycle
+    );
 
     virtual void foundInAOnly
     ( const int pileNum,
       const LetterCount &countsSoFarA,
       const LetterCount &countsThisRangeA,
-      const Range &thisRangeA,
-      AlphabetFlag &propagateIntervalA );
+      const char *bwtSubstring,
+      Range &thisRangeA,
+      AlphabetFlag &propagateIntervalA,
+      const int cycle
+    );
 
     virtual void foundInBOnly
     ( const int pileNum,
       const LetterCount &countsSoFarB,
       const LetterCount &countsThisRangeB,
-      const Range &thisRangeB,
-      AlphabetFlag &propagateIntervalB );
+      const char *bwtSubstring,
+      Range &thisRangeB,
+      AlphabetFlag &propagateIntervalB,
+      const int cycle
+    );
 
     const LetterNumber minOcc_;
 };

@@ -24,13 +24,13 @@ bool ErrorCorrectionRange::writeTo( TemporaryFile *pFile, RangeState &currentSta
 {
     Range::writeTo( pFile, currentState );
 
-    writeCompressedNum( pFile, static_cast<LetterNumber>( intervalType_ ) );
-    writeCompressedNum( pFile, bwtPosns_.size() );
-    for ( int i = 0; i < bwtPosns_.size(); i++ )
-        writeCompressedNum( pFile, bwtPosns_[i] );
-    writeCompressedNum( pFile, errBwtPosns_.size() );
-    for ( int i = 0; i < errBwtPosns_.size(); i++ )
-        writeCompressedNum( pFile, errBwtPosns_[i] );
+    writeCompressedNum( pFile, static_cast<LetterNumber>( data_.errorIntervalType ) );
+    writeCompressedNum( pFile, data_.correctionForBwtPosns.size() );
+    for ( int i = 0; i < data_.correctionForBwtPosns.size(); i++ )
+        writeCompressedNum( pFile, data_.correctionForBwtPosns[i] );
+    writeCompressedNum( pFile, data_.errorsForBwtPosns.size() );
+    for ( int i = 0; i < data_.errorsForBwtPosns.size(); i++ )
+        writeCompressedNum( pFile, data_.errorsForBwtPosns[i] );
 
     return true;
 }
@@ -42,26 +42,26 @@ bool ErrorCorrectionRange::readFrom( TemporaryFile *pFile, RangeState &currentSt
 
     LetterNumber intervalTypeNo;
     readCompressedNum( pFile, intervalTypeNo );
-    intervalType_ = static_cast<IntervalType>( intervalTypeNo );
+    data_.errorIntervalType = static_cast<IntervalType>( intervalTypeNo );
 
-    assert( bwtPosns_.empty() );
+    assert( data_.correctionForBwtPosns.empty() );
     LetterNumber numBwtPosns;
     readCompressedNum( pFile, numBwtPosns );
     for ( int i = 0; i < numBwtPosns; i++ )
     {
         LetterNumber newBwtPos;
         readCompressedNum( pFile, newBwtPos );
-        bwtPosns_.push_back( newBwtPos );
+        data_.correctionForBwtPosns.push_back( newBwtPos );
     }
 
-    assert( errBwtPosns_.empty() );
+    assert( data_.errorsForBwtPosns.empty() );
     LetterNumber numErrBwtPosns;
     readCompressedNum( pFile, numErrBwtPosns );
     for ( int i = 0; i < numErrBwtPosns; i++ )
     {
         LetterNumber newErrBwtPos;
         readCompressedNum( pFile, newErrBwtPos );
-        errBwtPosns_.push_back( newErrBwtPos );
+        data_.errorsForBwtPosns.push_back( newErrBwtPos );
     }
 
     return true;

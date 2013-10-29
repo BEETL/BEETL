@@ -19,9 +19,9 @@
 #define INCLUDED_WITNESSREADER_HH
 
 #include "BwtReader.hh"
-#include "countWords/IntervalHandlerBase.hh"
+#include "IntervalHandlerBase.hh"
 #include "LetterCount.hh"
-#include "countWords/RangeStore.hh"
+#include "RangeStore.hh"
 #include "Types.hh"
 #include "libzoo/util/Logger.hh"
 
@@ -29,7 +29,6 @@
 
 using namespace std;
 
-typedef bool AlphabetFlag[alphabetSize];
 
 class WitnessReader
 {

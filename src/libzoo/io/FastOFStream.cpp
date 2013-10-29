@@ -26,8 +26,6 @@
 #include <cassert>
 
 
-#define USE_MMAP
-#define MAPSIZE 8000000
 #define BUFSIZE (1024*1024)
 //(128*1048576)
 

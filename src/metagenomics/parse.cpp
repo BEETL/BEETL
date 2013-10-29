@@ -461,10 +461,10 @@ void getRefInfoOfCount( TAXMAP &taxInfo, string parseWordOut, vector<int> wordSi
                 double childrenCount = 0;
                 for ( TAXMAP::iterator ch = taxInfo.begin(); ch != taxInfo.end(); ch ++ )
                 {
-                    if ( ( int )( *ch ).second.parentId_ == ( *it ).first )
+                    if ( ( int )( *ch ).second.parentId_ == it->first )
                         childrenCount += ( *ch ).second.wordCountPerSize_[s];
 
-                    ( *it ).second.wordCountPerSize_[s] += childrenCount;
+                    it->second.wordCountPerSize_[s] += childrenCount;
                 }
             }
         }
@@ -479,9 +479,9 @@ void getRefInfoOfCount( TAXMAP &taxInfo, string parseWordOut, vector<int> wordSi
         {
             for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); it++ )
             {
-                if ( ( *it ).second.taxLevel_ == level )
+                if ( it->second.taxLevel_ == level )
                 {
-                    output << "REF " << level << " " <<  ( *it ).first << " " << ( *it ).second.wordCountPerSize_[s] << " " << ( *it ).second.seqLengthSum_ << endl;
+                    output << "REF " << level << " " <<  it->first << " " << it->second.wordCountPerSize_[s] << " " << it->second.seqLengthSum_ << endl;
                 }
             }
         }
@@ -670,8 +670,8 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
                             for ( READMAP::iterator it = readMap.begin(); it != readMap.end(); it++ )
                             {
                                 //find the sequence for the suffix
-                                if ( ( *it ).second.find( splitLine[3] ) != string::npos )
-                                    bwt.readIds.push_back( ( *it ).first );
+                                if ( it->second.find( splitLine[3] ) != string::npos )
+                                    bwt.readIds.push_back( it->first );
                             }
                             bwt.pileNum_ = pileNum;
                             bwt.readCount_ = ( double ) readCount / averageLengths;
@@ -701,8 +701,8 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
         cerr << b << " " << bwtInfo[b].size() << endl;
         for ( BWTMAP::iterator it = bwtInfo[b].begin(); it != bwtInfo[b].end(); it ++ )
         {
-            BWTInformation bwt = ( *it ).second;
-            bwtOut << ( *it ).first << " " << bwt.taxId_ << " " << bwt.wordLength_
+            BWTInformation bwt = it->second;
+            bwtOut << it->first << " " << bwt.taxId_ << " " << bwt.wordLength_
                    << " " << bwt.pileNum_ << " " << bwt.readCount_ << " " ;
             for ( unsigned int i( 0 ) ; i < bwt.charACount_.size(); i++ )
                 bwtOut << bwt.charACount_[i] << ":" ;
@@ -734,14 +734,11 @@ void getTaxCountThroughBWTInfo( vector<BWTMAP> &bwtInfo, TAXMAP &taxInfo, vector
         double wordCLevel( 0 );
         for ( BWTMAP::iterator bwtIt = bwtInfo[s].begin(); bwtIt != bwtInfo[s].end(); bwtIt++ )
         {
-            for ( TAXMAP::iterator taxIt = taxInfo.begin(); taxIt != taxInfo.end(); taxIt++ )
+            auto searchedItem = taxInfo.find( ( int )( *bwtIt ).second.taxId_ );
+            if ( searchedItem != taxInfo.end() )
             {
-                if ( ( int )( *bwtIt ).second.taxId_ == ( *taxIt ).first )
-                {
-                    ( *taxIt ).second.wordCountPerSize_[s] += ( *bwtIt ).second.readCount_;
-                    wordCLevel += ( *bwtIt ).second.readCount_;
-                    break;
-                }
+                searchedItem->second.wordCountPerSize_[s] += ( *bwtIt ).second.readCount_;
+                wordCLevel += ( *bwtIt ).second.readCount_;
             }
         }
         cerr << "overall count for " << minWord << " " << wordCLevel << endl;
@@ -815,15 +812,15 @@ void countWordTest( TAXMAP &taxInfo, vector<int> taxIDsInTest, vector<double> te
     {
         for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); it++ )
         {
-            if ( ( *it ).second.taxLevel_ == level )
+            if ( it->second.taxLevel_ == level )
             {
-                double expCount = ( expectedCountsPerId.find( ( *it ).first ) != expectedCountsPerId.end() )
-                                  ? expectedCountsPerId[( *it ).first]
+                double expCount = ( expectedCountsPerId.find( it->first ) != expectedCountsPerId.end() )
+                                  ? expectedCountsPerId[it->first]
                                   : 0 ;
                 bool inTest ( false );
                 for ( TAXMAP::iterator child = taxInfo.begin(); child != taxInfo.end(); child++ )
                 {
-                    if ( ( ( int )( *child ).second.parentId_ == ( *it ).first )
+                    if ( ( ( int )( *child ).second.parentId_ == it->first )
                          && ( expectedCountsPerId.find( ( *child ).first ) != expectedCountsPerId.end() ) )
                     {
                         expCount += expectedCountsPerId[( *child ).first];
@@ -832,7 +829,7 @@ void countWordTest( TAXMAP &taxInfo, vector<int> taxIDsInTest, vector<double> te
                 }
                 if ( inTest )
                 {
-                    expectedCountsPerId[( *it ).first] = expCount;
+                    expectedCountsPerId[it->first] = expCount;
                 }
             }
         }
@@ -852,37 +849,37 @@ void countWordTest( TAXMAP &taxInfo, vector<int> taxIDsInTest, vector<double> te
         double plainWrong( 0 );
         for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); it++ )
         {
-            if ( ( *it ).second.taxLevel_ == level )
+            if ( it->second.taxLevel_ == level )
             {
 
                 //if the id was in the testDataset
-                if ( expectedCountsPerId.find( ( *it ).first ) != expectedCountsPerId.end() )
+                if ( expectedCountsPerId.find( it->first ) != expectedCountsPerId.end() )
                 {
                     //if more was found than expected, take the overestimation as wrong, the rest as right
-                    if ( expectedCountsPerId[( *it ).first] <= ( *it ).second.normalisedCount_ )
+                    if ( expectedCountsPerId[it->first] <= it->second.normalisedCount_ )
                     {
-                        rightlyClassified +=  expectedCountsPerId[( *it ).first];
-                        wronglyClassified += ( *it ).second.normalisedCount_ - expectedCountsPerId[( *it ).first];
-                        overestimated += ( *it ).second.normalisedCount_ - expectedCountsPerId[( *it ).first];
-                        allClassified += ( *it ).second.normalisedCount_;
+                        rightlyClassified +=  expectedCountsPerId[it->first];
+                        wronglyClassified += it->second.normalisedCount_ - expectedCountsPerId[it->first];
+                        overestimated += it->second.normalisedCount_ - expectedCountsPerId[it->first];
+                        allClassified += it->second.normalisedCount_;
                         //    cout << (*it).first << " exp smaller " << rightlyClassified << " " << wronglyClassified << endl;
                     }
                     //if there was less found than expected, take all that was found as correct and the rest of what was not found as wrong
                     else
                     {
-                        rightlyClassified += ( *it ).second.normalisedCount_;
-                        wronglyClassified += expectedCountsPerId[( *it ).first] - ( *it ).second.normalisedCount_;
-                        underestimated += expectedCountsPerId[( *it ).first] - ( *it ).second.normalisedCount_;
-                        allClassified += ( *it ).second.normalisedCount_;
+                        rightlyClassified += it->second.normalisedCount_;
+                        wronglyClassified += expectedCountsPerId[it->first] - it->second.normalisedCount_;
+                        underestimated += expectedCountsPerId[it->first] - it->second.normalisedCount_;
+                        allClassified += it->second.normalisedCount_;
                         //cout << (*it).first << " exp smaller " << rightlyClassified << " " << wronglyClassified << endl;
                     }
                 }
                 //take all which was not expected as wrong
                 else
                 {
-                    plainWrong += ( *it ).second.normalisedCount_;
-                    wronglyClassified += ( *it ).second.normalisedCount_;
-                    allClassified += ( *it ).second.normalisedCount_;
+                    plainWrong += it->second.normalisedCount_;
+                    wronglyClassified += it->second.normalisedCount_;
+                    allClassified += it->second.normalisedCount_;
                     //	  cout << (*it).first << " exp not there " << rightlyClassified << " " << wronglyClassified << endl;
                 }
             }
@@ -950,7 +947,7 @@ map<int, TaxInformation> loadTaxInformationForDatabase( string taxInfo, int cycl
             bool taxFound( false );
             for ( TAXMAP::iterator it( taxInformation.begin() ) ; it != taxInformation.end(); it++ )
             {
-                if ( ( *it ).first == taxId )
+                if ( it->first == taxId )
                 {
                     //	  cout << (i-1) << " "<< countForTaxLevel[i-1] <<endl;
                     taxFound = true;
@@ -1158,7 +1155,7 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
                 // cerr <<"There is something wrong with the fileNumber" <<endl;
             }
             //      cout << count <<endl;
-            delete suffStarts;
+            free( suffStarts );
             //      delete fileNum;
         }
     }
@@ -1170,14 +1167,14 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
         vector<unsigned short > uniqueSuffixLengths;
         vector<char> uniqueSuffixChar;
         vector<uint64_t > uniqueBWTs;
-        if ( ( *it ).second.suffixPos_.size() > 1 )
-            for ( unsigned int i( 0 ); i < ( *it ).second.suffixPos_.size() ; i++ )
+        if ( it->second.suffixPos_.size() > 1 )
+            for ( unsigned int i( 0 ); i < it->second.suffixPos_.size() ; i++ )
             {
                 bool foundSuff ( false );
                 int suffPosition( 0 );
                 for ( unsigned int j( 0 ); j < uniqueSuffixPos.size() ; j++ )
                 {
-                    if ( uniqueSuffixPos[j] == ( *it ).second.suffixPos_[i] )
+                    if ( uniqueSuffixPos[j] == it->second.suffixPos_[i] )
                     {
                         foundSuff = true;
                         suffPosition = j;
@@ -1186,16 +1183,16 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
                 }
                 if ( !foundSuff )
                 {
-                    uniqueSuffixPos.push_back( ( *it ).second.suffixPos_[i] );
-                    uniqueSuffixCounts.push_back( ( *it ).second.suffixCounts_[i] );
-                    uniqueSuffixLengths.push_back( ( *it ).second.suffixLengths_[i] );
-                    uniqueSuffixChar.push_back( ( *it ).second.suffixChar_[i] );
-                    uniqueBWTs.push_back( ( *it ).second.bwtPositions_[i] );
+                    uniqueSuffixPos.push_back( it->second.suffixPos_[i] );
+                    uniqueSuffixCounts.push_back( it->second.suffixCounts_[i] );
+                    uniqueSuffixLengths.push_back( it->second.suffixLengths_[i] );
+                    uniqueSuffixChar.push_back( it->second.suffixChar_[i] );
+                    uniqueBWTs.push_back( it->second.bwtPositions_[i] );
                 }
-                else if ( uniqueSuffixLengths[suffPosition] < ( *it ).second.suffixLengths_[i] )
+                else if ( uniqueSuffixLengths[suffPosition] < it->second.suffixLengths_[i] )
                 {
-                    uniqueSuffixLengths[suffPosition] = ( *it ).second.suffixLengths_[i];
-                    uniqueSuffixCounts[suffPosition] = ( *it ).second.suffixCounts_[i];
+                    uniqueSuffixLengths[suffPosition] = it->second.suffixLengths_[i];
+                    uniqueSuffixCounts[suffPosition] = it->second.suffixCounts_[i];
                 }
             }
         /*    if((*it).second.suffixPos_.size() >1){
@@ -1204,11 +1201,11 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
           cerr << "ucha " << uniqueSuffixChar.size() <<endl;
           cerr << "ucou " << uniqueSuffixCounts.size() <<endl;
           }*/
-        ( *it ).second.suffixPos_ = uniqueSuffixPos;
-        ( *it ).second.suffixCounts_ = uniqueSuffixCounts;
-        ( *it ).second.suffixLengths_ = uniqueSuffixLengths;
-        ( *it ).second.suffixChar_ = uniqueSuffixChar;
-        ( *it ).second.bwtPositions_ = uniqueBWTs;
+        it->second.suffixPos_ = uniqueSuffixPos;
+        it->second.suffixCounts_ = uniqueSuffixCounts;
+        it->second.suffixLengths_ = uniqueSuffixLengths;
+        it->second.suffixChar_ = uniqueSuffixChar;
+        it->second.bwtPositions_ = uniqueBWTs;
     }
     //Get the sequence length of the files
     //  short fileNumberRead;
@@ -1216,20 +1213,20 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
     //set the sequence lengths of each file
     for ( FILEMAP::iterator it = fileInfo.begin(); it != fileInfo.end() ; it++ )
     {
-        if ( ( *it ).second.suffixPos_.size() > 1 )
+        if ( it->second.suffixPos_.size() > 1 )
         {
             stringstream ss;
-            cerr << "print to " << ( *it ).first << endl;
-            ss << "F_" << ( *it ).first;
+            cerr << "print to " << it->first << endl;
+            ss << "F_" << it->first;
             ofstream output( ss.str().c_str(), ios::out );
-            cerr << "suffixCount " << ( *it ).second.suffixPos_.size() << endl;
-            for ( unsigned int i( 0 ); i < ( *it ).second.suffixPos_.size(); i++ )
+            cerr << "suffixCount " << it->second.suffixPos_.size() << endl;
+            for ( unsigned int i( 0 ); i < it->second.suffixPos_.size(); i++ )
             {
-                output << ( *it ).second.suffixPos_[i] << " ";
-                output << ( *it ).second.suffixLengths_[i] << " " ;
-                output << ( *it ).second.suffixCounts_[i] << " ";
-                output << ( *it ).second.suffixChar_[i] << " ";
-                output << ( *it ).second.bwtPositions_[i] << endl;
+                output << it->second.suffixPos_[i] << " ";
+                output << it->second.suffixLengths_[i] << " " ;
+                output << it->second.suffixCounts_[i] << " ";
+                output << it->second.suffixChar_[i] << " ";
+                output << it->second.bwtPositions_[i] << endl;
 
             }
             output.close();

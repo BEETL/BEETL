@@ -46,17 +46,19 @@ public:
         return std::cout;
     }
 
-    static std::ostream &out( const int verbosity )
-    {
-        if ( currentVerbosity >= verbosity )
+    /*
+        static std::ostream &out( const int verbosity )
         {
-            return std::cout;
+            if ( currentVerbosity >= verbosity )
+            {
+                return std::cout;
+            }
+            else
+            {
+                return nullStream;
+            }
         }
-        else
-        {
-            return nullStream;
-        }
-    }
+    */
 
     static std::ostream &error( const int verbosity = 0 )
     {

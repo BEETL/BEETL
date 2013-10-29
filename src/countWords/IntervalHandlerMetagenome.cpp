@@ -20,68 +20,135 @@
 #include "LetterCount.hh"
 #include "libzoo/util/Logger.hh"
 
+#include <fcntl.h>
 #include <map>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 using namespace std;
 
 
-struct TaxInformation
+IntervalHandlerMetagenome::IntervalHandlerMetagenome( unsigned int minOcc,
+        vector<string> &filenamesCSet,
+        const vector<char *> &mmappedCFiles,
+        vector< vector< int> > &fileNumToTaxIds,
+        bool testDB,
+        uint minWordLength,
+        uint maxWordLength )
+    : minOcc_( minOcc ),
+      mmappedCFiles_( mmappedCFiles ),
+      fileNumToTaxIds_( fileNumToTaxIds ), testDB_( testDB ),
+      minWordLength_( minWordLength ),
+      maxWordLength_( maxWordLength )
 {
-    unsigned short taxLevel_;
-    vector<int> files_;
-    vector < vector <LetterNumber> > bwtPositions_;
-    vector < vector <double> > wordCounts_;
-    vector < vector <unsigned short> >wordLengths_;
-    vector <vector <bool> > genomeSingletons_;
-    unsigned int parentId_;
-    LetterNumber seqLengthSum_;
-};
+    cSetFileDescs_.resize( alphabetSize );
+    posInFile_.resize( alphabetSize );
 
-map< unsigned int, TaxInformation> TAXMAP;
+    for ( int i = 0; i < alphabetSize; i++ )
+    {
+        if ( mmappedCFiles_.size() <= i || mmappedCFiles_[i] == NULL )
+        {
+            int fd = open( filenamesCSet[i].c_str(), O_RDONLY );
+            if ( fd == -1 )
+            {
+                #pragma omp critical (IO)
+                {
+                    cout << "ERROR: Could not open File \"" << filenamesCSet[i] << "\"" << endl;
+                }
+            }
+            cSetFileDescs_[i] = fd;
+            posInFile_[i] = 0;
+        }
+    }
+}
+
+IntervalHandlerMetagenome::~IntervalHandlerMetagenome()
+{
+    for ( int i = 0; i < alphabetSize; i++ )
+    {
+        if ( cSetFileDescs_[i] )
+            close( cSetFileDescs_[i] );
+    }
+}
 
 /*  @ int pileNum the number in which pile this suffix can be found. So it is known which pile can be used to look up the filenumbers
     @ ulong bwtPosition at this position the information in the file starts from which files the suffix came from
     @ unsigned int num Count of how many times the suffix is found in the database. This is the same number as fileNumber which have to read
     @ vector<MetagFileNumRefType> fileNumbers Vector to fill up with unique fileNumbers in which the suffix can be found.
     If the size of the vector is the same as the num the suffix occours only once in each file
-    Returns nothing, but fills up teh fileNumbers vector
+    Returns nothing, but fills up the fileNumbers vector
     get the fileNumbers in a certain Range
 */
 void IntervalHandlerMetagenome::getFileNumbersForRange( const int &pileNum, const LetterNumber &bwtPosition, const unsigned int &num, vector<MetagFileNumRefType> &fileNumbers )
 {
+    assert( fileNumbers.empty() );
     //fast fix because merged genomes should have no pile 6
     if ( pileNum == 6 )
         return;
-    //go to the position in the File where the fileNumbers for each Bwt positions are indicated
-    fseek( mergeCSet_[pileNum] , ( ( bwtPosition & matchMask ) * sizeof( MetagFileNumRefType ) ), SEEK_SET );
-    //reserve the space for the fileNumbers. there are as many fileNumbers as the suffix count
-    MetagFileNumRefType *fileNum = ( MetagFileNumRefType * ) malloc ( num * ( sizeof( MetagFileNumRefType ) ) );
-    //read out the fileNumbers which are corresponding to this BWT-postion
-    assert( fread( fileNum, sizeof( MetagFileNumRefType ), num, mergeCSet_[pileNum] ) == num );
+
+    off_t wantedPos = ( bwtPosition & matchMask ) * sizeof( MetagFileNumRefType );
+    MetagFileNumRefType *fileNum = NULL;
+
+    const bool useMmap = ( mmappedCFiles_.size() > pileNum && mmappedCFiles_[pileNum] != NULL );
+    if ( useMmap )
+    {
+        fileNum = ( MetagFileNumRefType * ) & ( mmappedCFiles_[pileNum][wantedPos] );
+    }
+    else
+    {
+        //go to the position in the File where the fileNumbers for each Bwt positions are indicated
+        off_t currentPos = posInFile_[pileNum]; //lseek( cSetFileDescs_[pileNum], 0, SEEK_CUR );
+        // We only use fseek if the new position is far from the current one. Otherwise we read data into a discarded buffer
+        const off_t maxDistance = 32 * 1024; // 32KB
+        if ( wantedPos >= currentPos && wantedPos < ( currentPos + maxDistance ) )
+        {
+            const off_t offset = wantedPos - currentPos;
+            void *jumpOverData = malloc ( offset );
+            assert( read( cSetFileDescs_[pileNum], jumpOverData, offset ) == offset );
+            free( jumpOverData );
+        }
+        else
+        {
+            lseek( cSetFileDescs_[pileNum] , wantedPos, SEEK_SET );
+        }
+        //reserve the space for the fileNumbers. there are as many fileNumbers as the suffix count
+        size_t fileNumbersBufSize = num * sizeof( MetagFileNumRefType );
+        fileNum = ( MetagFileNumRefType * ) malloc ( fileNumbersBufSize );
+        //read out the fileNumbers which are corresponding to this BWT-postion
+        assert( read( cSetFileDescs_[pileNum], fileNum, fileNumbersBufSize ) == fileNumbersBufSize );
+        posInFile_[pileNum] = wantedPos + fileNumbersBufSize;
+    }
 
     //to test if the suffix is a singleton in each of the different files the found fileNumbers
     //will be added to an vector, only if the fileNumber is not already there
     fileNumbers.push_back( fileNum[0] );
     for ( unsigned int i( 1 ); i < num; ++i )
     {
-        bool alreadyAdded( false );
-        for ( unsigned int j( 0 ); j < fileNumbers.size() ; ++j )
+        if ( fileNumToTaxIds_[fileNum[i]][2] <= 0 )
         {
-            //if the fileNumber is already in the vector this means this suffix was found twice in one file and is no singleton
-            //late on the size of the fileNumbers and the range number can be tested
-            if ( fileNumbers[j] == fileNum[i] || fileNumToTaxIds_[fileNum[i]][2] == -1 )
+            bool alreadyAdded( false );
+            for ( unsigned int j( 0 ); j < fileNumbers.size() ; ++j )
             {
-                alreadyAdded = true;
-                break;
+                //if the fileNumber is already in the vector this means this suffix was found twice in one file and is no singleton
+                //late on the size of the fileNumbers and the range number can be tested
+                if ( fileNumbers[j] == fileNum[i] )
+                {
+                    alreadyAdded = true;
+                    break;
+                }
             }
+            //add only fileNumbers which are not already in there
+            if ( !alreadyAdded )
+                fileNumbers.push_back( fileNum[i] );
         }
-        //add only fileNumbers which are not already in there
-        if ( !alreadyAdded )
-            fileNumbers.push_back( fileNum[i] );
     }
-    //free memory
-    delete fileNum;
-    ///  Logger::out( LOG_ALWAYS_SHOW ) << "got fileNumbers" <<endl;
+
+    if ( !useMmap )
+    {
+        //free memory
+        free( fileNum );
+    }
+    ///  Logger::out() << "got fileNumbers" <<endl;
 }
 
 /*
@@ -98,91 +165,83 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
     //first get the matching fileNumbers out of the file with the file numbers corresponding to bwt positions of the merging.
     vector<bool> taxSame;
     taxSame.resize( taxLevelSize );
-    //look if the files have at each point of the taxonomic tree different tax level or if they are the same
-    bool sameTaxa( false );
-    //  Logger::out( LOG_ALWAYS_SHOW ) << "intervalInSame " << fileNumbers.size() <<endl;
-    for ( int i = taxLevelSize - 1  ;  i >= 0 ; i-- )
-    {
-        // to remove outlier, first count all taxas
-        map<int, int> taxaCount;
-        //for each taxa for each level count how many where found
-        for ( unsigned int j( 0 ); j < fileNumbers.size(); ++j )
-        {
-            if ( fileNumToTaxIds_[j][i] == -1 )
-            {
-                if ( taxaCount.find( fileNumToTaxIds_[j][i] ) == taxaCount.end() )
-                {
-                    taxaCount[fileNumToTaxIds_[fileNumbers[j]][i]] = 1;
-                }
-                else
-                {
-                    taxaCount[fileNumToTaxIds_[fileNumbers[j]][i]] += 1 ;
-                }
-            }
-        }
-#ifdef MET_DEBUG
-        #pragma omp critical (IO)
-        {
-            Logger::out( LOG_ALWAYS_SHOW ) << i << endl;
-            for ( map<int, int>::iterator it = taxaCount.begin(); it != taxaCount.end(); it++ )
-                Logger::out( LOG_ALWAYS_SHOW ) << ( *it ).first << ' ' << ( *it ).second << endl;
-            Logger::out( LOG_ALWAYS_SHOW ) << i << " taxa " << taxaCount.size() << endl;
-        }
-#endif
-        taxSame[i] = sameTaxa;
-        //if there was only one possible taxa no outliner is possible
-        bool testOutliner = true;
-        if ( taxaCount.size() == 1 && fileNumToTaxIds_[fileNumbers[0]][i] != -1 )
-        {
-            taxSame[i] = true;
-            sharedTaxIds[i] = fileNumToTaxIds_[fileNumbers[0]][i];
-            break;
-            //      testOutliner = false;
-        }
-        //    else if(taxaCount.size() < 3) {
-        //first remove all taxa which only make up less than 10% of the possible taxas
-        // this could be made much better if it is taking in account of how many different taxa on one level are even possible
-        // this also heightens the amount of taxa found in extreem
-        if ( testOutliner )
-        {
-            vector<int> biggestTaxa;
-            for ( map<int, int>::iterator it = taxaCount.begin() ; it != taxaCount.end(); it++ )
-            {
-                //if there are two taxa, where one has 9 files and the other has 1. than the first one has more than 90% of the results, the second one less than 10%
-                //if there are
-                if ( ( ( float )( *it ).second / ( float ) fileNumbers.size() ) > 0.50 && ( ( *it ).first != -1 ) )
-                {
-                    biggestTaxa.push_back( ( *it ).first );
-                }
-                //}
-            }
-            //    Logger::out( LOG_ALWAYS_SHOW ) << i << " remaining taxa " << taxaCount.size() <<endl;
-            //if this leaves only one remaining taxa use that
-            if ( biggestTaxa.size() == 1 && biggestTaxa[0] != -1 )
-            {
-                taxSame[i] = true;
-                sharedTaxIds[i] = biggestTaxa[0];
-            }
-            // else there are more than one taxa getting more than 10% of the filenumbers
-            // so it is assumed that the files have no common taxonomy
-            else
-            {
-                sharedTaxIds[i] = 0;
-                taxSame[i] = false;
-            }
-        }
-    }
+
     // if there was only one file it has to have a common taxa in all taxLevels
-    // only the lowest taxlevel needs to be set because only that will be printed
     if ( fileNumbers.size() == 1 )
     {
         for ( unsigned int i( taxLevelSize - 1 ); i > 0; i-- )
         {
-            if ( fileNumToTaxIds_[fileNumbers[0]][i] != -1 )
+            int taxIdForFile0 = fileNumToTaxIds_[fileNumbers[0]][i];
+            if ( taxIdForFile0 != -1 )
             {
                 taxSame[i] = true;
-                //      Logger::out( LOG_ALWAYS_SHOW ) << "FileNumbers size 1 " << fileNumbers[0] << ' ' << fileNumToTaxIds_[fileNumbers[0]][taxLevelSize-1] <<endl;
-                sharedTaxIds[i] = fileNumToTaxIds_[fileNumbers[0]][i];
+                //      Logger::out() << "FileNumbers size 1 " << fileNumbers[0] << ' ' << fileNumToTaxIds_[fileNumbers[0]][taxLevelSize-1] <<endl;
+                sharedTaxIds[i] = taxIdForFile0;
+            }
+        }
+        return taxSame;
+    }
+
+    //look if the files have at each point of the taxonomic tree different tax level or if they are the same
+    //  Logger::out() << "intervalInSame " << fileNumbers.size() <<endl;
+    for ( int i = 0 ;  i < taxLevelSize ; ++i )
+    {
+        // to remove outlier, first count all taxas
+        map<int, int> taxaCount;
+        //for each taxa for each level count how many were found
+        for ( unsigned int j( 0 ); j < fileNumbers.size(); ++j )
+        {
+            MetagFileNumRefType &fileNumber = fileNumbers[j];
+            int taxId = fileNumToTaxIds_[fileNumber][i];
+            if ( taxId != -1 )
+                taxaCount[taxId] += 1 ; // automatically creates element if it doesn't exist
+        }
+#ifdef MET_DEBUG
+        #pragma omp critical (IO)
+        {
+            Logger::out() << i << endl;
+            for ( map<int, int>::iterator it = taxaCount.begin(); it != taxaCount.end(); it++ )
+                Logger::out() << ( *it ).first << ' ' << ( *it ).second << endl;
+            Logger::out() << i << " taxa " << taxaCount.size() << endl;
+        }
+#endif
+        //if there was only one possible taxa no outliner is possible
+        if ( taxaCount.size() == 1 )
+        {
+            int taxId = taxaCount.begin()->first;
+            assert( taxId >= 0 );
+            taxSame[i] = true;
+            sharedTaxIds[i] = taxId;
+            continue;
+        }
+        else
+            // Deprecated: first remove all taxa which only make up less than 10% of the possible taxas
+            //   this could be made much better if it is taking in account of how many different taxa on one level are even possible
+            //   this also heightens the amount of taxa found in extreme cases
+            // Current algorithm: Select any taxa that is present more than 50% of the time
+        {
+            float countThreshold = 0.50 * fileNumbers.size();
+            vector<int> biggestTaxa;
+            for ( map<int, int>::iterator it = taxaCount.begin() ; it != taxaCount.end(); it++ )
+            {
+                if ( it->second > countThreshold && it->first != -1 )
+                {
+                    biggestTaxa.push_back( ( *it ).first );
+                }
+            }
+            //    Logger::out() << i << " remaining taxa " << taxaCount.size() <<endl;
+            //if this leaves only one remaining taxa use that
+            if ( biggestTaxa.size() == 1 )
+            {
+                taxSame[i] = true;
+                sharedTaxIds[i] = biggestTaxa[0];
+            }
+            // else there is no dominant taxa in the lot
+            // so it is assumed that the files have no common taxonomy
+            else
+            {
+                taxSame[i] = false;
+                break;
             }
         }
     }
@@ -203,10 +262,15 @@ vector<bool> IntervalHandlerMetagenome::intervalInSameTaxa( vector<unsigned int>
 
 void IntervalHandlerMetagenome::foundInBoth
 ( const int pileNum,
-  const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
-  const Range &thisRangeA, const Range &thisRangeB,
-  AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
-  bool &isBreakpointDetected )
+  const LetterCount &countsThisRangeA,
+  const LetterCount &countsThisRangeB,
+  const Range &thisRangeA,
+  const Range &thisRangeB,
+  AlphabetFlag &propagateIntervalA,
+  AlphabetFlag &propagateIntervalB,
+  bool &isBreakpointDetected,
+  const int cycle
+)
 {
     //propagate A only if the Range also exists in B
     //print only if the word can't be propagated anymore,
@@ -218,27 +282,43 @@ void IntervalHandlerMetagenome::foundInBoth
     bool differentProp( false );
     bool belowMinDepthBecauseOfEndOfReads( false );
     //    bool endOfRead( false );
+    bool atLeastOneProp = false;
     for ( int l ( 1 ); l < alphabetSize; l++ )
     {
         //if word is a singleton in the reference files don't propagate anymore
         if ( countsThisRangeB.count_[l] > 0 )
         {
-            propagateIntervalB[l] = true;
-            const bool propA = countsThisRangeA.count_[l] > minOcc_;
+            const bool propA = countsThisRangeA.count_[l] >= minOcc_;
             propagateIntervalA[l] = propA;
+            propagateIntervalB[l] = propA || testDB_;
+            atLeastOneProp |= propA;
             // If k-mer is not propagated because it slowly falls below threshold due to end-of-reads, we set this flag to output it
             if ( !propA && countsThisRangeA.count_[l] + countsThisRangeA.count_[0] >= minOcc_ )
                 belowMinDepthBecauseOfEndOfReads = true;
+        }
+    }
+    for ( int l ( 1 ); l < alphabetSize; l++ )
+    {
+        //if word is a singleton in the reference files don't propagate anymore
+        if ( countsThisRangeB.count_[l] > 0 )
+        {
         }
         else
         {
             //if the range in B can't be propagated anymore test if the propagation in A would have been possible
             //if yes print the taxonomic information but don't propagate anymore
-            if ( countsThisRangeA.count_[l] >= minOcc_ )
+            if ( countsThisRangeA.count_[l] >= minOcc_ && !atLeastOneProp )
                 differentProp = true;
             propagateIntervalB[l] = false;
             propagateIntervalA[l] = false;
         }
+    }
+    // If some propagation is present, don't bother taking into account the potential that dollar signs cover a good call
+    // Also, if some propagation is present, don't actually try to print anything
+    if ( atLeastOneProp )
+    {
+        belowMinDepthBecauseOfEndOfReads = false;
+        differentProp = false;
     }
     //if at least one read reached the end print the taxonomic information (end of read detected by count['$']>0)
     //    if ( countsThisRangeA.count_[0] > 0 )
@@ -256,9 +336,9 @@ void IntervalHandlerMetagenome::foundInBoth
 
     //don't bother about the Ns
     propagateIntervalB[whichPile[( int )dontKnowChar]] = false;
-    propagateIntervalA[whichPile[( int ) dontKnowChar]] = false;
+    propagateIntervalA[whichPile[( int )dontKnowChar]] = false;
     //testing if the word is in the reads and in certain genomes
-    //only look the fileNumbers up if the word can't be propagatet anymore.
+    //only look the fileNumbers up if the word can't be propagated anymore.
     //so for each BWT Position only the longest word will be taken into account.
     //unique file numbers from which the suffixes came from
     vector<MetagFileNumRefType> fileNumbers;
@@ -271,23 +351,13 @@ void IntervalHandlerMetagenome::foundInBoth
         //only print information about a certain singleton lengths
         //this is mostly to sorten the output of the database information as well as reduce running time
         //the numbers are completely randomly chosen
-#ifdef PROPAGATE_PREFIX
-        if ( thisRangeB.word_.length() == 35
-             || thisRangeB.word_.length() == 50
-             || thisRangeB.word_.length() == 100
-             || thisRangeB.word_.length() == 150
-             || thisRangeB.word_.length() == 200
-             || thisRangeB.word_.length() == 250 )
-#else
-        assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
-        if ( 1 )
-#endif
+        if ( cycle == 35 || ( cycle % 50 ) == 0 )
         {
             // get the unique file numbers where this Range can be found
             getFileNumbersForRange( pileNum, thisRangeB.pos_, thisRangeB.num_, fileNumbers );
             // test if word is singleton in the files
             #pragma omp critical (IO)
-            Logger::out( LOG_ALWAYS_SHOW ) << "file numbers size " << fileNumbers.size() << " range " << thisRangeB.num_ << endl;
+            Logger::out() << "file numbers size " << fileNumbers.size() << " range " << thisRangeB.num_ << endl;
             if ( fileNumbers.size() <= thisRangeB.num_ )
             {
                 //if the word is a singleton in the files, look if there is a shared taxonomic Id on the different taxonomic levels
@@ -299,13 +369,9 @@ void IntervalHandlerMetagenome::foundInBoth
                     //break if a shared information was found.
                     if ( sameTaxa[i] && sharedTaxa[i] != 0 )
                     {
-                        //taxaCountPerWordLength[thisRangeB.word_.length()][sharedTaxa[i]] += 1;
-#ifdef PROPAGATE_PREFIX
+                        //taxaCountPerWordLength[cycle][sharedTaxa[i]] += 1;
                         #pragma omp critical (IO)
-                        Logger::out( LOG_ALWAYS_SHOW ) << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
-#else
-                        assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
-#endif
+                        Logger::out() << "BWord" << cycle << "|" << sharedTaxa[i] << "|";
                         break;
                     } //~same taxa
                 }// ~ for loop for the tax levels
@@ -316,30 +382,31 @@ void IntervalHandlerMetagenome::foundInBoth
 
     //if the database should not be tested on its own the normal comparison between the two datasets takes place
     //the suffix of the range can only be once in each file if the amount of suffixes is smaller than all possible files. so start testing if it is smaller
-#ifdef PROPAGATE_PREFIX
     else if ( ( thisRangeB.num_ < fileNumToTaxIds_.size() )
               //test file numbers and print information only if the suffix is longer than a certain minimal length chosen from the user
               //this reduces the amount of output and speeds up the count word algorithm because the filenumbers don't need to be looked at
-              &&  thisRangeB.word_.length() > minWordLength_
+              &&  cycle >= minWordLength_
               //test file numbers and print taxonomic information only if a possible tax break point or the end of the read is reached
             )
-#else
-    assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
-#endif
     {
         sharedTaxa.resize( taxLevelSize );
-        //put back breackpoint information, if
-        const bool printBKPT = true;
+
+        const bool printBKPT = false;
         const bool printBKPTdetails = false;
+        //#define DEBUG_DONT_CALCULATE_TAXA
+
         if ( printBKPT && ( differentProp || belowMinDepthBecauseOfEndOfReads ) )
         {
             isBreakpointDetected = true;
             #pragma omp critical (IO)
             {
-                Logger::out( LOG_ALWAYS_SHOW )
+                Logger::out()
                         << "BKPT"
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                         << ' ' << thisRangeB.word_
+#else
+                        // Print what we know of the sequence
+                        << ' ' << alphabet[pileNum] << string( cycle - 1, 'x' )
 #endif
                         << ' ' << countsThisRangeA.count_[0]
                         << ':' << countsThisRangeA.count_[1]
@@ -357,18 +424,13 @@ void IntervalHandlerMetagenome::foundInBoth
                         << ' ';
                 if ( printBKPTdetails )
                     for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
-                        Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[f] << ':';
-                Logger::out( LOG_ALWAYS_SHOW ) << endl;
+                        Logger::out() << fileNumbers[f] << ':';
+                Logger::out() << endl;
             }
         }
 
-#ifdef PROPAGATE_PREFIX
-        assert( thisRangeA.word_.size() == thisRangeB.word_.size() );
-        bool maxLengthReached = ( thisRangeA.word_.size() >= maxWordLength_ + 1 );
-#else
-        bool maxLengthReached;
-        assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
-#endif
+#ifndef DEBUG_DONT_CALCULATE_TAXA
+        bool maxLengthReached = ( cycle >= maxWordLength_ );
         if ( differentProp || belowMinDepthBecauseOfEndOfReads || maxLengthReached )
         {
             //get the unique file number for the files where the suffix can be found in
@@ -376,32 +438,33 @@ void IntervalHandlerMetagenome::foundInBoth
 
             //only get taxonomic information if the word is a singleton in each file
             //unique file numbers must be the same as the numbers of suffixes, so that each file has exactly one suffix
-            if ( thisRangeB.num_ <= fileNumbers.size() )
+            assert ( thisRangeB.num_ >= fileNumbers.size() );
+            if ( thisRangeB.num_ == fileNumbers.size() )
             {
                 vector<bool> sameTaxa = intervalInSameTaxa( sharedTaxa, fileNumbers );
-#ifdef PROPAGATE_PREFIX
+
                 //print the information about a shared superkingdom only if a wordlength higher than 50 is reached
                 //printing this information about shorter words inflates the output incredibly without giving much of useful information
-                int smallestTaxLevel = ( thisRangeB.word_.length() > 50 ) ? 0 : 1;
-#else
-                int smallestTaxLevel = 0;
-                assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
-#endif
+                int smallestTaxLevel = ( cycle > 50 ) ? 0 : 1;
+
                 //if there are shared taxonomic ids between the files where this suffix can be found
                 //print the information about the deepest tax level
-                for ( int i( taxLevelSize - 1 ) ; i >= smallestTaxLevel; i-- )
+                for ( int i( taxLevelSize - 1 ) ; i >= smallestTaxLevel; --i )
                 {
                     if ( sameTaxa[i] && sharedTaxa[i] != 0 )
                     {
                         //                        if ( !( differentProp || belowMinDepthBecauseOfEndOfReads ) )
-                        //                            Logger::out( LOG_ALWAYS_SHOW ) << "ending"; // == This MTAXA is due to maxLengthReached
+                        //                            Logger::out() << "ending"; // == This MTAXA is due to maxLengthReached
                         #pragma omp critical (IO)
                         {
-                            Logger::out( LOG_ALWAYS_SHOW )
+                            Logger::out()
                                     << "MTAXA " << i
                                     << ' ' << sharedTaxa[i]
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                                     << ' ' << thisRangeB.word_
+#else
+                                    // Print what we know of the sequence, as downstream tool 'parseMetagenomeOutput' is just using first char and length of this string
+                                    << ' ' << alphabet[pileNum] << string( cycle - 1, 'x' )
 #endif
                                     << ' ' << ( thisRangeB.pos_ & matchMask )
                                     << ' ' << countsThisRangeA.count_[0]
@@ -418,23 +481,27 @@ void IntervalHandlerMetagenome::foundInBoth
                                     << ':' << countsThisRangeB.count_[5]
                                     << ' ';
                             for ( unsigned int f( 0 ) ; f < fileNumbers.size(); f++ )
-                                Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[f] << ':';
-                            Logger::out( LOG_ALWAYS_SHOW ) << endl;
+                                Logger::out() << fileNumbers[f] << ':';
+                            Logger::out() << endl;
                         }
                         break;
                     }//~if shared taxa
                 }//~for loop for the taxonomic levels
             }
         }//~test on singletons in files
+#endif //ifndef DEBUG_DONT_CALCULATE_TAXA
     }//~ if matches printing criteria
 }
 
-void IntervalHandlerMetagenome::foundInBOnly
-( const int pileNum,
-  const LetterCount &countsSoFarB,
-  const LetterCount &countsThisRangeB,
-  const Range &thisRangeB,
-  AlphabetFlag &propagateIntervalB )
+void IntervalHandlerMetagenome::foundInBOnly (
+    const int pileNum,
+    const LetterCount &countsSoFarB,
+    const LetterCount &countsThisRangeB,
+    const char *bwtSubstring,
+    Range &thisRangeB,
+    AlphabetFlag &propagateIntervalB,
+    const int cycle
+)
 {
     //this hander is only interesting if you want to get information about the alignability of the database
     if ( testDB_ )
@@ -451,17 +518,7 @@ void IntervalHandlerMetagenome::foundInBOnly
         //don't bother about the Ns they are creating to many false positives
         propagateIntervalB[whichPile[( int )dontKnowChar]] = false;
         //only print information about a certain word length to keep the output smaller
-#ifdef PROPAGATE_PREFIX
-        if ( thisRangeB.word_.length() == 35
-             || thisRangeB.word_.length() == 50
-             || thisRangeB.word_.length() == 100
-             || thisRangeB.word_.length() == 150
-             || thisRangeB.word_.length() == 200
-             || thisRangeB.word_.length() == 250 )
-#else
-        assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
-        if ( 1 )
-#endif
+        if ( cycle == 35 || ( cycle % 50 ) == 0 )
         {
             //only try this if there even is a range like that
             //not sure why this happended a few times
@@ -486,12 +543,8 @@ void IntervalHandlerMetagenome::foundInBOnly
                         if ( sameTaxa[i] && sharedTaxa[i] != 0 )
                         {
                             // print the smallest possible information to keep the output small
-#ifdef PROPAGATE_PREFIX
                             #pragma omp critical (IO)
-                            Logger::out( LOG_ALWAYS_SHOW ) << "BWord" << thisRangeB.word_.length() << "|" << sharedTaxa[i] << "|";
-#else
-                            assert( false && "PROPAGATE_PREFIX cannot be deactivated for metagenomics" );
-#endif
+                            Logger::out() << "BWord" << cycle << "|" << sharedTaxa[i] << "|";
                             break;
                         }
                     }
@@ -502,8 +555,8 @@ void IntervalHandlerMetagenome::foundInBOnly
                         if ( sameTaxa[i] )
                             #pragma omp critical (IO)
                         {
-                            Logger::out( LOG_ALWAYS_SHOW ) << "BTAXA " << taxLevel[i] <<  ' ' << sharedTaxa[i] << ' ' << thisRangeB.word_ << ' ' ;
-                            Logger::out( LOG_ALWAYS_SHOW ) << ( thisRangeB.pos_ & matchMask ) << ' ' << thisRangeB.num_ << endl;
+                            Logger::out() << "BTAXA " << taxLevel[i] <<  ' ' << sharedTaxa[i] << ' ' << thisRangeB.word_ << ' ' ;
+                            Logger::out() << ( thisRangeB.pos_ & matchMask ) << ' ' << thisRangeB.num_ << endl;
                         }
                     }
                     if ( sameTaxa[taxLevelSize - 1] )
@@ -511,7 +564,7 @@ void IntervalHandlerMetagenome::foundInBOnly
                     {
                         speciesFound = true;
 
-                        Logger::out( LOG_ALWAYS_SHOW )
+                        Logger::out()
                                 << "BSPECIES"
                                 << ' ' << thisRangeB.word_
                                 << ' ' << ( thisRangeB.pos_ & matchMask )
@@ -524,13 +577,13 @@ void IntervalHandlerMetagenome::foundInBOnly
                                 << ':' << countsThisRangeB.count_[5]
                                 << ' ';
                         for ( unsigned int j( 0 ) ; j < fileNumbers.size() ; j++ )
-                            Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[j] << ':' ;
-                        Logger::out( LOG_ALWAYS_SHOW ) << endl;
+                            Logger::out() << fileNumbers[j] << ':' ;
+                        Logger::out() << endl;
                     }
                     if ( fileNumbers.size() == 1 )
                         #pragma omp critical (IO)
                     {
-                        Logger::out( LOG_ALWAYS_SHOW )
+                        Logger::out()
                         "BSINGLE"
                                 << ' ' << thisRangeB.word_
                                 << ' ' << ( thisRangeB.pos_ & matchMask )
@@ -542,8 +595,8 @@ void IntervalHandlerMetagenome::foundInBOnly
                                 << ':' << countsThisRangeB.count_[5]
                                 << ' ';
                         for ( unsigned int j( 0 ) ; j < fileNumbers.size() ; j++ )
-                            Logger::out( LOG_ALWAYS_SHOW ) << fileNumbers[j] << ':';
-                        Logger::out( LOG_ALWAYS_SHOW ) << endl;
+                            Logger::out() << fileNumbers[j] << ':';
+                        Logger::out() << endl;
                     }
 #endif
                 }//~test on singletons
@@ -564,8 +617,11 @@ void IntervalHandlerMetagenome::foundInAOnly
 ( const int pileNum,
   const LetterCount &countsSoFarA,
   const LetterCount &countsThisRangeA,
-  const Range &thisRangeA,
-  AlphabetFlag &propagateIntervalA )
+  const char *bwtSubstring,
+  Range &thisRangeA,
+  AlphabetFlag &propagateIntervalA,
+  const int cycle
+)
 {
     //this should be interesting if one wants to find high accounted reads in A which have no singletons in the database
     // special interesting for the comparison between metatranscriptomes and metagenomes
@@ -574,7 +630,6 @@ void IntervalHandlerMetagenome::foundInAOnly
     //Is that really interesting?
     //should probably always propagate A if higher than minOcc
 
-    //at the moment propagte es long as possible
     for ( int l( 0 ); l < alphabetSize; l++ )
         propagateIntervalA[l] = false;
 }

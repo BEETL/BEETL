@@ -42,6 +42,11 @@ typedef uint32_t SequenceLength;
 typedef uint64_t LetterNumber;
 const LetterNumber maxLetterNumber( static_cast<LetterNumber>( -1 ) );
 
+// Type to represent number of letters in an indexed chunk of the BWT
+// Must be the case that max run size per token * max tokens per chunk
+// fits into this number without overflow. Might be OK to replace with
+// a 16-bit type but we'll leave this at 32 bit initially.
+typedef uint32_t LetterNumberCompact;
 
 // For Countwords
 const LetterNumber matchFlag( ( ( LetterNumber )1 ) << ( ( 8 * sizeof( LetterNumber ) ) - 1 ) );

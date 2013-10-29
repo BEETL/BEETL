@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <unistd.h>
+#include <sys/syscall.h>
 
 using namespace std;
 
@@ -390,4 +391,43 @@ void pauseBetweenCycles()
         if ( skip )
             --skip;
     }
+}
+
+void readProcSelfStat( int &out_pid, int &out_num_threads, int &out_processor )
+{
+    using std::ios_base;
+    using std::ifstream;
+    using std::string;
+
+    int tid = syscall( SYS_gettid ); //gettid();
+
+    // 'file' stat seems to give the most reliable results
+    ostringstream oss;
+    oss << "/proc/" << tid << "/stat";
+    ifstream stat_stream( oss.str().c_str(), ios_base::in );
+
+    // dummy vars for leading entries in stat that we don't care about
+    //
+    string pid, comm, state, ppid, pgrp, session, tty_nr, tpgid;
+    string flags, minflt, cminflt, majflt, cmajflt, utime, stime, cutime;
+    string cstime, priority, nice, num_threads, itrealvalue, starttime, vsize, rss;
+    string rsslim, startcode, endcode, startstack, kstkesp, kstkeip, signal, blocked;
+    string sigignore, sigcatch, wchan, nswap, cnswap, exit_signal, processor, rt_priority;
+    string policy, delayacct_blkio_ticks;
+
+
+    stat_stream >> out_pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr >> tpgid
+                >> flags >> minflt >> cminflt >> majflt >> cmajflt >> utime >> stime >> cutime
+                >> cstime >> priority >> nice >> out_num_threads >> itrealvalue >> starttime >> vsize >> rss
+                >> rsslim >> startcode >> endcode >> startstack >> kstkesp >> kstkeip >> signal >> blocked
+                >> sigignore >> sigcatch >> wchan >> nswap >> cnswap >> exit_signal >> out_processor >> rt_priority
+                >> policy >> delayacct_blkio_ticks;
+
+
+    stat_stream.close();
+
+    out_pid = tid;
+    //   long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
+    //   vm_usage     = vsize / 1024.0;
+    //   resident_set = rss * page_size_kb;
 }

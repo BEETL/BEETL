@@ -39,6 +39,22 @@ enum SearchOptions
 class SearchParameters : public ToolParameters
 {
 public:
+    SearchParameters()
+    {
+        using namespace BeetlSearchParameters;
+        addEntry( -1, "input", "--input", "-i", "Input filename prefix (i.e. BWT files are \"prefix-B0[0-6]\")", "", TYPE_STRING | REQUIRED );
+        addEntry( -1, "output", "--output", "-o", "Output filename", "searchedKmers_positions", TYPE_STRING | REQUIRED );
+        addEntry( -1, "kmers input file", "--kmers", "-j", "File containing a list of k-mers to be searched for (one k-mer per line) OR", "", TYPE_STRING );
+        addEntry( -1, "one kmer string", "--kmer", "-k", "Single k-mer string to be searched for", "", TYPE_STRING );
+
+        addEntry( -1, "add rev comp", "--add-rev-comp", "", "Also search for reverse-complemented k-mers (reported as distinct k-mers)", "", TYPE_SWITCH );
+        addEntry( -1, "use indexing", "--use-indexing", "-ui", "Use indexing of BWT files to speed up searching", "", TYPE_SWITCH );
+        //        addEntry( -1, "pause between cycles", "--pause-between-cycles", "", "Wait for a key press after each cycle", "", TYPE_SWITCH );
+        //        addEntry( -1, "BWT in RAM", "--bwt-in-ram", "", "Keep BWT in RAM for faster processing", "", TYPE_SWITCH );
+
+        addDefaultVerbosityAndHelpEntries();
+    }
+
 };
 
 

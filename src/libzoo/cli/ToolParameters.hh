@@ -70,9 +70,13 @@ struct ParameterEntry
     ParameterEntry &operator=( const int rhs );
     ParameterEntry &operator=( const string &rhs );
     bool isSet() const;
+    void silentSet( const int val )
+    {
+        set( val, true );
+    }
 
 private:
-    void set( const int val );
+    void set( const int val, const bool isSilent = false );
     void set( const string &valString );
 };
 

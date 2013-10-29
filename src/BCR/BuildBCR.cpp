@@ -227,9 +227,12 @@ BwtReaderBase *BCRexternalBWT::instantiateBwtReaderForIntermediateCycle( const c
             BwtReaderIncrementalRunLength *p = static_cast<BwtReaderIncrementalRunLength *>( pReader );
             p->defragment();
 
-            #pragma omp critical
+            Logger_if( LOG_SHOW_IF_VERBOSE )
             {
-                cout << "After defrag, time now: " << timer.timeNow();
+                #pragma omp critical
+                {
+                    Logger::out() << "After defrag, time now: " << timer.timeNow();
+                }
             }
 
             delete( pReader );
@@ -302,6 +305,29 @@ BwtWriterBase *BCRexternalBWT::instantiateBwtWriterForLastCycle( const char *fil
     return pWriter;
 }
 
+BwtReaderBase *BCRexternalBWT::instantiateBwtReaderForLastCycle( const char *filenameOut )
+{
+    BwtReaderBase *pReader = NULL;
+    int outputFormat = bwtParams_->getValue( PARAMETER_OUTPUT_FORMAT );
+    switch ( outputFormat )
+    {
+        case OUTPUT_FORMAT_ASCII:
+            pReader = new BwtReaderASCII( filenameOut );
+            break;
+        case OUTPUT_FORMAT_RLE:
+            pReader = new BwtReaderRunLength( filenameOut );
+            break;
+        case OUTPUT_FORMAT_HUFFMAN:
+            pReader = new BwtReaderHuffman( filenameOut );
+            break;
+        default:
+            cerr << "Error in BCRexternalBWT::instantiateBwtReaderForLastCycle: unknown output format: " << outputFormat << endl;
+            exit ( EXIT_FAILURE );
+    }
+    assert( pReader );
+    return pReader;
+}
+
 
 int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtParameters *bwtParams )
 {
@@ -328,12 +354,17 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
     {
         TmpFilename cycFilesPrefix2( fileOut ); // "move" filename to temp directory
         cycFilesPrefix = cycFilesPrefix2.str();
-        FILE *f = fopen( file1, "rb" );
+        FILE *f;
+        if ( strcmp( file1, "-" ) == 0 )
+            f = stdin;
+        else
+            f = fopen( file1, "rb" );
         SeqReaderFile *pReader( SeqReaderFile::getReader( f ) );
         transp.init( pReader, readQualities );
         transp.convert( file1, cycFilesPrefix );
         delete pReader;
-        fclose( f );
+        if ( f != stdin )
+            fclose( f );
     }
 
     nText = transp.nSeq;
@@ -435,8 +466,8 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
     tableOcc_.clear();
 
     Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "\nFirst symbols: " << "Iteration " << 0 << " - symbols in (zero-based) position " << currentCycleFileNum << "\n";
-    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
-    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
+    Logger::out() << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
+    Logger::out() << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
 
     ReadFilesForCycle( cycFilesPrefix.c_str(), currentCycleFileNum, lengthRead, nText, newSymb, processQualities, newQual );
     InitialiseTmpFiles();
@@ -581,8 +612,8 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
         pauseBetweenCyclesIfNeeded ();
 
         Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Iteration " << ( int ) currentIteration << " - symbols in position " << ( int ) currentCycleFileNum << endl;
-        Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
-        Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
+        Logger::out() << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
+        Logger::out() << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
 
 
 
@@ -600,14 +631,22 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
             {
                 if ( ( int )currentIteration == nextIterationReset )
                 {
-                    Logger::out( LOG_ALWAYS_SHOW ) << "Resetting counters" << endl;
+                    Logger::out() << "Resetting counters" << endl;
+
+                    Logger_if( LOG_SHOW_IF_VERBOSE )
                     {
-                        Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Inserting new '$' symbols" << endl;
+                        Logger::out() << "Inserting new '$' symbols" << endl;
+                    }
+                    // Standalone block
+                    {
                         vector<uchar> newSymb2( nText, '$' );
                         assert( newSymb2.size() == nText );
                         assert( newSymb2[nText - 1] == '$' );
                         InsertNsymbols( &newSymb2[0], currentIteration, NULL );
                     }
+
+                    if ( bwtParams->getValue( PARAMETER_GENERATE_ENDPOSFILE ) || BUILD_SA )
+                        writeEndPosFile( 1, false );
 
                     Logger_if( LOG_SHOW_IF_VERBOSE )
                     {
@@ -651,8 +690,8 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
     //The last inserted symbol was in position 1 (or it is newSymb[j]),
     //the next symbol (to insert) is in position 0
     Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Iteration " << ( int ) currentIteration << " - symbols in position " << ( int ) currentCycleFileNum << endl;
-    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
-    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
+    Logger::out() << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
+    Logger::out() << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
     assert( currentIteration == lengthRead - 1 );
     assert( currentCycleFileNum == 0 || currentCycleFileNum == lengthRead - 1 ); // depending on the --reverse flag
     InsertNsymbols( newSymb, currentIteration, newQual );
@@ -665,8 +704,8 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
     //The last inserted symbol was in position 0 (or it is newSymb[j]),
     //the next symbol (to insert) is in position m-1, that is, I have to inserted the symbols $
     Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Final iteration " << ( int ) currentIteration << " - Inserting $=" << ( int )terminatorChar << "=" << terminatorChar << " symbols" << endl;
-    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
-    Logger::out( LOG_ALWAYS_SHOW ) << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
+    Logger::out() << "Starting iteration " << currentIteration << ", time now: " << timer.timeNow();
+    Logger::out() << "Starting iteration " << currentIteration << ", usage: " << timer << endl;
     assert( currentIteration == lengthRead );
     for ( SequenceNumber j = 0 ; j < nText; j++ )
     {
@@ -676,8 +715,8 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
     }
     InsertNsymbols( newSymb, currentIteration, newQual );
 
-    Logger::out( LOG_ALWAYS_SHOW ) << "Final iteration complete, time now: " << timer.timeNow();
-    Logger::out( LOG_ALWAYS_SHOW ) << "Final iteration complete, usage: " << timer << endl;
+    Logger::out() << "Final iteration complete, time now: " << timer.timeNow();
+    Logger::out() << "Final iteration complete, usage: " << timer << endl;
 
 
     // We don't need this one anymore
@@ -685,61 +724,7 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
     pWriterBwt0_ = 0;
 
     if ( bwtParams->getValue( PARAMETER_GENERATE_ENDPOSFILE ) || BUILD_SA )
-    {
-        Logger_if( LOG_SHOW_IF_VERBOSE )
-        {
-            Logger::out() << "Storing 'outFileEndPos', time now: " << timer.timeNow();
-            Logger::out() << "Storing 'outFileEndPos', usage: " << timer << endl;
-
-            Logger::out() << "Stores the 'end positions' of the $!" << endl;
-        }
-        Filename fileEndPos( bwtParams_->getStringValue( "output filename" ).c_str(), "-end-pos" );
-        FILE *OutFileEndPos;                  // output file of the end positions;
-        OutFileEndPos = fopen( fileEndPos, "wb" );
-        if ( OutFileEndPos == NULL )
-        {
-            cerr << "Error opening \"" << fileEndPos << "\" file" << endl;
-            exit ( EXIT_FAILURE );
-        }
-
-        /*
-        //Each symbol newSymb[seqN[i]] has been in position posN[i] into the pile pileN[i]
-        //We have to store the absolute positions in the entire BWT
-        //So we need to use the tableOcc_.
-        //The symbol $ of the sequence i is in the position endPos[SeqN[i]]
-        for (SequenceNumber i = 0; i < nText; i++) {
-        for (AlphabetSymbol r = 0; r < vectTriple[i].pileN; r++) {
-        for (AlphabetSymbol t = 0; t < alphabetSize; t++) {
-        vectTriple[i].posN += tableOcc_[r][t];
-        }
-        }
-        }
-
-        cerr << "Positions of the EOF into BWT" << endl;
-        for (SequenceNumber i = 0; i < nText; i++) {
-        cerr << posN[i] << " ";
-        }
-        cerr << endl;
-        */
-
-        numchar = fwrite ( &nText, sizeof( SequenceNumber ), 1 , OutFileEndPos );
-        assert( numchar == 1 ); // we should always read the same number of characters
-
-        for ( SequenceNumber i = 0; i < nText; i++ )
-        {
-            if ( verboseEncode == 1 )
-                cerr << "Triple: " << vectTriple[i].seqN << " " << vectTriple[i].posN << " " << ( int )vectTriple[i].pileN << endl;
-            numchar = fwrite ( &vectTriple[i].seqN, sizeof( SequenceNumber ), 1 , OutFileEndPos );
-            assert( numchar == 1 ); // we should always read the same number of characters
-            numchar = fwrite ( &vectTriple[i].posN, sizeof( LetterNumber ), 1 , OutFileEndPos ); //here vectTriple[i].posN is the relative position of $ in the partial BWT
-            assert( numchar == 1 ); // we should always read the same number of characters
-            numchar = fwrite ( &vectTriple[i].pileN, sizeof( AlphabetSymbol ), 1 , OutFileEndPos );
-            assert( numchar == 1 ); // we should always read the same number of characters
-        }
-
-        fclose( OutFileEndPos );
-        Logger::out( LOG_ALWAYS_SHOW ) << "'end positions' stored!" << endl;
-    }
+        writeEndPosFile( 0, true );
 
     /* We shouldn't need this anymore as long as we never send the last cycle to ram
       if (bwtParams->getValue( PARAMETER_INTERMEDIATE_STORAGE_MEDIUM ) == INTERMEDIATE_STORAGE_MEDIUM_RAM)
@@ -1251,7 +1236,7 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, SequenceLength iterat
                     }
                 }
 
-                Logger::out( LOG_FOR_DEBUGGING ) << "sapCount[" << sapSet << "]=" << sapCount[sapSet] << endl;
+                Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "sapCount[" << sapSet << "]=" << sapCount[sapSet] << endl;
                 SequenceNumber startSeqNum = ( sapSet > 0 ? sapAccumulatedCount[sapSet - 1] : 0 ); //currentSeq;
                 SequenceNumber endSeqNum = sapAccumulatedCount[sapSet]; //currentSeq + sapCount[sapSet];
                 SequenceNumber pos = startSeqNum;
@@ -1290,7 +1275,7 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, SequenceLength iterat
                 assert( pos == endSeqNum );
             }
 
-            Logger::out( LOG_ALWAYS_SHOW ) << "SAP active sets=" << sapActiveSetCount << ", active bases=" << sapActiveBaseCount << ", veryActive sets=" << sapVeryActiveSetCount << ", veryActive bases=" << sapVeryActiveBaseCount << endl;
+            Logger::out() << "SAP active sets=" << sapActiveSetCount << ", active bases=" << sapActiveBaseCount << ", veryActive sets=" << sapVeryActiveSetCount << ", veryActive bases=" << sapVeryActiveBaseCount << endl;
             if ( sapActiveSetCount == 0 )
             {
                 SAPstopped = true;
@@ -1453,8 +1438,7 @@ void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, Sequence
 
             Logger_if( LOG_FOR_DEBUGGING )
             {
-                Logger::out() << "toRead=" << toRead << ", foundSymbol=" << foundSymbol  << ", counters=";
-                counters.print();
+                Logger::out() << "toRead=" << toRead << ", foundSymbol=" << foundSymbol  << ", counters=" << counters << endl;
             }
 
             //cerr << "toRead " << toRead << "Found Symbol is " << foundSymbol << "\n";
@@ -2946,4 +2930,149 @@ void BCRexternalBWT::pauseBetweenCyclesIfNeeded()
 {
     if ( bwtParams_->getValue( PARAMETER_PAUSE_BETWEEN_CYCLES ) == true )
         pauseBetweenCycles();
+}
+
+bool BCRexternalBWT::writeEndPosFile( const uint8_t subSequenceNum, const bool lastFile )
+{
+    Logger_if( LOG_SHOW_IF_VERBOSE )
+    {
+        Logger::out() << "Storing 'outFileEndPos', time now: " << timer.timeNow();
+        Logger::out() << "Storing 'outFileEndPos', usage: " << timer << endl;
+
+        Logger::out() << "Stores the 'end positions' of the $!" << endl;
+    }
+    LetterNumber numchar;
+    FILE *inFileEndPos = NULL;
+    FILE *OutFileEndPos = NULL;
+    static bool firstTime = true;
+    char inBuf[ sizeof( SequenceNumber ) + sizeof( uint8_t ) ];
+    if ( !firstTime )
+    {
+        Filename previousFileEndPos( bwtParams_->getStringValue( "output filename" ).c_str(), "-end-pos-intermediate" );
+        inFileEndPos = fopen( previousFileEndPos, "rb" );
+        SequenceNumber skipNumText;
+        uint8_t skipSubSequenceCount, skipHasRevComp;
+        fread ( &skipNumText, sizeof( SequenceNumber ), 1 , inFileEndPos );
+        fread ( &skipSubSequenceCount, sizeof( uint8_t ), 1 , inFileEndPos );
+        fread ( &skipHasRevComp, sizeof( uint8_t ), 1 , inFileEndPos );
+    }
+    Filename fileEndPos( bwtParams_->getStringValue( "output filename" ).c_str(), lastFile ? "-end-pos" : "-end-pos-intermediate" );
+    OutFileEndPos = fopen( fileEndPos, "wb" );
+    if ( OutFileEndPos == NULL )
+    {
+        cerr << "Error opening \"" << fileEndPos << "\" file" << endl;
+        exit ( EXIT_FAILURE );
+    }
+
+    // Writing -end-pos file header
+    uint8_t hasRevComp = ( bwtParams_->getValue( PARAMETER_ADD_REV_COMP ) == 0 ) ? 0 : 1;
+    SequenceNumber seqCount = nText;
+    if ( hasRevComp )
+    {
+        assert( seqCount % 2 == 0 );
+        seqCount /= 2;
+    }
+    uint8_t subSequenceCount = 1;
+
+    if ( bwtParams_->getValue( PARAMETER_PAIRED_READS_INPUT ) == PAIRED_READS_INPUT_ALL1ALL2 )
+    {
+        assert( firstTime ); // We can't have both paired-end ways (--sub-sequence-length and --paired-end-input) at the same time
+
+        assert( seqCount % 2 == 0 );
+        seqCount /= 2;
+        subSequenceCount = 2;
+    }
+    else
+    {
+        subSequenceCount = firstTime ? 1 : 2;
+    }
+    numchar = fwrite ( &seqCount, sizeof( SequenceNumber ), 1 , OutFileEndPos );
+    assert( numchar == 1 );
+    numchar = fwrite ( &subSequenceCount, sizeof( uint8_t ), 1 , OutFileEndPos );
+    assert( numchar == 1 );
+    numchar = fwrite ( &hasRevComp, sizeof( uint8_t ), 1 , OutFileEndPos );
+    assert( numchar == 1 );
+
+
+    LetterNumber cont = 0;
+    LetterCount counters;
+    int currentPile = 0;
+    BwtReaderBase *pReader = NULL;
+    for ( SequenceNumber i = 0; i < nText; i++ )
+    {
+        while ( currentPile != vectTriple[i].pileN )
+        {
+            ++currentPile;
+            // finish read&counting current bwt file
+            counters.clear();
+            if ( pReader )
+            {
+                pReader->readAndCount( counters );
+            }
+
+            // how many '$' signs found? transfer as many end-pos-intermediate entries
+            Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "Transfer " << counters.count_[0] << " entries" << endl;
+            for ( int j = 0; j < counters.count_[0]; ++j )
+            {
+                fread( inBuf, sizeof( SequenceNumber ) + sizeof( uint8_t ), 1, inFileEndPos );
+                fwrite( inBuf, sizeof( SequenceNumber ) + sizeof( uint8_t ), 1, OutFileEndPos );
+            }
+
+            // open next bwt file
+            TmpFilename filenameIn( "", currentPile, "" );
+            pReader = instantiateBwtReaderForLastCycle( filenameIn );
+            cont = 0;
+        }
+
+        // read&count current bwt file until position vectTriple[i].posN
+        LetterNumber toRead = vectTriple[i].posN - cont - 1;
+        counters.clear();
+        LetterNumber numberRead = ( *pReader ).readAndCount( counters, toRead );
+        if ( toRead != numberRead )
+        {
+            cerr << "ERROR: toRead != numberRead" << endl;
+            cerr << "  toRead = " << toRead << endl;
+            cerr << "  numberRead=" << numberRead << endl;
+            cerr << "  cont=" << cont << endl;
+            cerr << "  i=" << i << endl;
+            cerr << "  vectTriple[i].posN=" << vectTriple[i].posN << endl;
+            assert( false );
+        }
+        cont += toRead;
+
+        // how many '$' signs found? transfer as many end-pos-intermediate entries
+        Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "Transfer(2) " << counters.count_[0] << " entries" << endl;
+        for ( int j = 0; j < counters.count_[0]; ++j )
+        {
+            fread( inBuf, sizeof( SequenceNumber ) + sizeof( uint8_t ), 1, inFileEndPos );
+            fwrite( inBuf, sizeof( SequenceNumber ) + sizeof( uint8_t ), 1, OutFileEndPos );
+        }
+
+        // read&count 1 char: check that it's a '$' sign
+        counters.clear();
+        numberRead = ( *pReader ).readAndCount( counters, 1 );
+        assert( counters.count_[0] == 1 );
+        ++cont;
+
+        // insert entry
+        Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "Triple: " << vectTriple[i].seqN << " " << vectTriple[i].posN << " " << ( int )vectTriple[i].pileN << endl;
+        uint8_t extendedSubSeqNum = vectTriple[i].seqN / seqCount;
+        SequenceNumber seqNumWithoutRevCompOrPair = vectTriple[i].seqN % seqCount;
+
+        numchar = fwrite ( &seqNumWithoutRevCompOrPair, sizeof( SequenceNumber ), 1 , OutFileEndPos );
+        assert( numchar == 1 );
+        numchar = fwrite ( &extendedSubSeqNum, sizeof( uint8_t ), 1 , OutFileEndPos );
+        assert( numchar == 1 );
+    }
+
+    fclose( OutFileEndPos );
+    Logger::out() << "'end positions' stored!" << endl;
+
+    if ( !firstTime )
+    {
+        Filename previousFileEndPos( bwtParams_->getStringValue( "output filename" ).c_str(), "-end-pos-intermediate" );
+        if ( remove( previousFileEndPos ) != 0 )
+            cerr << "Error deleting file " << previousFileEndPos << endl;
+    }
+    firstTime = false;
 }

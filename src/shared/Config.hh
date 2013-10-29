@@ -18,10 +18,6 @@
 #ifndef DEFINED_CONFIG_HH
 #define DEFINED_CONFIG_HH
 
-#include "Types.hh"
-
-#include <cstdlib>
-
 
 /* Control flags - modify and recompile to change program behaviour */
 
@@ -52,7 +48,7 @@
 #define REMOVE_TEMPORARY_FILES 1
 
 // For CountWords: keep the actual string associated with each interval
-#define PROPAGATE_PREFIX 1
+//#define PROPAGATE_SEQUENCE
 
 /* Control parameters - modify and recompile to change program behaviour */
 
@@ -75,27 +71,27 @@ static const unsigned int ReadBufferSize( 1024 );
 // ################## Huffman encoding parameters ###########################
 
 // number of double codes used to introduce runs
-const uint numDoubleCodes( 6 );
+const unsigned int numDoubleCodes( 6 );
 
 // EOT character 'Z'
-const uint numSingleCodes( numDoubleCodes + 1 );
+const unsigned int numSingleCodes( numDoubleCodes + 1 );
 
 // maximal size of one token is 8 bit
-const uint maxTokenSize( 8 );
+const unsigned int maxTokenSize( 8 );
 
 // we will have 256 different tokens
-const uint numTokens( 1 << maxTokenSize );
+const unsigned int numTokens( 1 << maxTokenSize );
 
 // 255 in binary -> 1111 1111
 // used to extract the last 8 bits during processing
-const uint tokenMask( numTokens - 1 );
+const unsigned int tokenMask( numTokens - 1 );
 
 // for once a typedef here, otherwise types.hh would have to include config.hh
 // this is a lookup table for fast 8bit mask -> orginal alphabet letter
 // i.e. tokentable assigns several 8bit binary tokens to specific letters in
 // the input alphabet. A lookup using this table supersedes a slow bit by bit
 // comparison deciding which letter is the next.
-typedef uint TokenTable[numTokens];
+typedef unsigned int TokenTable[numTokens];
 
 // single letter codes
 // hexadecimal codes for each letter used by Huffman encoder
@@ -108,7 +104,7 @@ static const unsigned long long singleCharCode[numSingleCodes]
 //  $     A    C    G    N     T    Z
 // 10111 011 101   110 1110001 100 11100000
 // length in bit for each token
-static const uint singleCharLength[numSingleCodes]
+static const unsigned int singleCharLength[numSingleCodes]
 
 //= {5,3,3,3,6,4,8}; // Tobias
     = {5, 3, 3, 3, 7, 3, 8}; // Tony
@@ -125,13 +121,13 @@ static const unsigned long long doubleCharCode[numDoubleCodes]
 
 
 // length in bit for each token
-static const uint doubleCharLength[numDoubleCodes]
+static const unsigned int doubleCharLength[numDoubleCodes]
 //    $ A C G N T
 // = {8,3,3,4,7,3}; // Tobias
     = {6, 3, 3, 3, 8, 4}; // Tony
 
 // position of the notinalphabet char in the baseNames array
-static const uint finalCharCode( 6 );
+static const unsigned int finalCharCode( 6 );
 
 // ################## END Huffman parameters ###########################
 

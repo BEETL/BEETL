@@ -19,20 +19,22 @@
 #define INCLUDED_BWTCORRECTOR_HH
 
 #include "Algorithm.hh"
-#include "OneBwtBackTracker.hh"
-#include "Config.hh"
-#include "LetterCount.hh"
-#include "HiTECStats.hh"
-#include "countWords/RangeStore.hh"
-#include "Types.hh"
-#include "parameters/BwtParameters.hh"
-#include "WitnessReader.hh"
-#include "ErrorInfo.hh"
 #include "BwtCorrectorIntervalHandler.hh"
+#include "Config.hh"
+#include "ErrorInfo.hh"
+#include "HiTECStats.hh"
+#include "LetterCount.hh"
+#include "OneBwtBackTracker.hh"
+#include "RangeStore.hh"
+#include "Types.hh"
+#include "WitnessReader.hh"
+#include "parameters/BwtParameters.hh"
+
 #include <string>
 #include <math.h>
 
 using std::string;
+
 
 class BwtCorrector : public Algorithm
 {
@@ -46,7 +48,8 @@ public:
         double errorRate,
         double genomeLength,
         int minWitnessLength,
-        const string &subset
+        const string &subset,
+        int minSupport = 0
     )
         : genomeLength_( genomeLength )
         , indexPrefix_( inputFile )
@@ -56,9 +59,11 @@ public:
         , readLength_( readLength )
         , minWitnessLength_( minWitnessLength )
         , outputFile_( outputFile )
+        , minSupport_ ( minSupport )
     {}
 
     virtual ~BwtCorrector() {}
+    int getMinSupport( int cycle );
     void showExecutionPlan();
     ErrorStore findErrors();
     void run( void );
@@ -71,6 +76,7 @@ private:
     int readLength_;
 
     int minWitnessLength_;
+    int minSupport_;
 
     string subset_;
 

@@ -19,6 +19,7 @@
 
 #include "SeqReader.hh"
 #include "TransposeFasta.hh"
+#include "libzoo/cli/Common.hh"
 
 using namespace std;
 
@@ -38,23 +39,32 @@ void DatasetMetadata::init( const string &input, const string &inputFormat )
     }
     else
     {
-        FILE *f = fopen( input.c_str(), "rb" );
-        if ( !f )
+        if ( input == "-" || beginsWith( input, "/dev/fd" ) )
         {
-            cerr << "Error: Cannot open " << input << endl;
-            exit( EXIT_FAILURE );
+            // Using default values for pipe
+            nCycles = 100;
+            nReads = 1000000;
         }
-        SeqReaderFile *pReader( SeqReaderFile::getReader( f ) );
-        nCycles = pReader->length();
+        else
+        {
+            FILE *f = fopen( input.c_str(), "rb" );
+            if ( !f )
+            {
+                cerr << "Error: Cannot open " << input << endl;
+                exit( EXIT_FAILURE );
+            }
+            SeqReaderFile *pReader( SeqReaderFile::getReader( f ) );
+            nCycles = pReader->length();
 
-        // At this point SeqReader will have read the first dataset entry
-        // We estimate the total number of entries by dividing the total file size
-        long entrySize = ftell( f );
-        fseek( f, 0, SEEK_END );
-        long fileSize = ftell( f );
-        nReads = fileSize / entrySize;
-        delete pReader;
-        fclose( f );
+            // At this point SeqReader will have read the first dataset entry
+            // We estimate the total number of entries by dividing the total file size
+            long entrySize = ftell( f );
+            fseek( f, 0, SEEK_END );
+            long fileSize = ftell( f );
+            nReads = fileSize / entrySize;
+            delete pReader;
+            fclose( f );
+        }
     }
 
     nBases = nCycles * nReads;

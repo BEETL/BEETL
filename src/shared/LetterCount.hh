@@ -28,9 +28,9 @@
 using std::vector;
 
 
-struct LetterCount
+template<typename T> struct LetterCountTemplate
 {
-    LetterCount()
+    LetterCountTemplate()
     {
         clear();
     } // ~ctor
@@ -39,33 +39,57 @@ struct LetterCount
         for ( int i( 0 ); i < alphabetSize; i++ ) count_[i] = 0;
     } // ~clear
 
-    void print( void )
-    {
-        for ( int i( 0 ); i < alphabetSize; i++ )
-            std::cout << " " << alphabet[i] << ":" << count_[i];
-        std::cout << std::endl;
-    } // ~print
-
-    void operator+=( char c )
+    void operator+=( const char c )
     {
         assert( whichPile[( int )c] < alphabetSize );
         count_[whichPile[( int )c]]++;
     }
 
-    void operator+=( const LetterCount &rhs )
+    template<typename TT>void operator+=( const LetterCountTemplate<TT> &rhs )
     {
         for ( int i( 0 ); i < alphabetSize; i++ ) count_[i] += rhs.count_[i];
     } // ~clear
 
-    void operator-=( const LetterCount &rhs )
+    template<typename TT>void operator-=( const LetterCountTemplate<TT> &rhs )
     {
         // on your own head be it if you make an unsigned quantity negative...
         for ( int i( 0 ); i < alphabetSize; i++ ) count_[i] -= rhs.count_[i];
     } // ~clear
 
+    void countString( const char *const s, const T length )
+    {
+        for ( T i = 0; i < length; ++i )
+            operator+=( s[i] );
+    }
+
+    friend std::ostream &operator<<( std::ostream &os, const LetterCountTemplate &obj )
+    {
+        for ( int i( 0 ); i < alphabetSize; i++ )
+            os << " " << alphabet[i] << ":" << obj.count_[i];
+        return os;
+    }
+
+    friend std::istream &operator>>( std::istream &is, LetterCountTemplate &obj )
+    {
+        char space, letter, colon;
+        for ( int i( 0 ); i < alphabetSize; i++ )
+        {
+            is >> letter >> colon >> obj.count_[i];
+            if ( letter != alphabet[i] || colon != ':' )
+            {
+                std::cerr << "Error reading LetterCount from file: letter=" << letter << ", colon=" << colon << std::endl;
+                exit( 1 );
+            }
+        }
+        return is;
+    }
+
     //  LetterCountData count_;
-    LetterNumber count_[alphabetSize];
-}; // ~LetterCount
+    T count_[alphabetSize];
+}; // ~LetterCountTemplate
+
+typedef LetterCountTemplate<LetterNumber> LetterCount;
+typedef LetterCountTemplate<LetterNumberCompact> LetterCountCompact;
 
 struct LetterCountEachPile : public vector<LetterCount>
 {
@@ -83,8 +107,7 @@ struct LetterCountEachPile : public vector<LetterCount>
     {
         for ( int i( 0 ); i < alphabetSize; i++ )
         {
-            std::cout << alphabet[i] << " pile";
-            ( *this )[i].print();
+            std::cout << alphabet[i] << " pile" << ( *this )[i] << std::endl;
         } // ~for
     } // ~clear
 
@@ -93,9 +116,7 @@ struct LetterCountEachPile : public vector<LetterCount>
         for ( int i( 0 ); i < alphabetSize; i++ ) ( *this )[i] += rhs[i];
     } // ~clear
 
-
 };
-
 
 
 #endif

@@ -1,0 +1,148 @@
+#!/bin/bash
+
+## Copyright (c) 2013 Illumina, Inc.
+##
+## 
+## This software is covered by the "Illumina Non-Commercial Use Software
+## and Source Code License Agreement" and any user of this software or
+## source file is bound by the terms therein (see accompanying file
+## Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
+##
+
+## test-beetl-compare
+## Regression tests for beetl-compare
+## Author: Lilian Janin
+
+
+abscommand="$(cd "${0%/*}" 2>/dev/null; echo "$PWD"/"${0##*/}")"
+abspath=`dirname "$abscommand"`
+
+OUTPUT_DIR=${PWD}/largeTestBeetlCompareTumourNormal
+
+#EAGLE_PATH=/illumina/development/EAGLE/`readlink /illumina/development/EAGLE/stable`
+EAGLE_PATH=/home/ljanin/install/EAGLE-release
+EAGLE_SHARE=${EAGLE_PATH}/share/EAGLE
+EAGLE_LIBEXEC=${EAGLE_PATH}/libexec/EAGLE
+
+
+# Directory initialisation
+          rm -rf ${OUTPUT_DIR}
+          mkdir -p ${OUTPUT_DIR}
+          cd ${OUTPUT_DIR}
+
+
+# Dataset creation using EAGLE simulation
+rm -rf EAGLE1 EAGLE2 Fastq1 Fastq2
+#OPTIONS="--quality-table=${EAGLE_SHARE}/QualityTables/Q40QualityTable.length101.qval --quality-table=${EAGLE_SHARE}/QualityTables/Q40QualityTable.length101.qval"
+
+          echo -e "chr\t2000\t.\tC\tT\t0\tPASS\tSVTYPE=SNP" > tumourOnlyVariants.vcf
+
+${EAGLE_PATH}/bin/configureEAGLE.pl   --run-info=$EAGLE_SHARE/RunInfo/RunInfo_PairedReads1x1Tiles.xml   --reference-genome=/illumina/scratch/iGenomes/Enterobacteriophage_lambda/NCBI/1993-04-28/Sequence/Chromosomes/   --variant-list=tumourOnlyVariants.vcf   --coverage-depth=40 ${OPTIONS} EAGLE1
+cd EAGLE1/
+make -j 4
+/illumina/development/bcl2fastq/bcl2fastq-1.8.4/bin/configureBclToFastq.pl --input-dir 111206_EAS987_0567_FC1234TST/Data/Intensities/BaseCalls --output-dir FastQ
+cd FastQ/
+make -j 4
+mv Project_FC1234TST/Sample_lane1 ../../Fastq1
+cd ../..
+
+${EAGLE_PATH}/bin/configureEAGLE.pl   --run-info=$EAGLE_SHARE/RunInfo/RunInfo_PairedReads1x1Tiles.xml   --reference-genome=/illumina/scratch/iGenomes/Enterobacteriophage_lambda/NCBI/1993-04-28/Sequence/Chromosomes/     --coverage-depth=30 ${OPTIONS} EAGLE2
+cd EAGLE2
+make -j 4
+/illumina/development/bcl2fastq/bcl2fastq-1.8.4/bin/configureBclToFastq.pl --input-dir 111206_EAS987_0567_FC1234TST/Data/Intensities/BaseCalls --output-dir FastQ
+cd FastQ/
+make -j 4
+mv Project_FC1234TST/Sample_lane1 ../../Fastq2
+cd ../..
+
+
+
+cd ${OUTPUT_DIR}
+${abspath}/../bin/beetlflow-tumour-normal-filter.sh \
+  Fastq1/lane1_NoIndex_L001_R1_001.fastq.gz \
+  Fastq1/lane1_NoIndex_L001_R2_001.fastq.gz \
+  Fastq2/lane1_NoIndex_L001_R1_001.fastq.gz \
+  Fastq2/lane1_NoIndex_L001_R2_001.fastq.gz \
+  filterOutput
+
+
+# Expected outputs: Tumour
+cut -d " " -f 1 filterOutput/extend_setA.out |sort -gu > setA.extractedReadNums
+echo "286
+299
+312
+313
+315
+317
+318
+322
+323
+325
+327
+329
+330
+331
+332
+335
+338
+341
+348
+350
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380" > setA_expectedReadNums
+echo "----------------------------------"
+echo "Tumour differences (extracted / expected)"
+diff --side-by-side setA.extractedReadNums setA_expectedReadNums
+
+
+# Expected outputs: Normal
+cut -d " " -f 1 filterOutput/extend_setB.out |sort -gu > setB.extractedReadNums
+echo "225
+242
+244
+245
+247
+248
+253
+256
+261
+262
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281" > setB_expectedReadNums
+echo "----------------------------------"
+echo "Normal differences (extracted / expected)"
+diff --side-by-side setB.extractedReadNums setB_expectedReadNums

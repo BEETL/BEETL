@@ -28,10 +28,14 @@ using std::string;
 using std::vector;
 using std::shared_ptr;
 
+
+//#define DISABLE_WRITES_AND_REMOVES
+
+
 class TemporaryFilesManager
 {
 private:
-    TemporaryFilesManager() {}
+    TemporaryFilesManager() : tempPathWasCreated_( false ), ramLimitMB_( 0 ) {}
     TemporaryFilesManager( TemporaryFilesManager const & ); // no impl to avoid copies of singleton
     void operator=( TemporaryFilesManager const & ); // no impl to avoid copies of singleton
 
@@ -56,16 +60,26 @@ private:
     vector<string> filenames_;
 };
 
+static const int TempFileBufSize( 32768 );
 
 class TemporaryFile
 {
 public:
-    TemporaryFile( ) : f_( NULL ) {}
+    TemporaryFile( ) : f_( NULL )
+#ifdef BUFFERED_WRITE_TEST_VERSION
+        , p_( &buf_[0] )
+        , pBufMax_( p_ + TempFileBufSize )
+#endif
+    {}
     TemporaryFile( const char *filename, const char *mode );
     virtual ~TemporaryFile() {}
 
     static TemporaryFile *fopen( const char *filename, const char *mode )
     {
+#ifdef DISABLE_WRITES_AND_REMOVES
+        if ( mode[0] == 'w' )
+            return new TemporaryFile( "tmp", mode );
+#endif
         TemporaryFile *result = new TemporaryFile( filename, mode );
         if ( result->f_ )
             return result;
@@ -78,16 +92,49 @@ public:
 
     void open( const char *filename, const char *mode );
 
+
+
     virtual size_t read( void *ptr, size_t size, size_t nmemb )
     {
         return ::fread( ptr, size, nmemb, f_ );
     }
+
+#ifdef BUFFERED_WRITE_TEST_VERSION
+    void flushBuffer( void )
+    {
+        ::fwrite( buf_, 1, p_ - &buf_[0], f_ );
+        p_ = &buf_[0];
+    }
+
     virtual size_t write( const void *ptr, size_t size, size_t nmemb )
     {
+#ifdef DISABLE_WRITES_AND_REMOVES
+        return size ? nmemb : 0;
+#endif
+        char *pIn( ( char * )ptr );
+        for ( size_t i( 0 ); i < size * nmemb; i++ )
+        {
+            if ( p_ == pBufMax_ ) flushBuffer();
+            *p_++ = *pIn++;
+        }
+
+
+        return nmemb;
+    }
+#else
+    virtual size_t write( const void *ptr, size_t size, size_t nmemb )
+    {
+#ifdef DISABLE_WRITES_AND_REMOVES
+        return size ? nmemb : 0;
+#endif
         return ::fwrite( ptr, size, nmemb, f_ );
     }
+#endif
+
+
     virtual size_t tell()
     {
+        // TBD - gives wrong answers for buffered write
         return ::ftell( f_ );
     }
     void flush()
@@ -98,7 +145,13 @@ public:
     virtual void close()
     {
         if ( f_ )
+        {
+#ifdef BUFFERED_WRITE_TEST_VERSION
+            flushBuffer();
+#endif
             ::fclose( f_ );
+        }
+        delete this;
     }
     int fileno()
     {
@@ -146,15 +199,64 @@ public:
         return stream->eof();
     }
 
-    static bool remove( const char *filename )
-    {
-        return ::remove( filename );
-    }
+    static bool remove( const char *filename );
 
 protected:
+    static string getFullFilename( const string &filename );
+
     FILE *f_;
+#ifdef BUFFERED_WRITE_TEST_VERSION
+    char buf_[TempFileBufSize];
+    char *p_;
+    char *pBufMax_;
+#endif //ifdef BUFFERED_WRITE_TEST_VERSION
 };
 
+
+struct NoInitChar
+{
+    char value;
+    NoInitChar() {} // do nothing, especially not an initialisation
+};
+
+class NoInitCharVector
+{
+public:
+    NoInitCharVector()
+        : data( NULL )
+        , capacity_( 0 )
+        , size_( 0 )
+    {}
+
+    ~NoInitCharVector()
+    {
+        free( data );
+    }
+
+    void reserve( size_t n )
+    {
+        data = ( char * )malloc( n );
+        capacity_ = n;
+    }
+    void resize( size_t n )
+    {
+        size_ = n;
+    }
+    size_t capacity() const
+    {
+        return capacity_;
+    }
+    size_t size() const
+    {
+        return size_;
+    }
+
+    char *data;
+
+private:
+    size_t capacity_;
+    size_t size_;
+};
 
 // RAM file with disk fallback
 class TemporaryRamFile : public TemporaryFile
@@ -181,8 +283,9 @@ public:
 private:
     const string filename_;
     const string mode_;
-    shared_ptr< vector< char > > buf_;
+    shared_ptr< NoInitCharVector > buf_;
     size_t currentPos_;
+    //    char localBuf_[1024*1024];
 };
 
 

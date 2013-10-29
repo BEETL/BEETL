@@ -25,11 +25,7 @@
 #include "config.h"
 #include "libzoo/cli/Common.hh"
 #include "libzoo/util/Logger.hh"
-#include "countWords/RangeStore.hh"
-#include "countWords/IntervalHandlerReference.hh"
-#include "errors/OneBwtBackTracker.hh"
 #include "errors/WitnessReader.hh"
-#include "errors/HiTEC.hh"
 #include "errors/HiTECStats.hh"
 #include "errors/BwtCorrectorParameters.hh"
 #include "errors/BwtCorrector.hh"
@@ -62,6 +58,9 @@ int main( const int argc, const char **argv )
         params.printUsage();
         exit( 1 );
     }
+
+    // Use default parameter values where needed
+    params.commitDefaultValues();
 
     string indexPrefix = params.getStringValue( "input filename" );
 
@@ -105,6 +104,11 @@ int main( const int argc, const char **argv )
         minWitnessLength = stats.Calculate_wm() - 1;
     }
 
+    int minSupport = 0;
+
+    if ( params["min support"].isSet() )
+        minSupport = params.getValue( "min support" );
+
     BwtCorrector *corrector = new BwtCorrector(
         indexPrefix,
         params.getStringValue( "corrections output filename" ),
@@ -113,7 +117,8 @@ int main( const int argc, const char **argv )
         errorRate,
         genomeLength,
         minWitnessLength,
-        params.getStringValue( "subset" )
+        params.getStringValue( "subset" ),
+        minSupport
     );
 
     corrector->showExecutionPlan();

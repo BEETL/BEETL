@@ -85,14 +85,17 @@ ParameterEntry &ParameterEntry::operator=( const string &rhs )
 
 bool ParameterEntry::isSet() const
 {
-    return !userValue.empty();
+    if ( flags & TYPE_SWITCH )
+        return ( parsedValue == 1 ); // SWITCHes always get a default value
+    else
+        return !userValue.empty();
 }
 
 void ParameterEntry::set( const string &valString )
 {
     if ( !userValue.empty() )
     {
-        cerr << "Warning: Overwriting value for parameter " << stringId << " from " << userValue << " to " << valString << endl;
+        cerr << "Warning: Overwriting value for parameter \"" << stringId << "\" from " << userValue << " to \"" << valString << "\"" << endl;
     }
     userValue = valString;
 
@@ -126,9 +129,9 @@ void ParameterEntry::set( const string &valString )
     }
 }
 
-void ParameterEntry::set( const int val )
+void ParameterEntry::set( const int val, const bool isSilent )
 {
-    if ( parsedValue != -1 )
+    if ( parsedValue != -1 && !isSilent )
     {
         cerr << "Warning: Overwriting value for parameter \"" << stringId << "\" from " << parsedValue << " to " << val << endl;
     }
@@ -314,6 +317,7 @@ void ToolParameters::printUsage() const
 void ToolParameters::addDefaultVerbosityAndHelpEntries()
 {
     addEntry( -1, "temp directory", "--temp-directory", "-T", "Path for temporary files (hint: choose a fast drive)", ".", TYPE_STRING | ENVIRONMENT );
+    addEntry( -1, "no temp subdir", "--no-temp-subdir", "", "Prevent creation of a uniquely named temporary sub-directory", "", TYPE_SWITCH | ENVIRONMENT );
     addEntry( -1, "verbosity", "--verbosity", "", "[quiet|normal|verbose|very-verbose|debug] or [0|1|2|3|4]", "normal", TYPE_STRING | ENVIRONMENT );
     addEntry( -1, "verbose", "", "-v", "Shortcut to --verbosity = verbose", "", TYPE_SWITCH | ENVIRONMENT );
     addEntry( -1, "very-verbose", "", "-vv", "Shortcut to --verbosity = very-verbose", "", TYPE_SWITCH | ENVIRONMENT );
@@ -379,7 +383,7 @@ void ToolParameters::setLoggerVerbosityAndTempDir()
     }
 
     // Initialise temporary directory
-    TemporaryFilesManager::get().setTempPath( getEntry( "temp directory" ) );
+    TemporaryFilesManager::get().setTempPath( getEntry( "temp directory" ), getEntry( "no temp subdir" ) != true );
 }
 
 void ToolParameters::print( std::ostream &os, const bool singleLine, const int flagMask ) const
@@ -395,14 +399,14 @@ void ToolParameters::print( std::ostream &os, const bool singleLine, const int f
     else
         for ( unsigned int i = 0; i < entries_.size(); ++i )
         {
-            Logger::out( LOG_ALWAYS_SHOW ) << "  " << entries_[i].stringId << " = " << static_cast<string>( entries_[i] ) << endl;;
+            Logger::out() << "  " << entries_[i].stringId << " = " << static_cast<string>( entries_[i] ) << endl;;
             /*
                     if ( config.first[i] == MULTIPLE_OPTIONS )
                     {
-                        Logger::out( LOG_ALWAYS_SHOW ) << "* => ";
+                        Logger::out() << "* => ";
                         config.first[i] = 0;
                     }
-                    Logger::out( LOG_ALWAYS_SHOW ) << getOptionPossibleValue( i, config.first[i] ) << endl;
+                    Logger::out() << getOptionPossibleValue( i, config.first[i] ) << endl;
             */
         }
 }

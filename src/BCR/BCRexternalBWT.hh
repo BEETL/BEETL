@@ -21,13 +21,14 @@
 #include "BWTCollection.hh"
 #include "BwtReader.hh"
 #include "libzoo/cli/ToolParameters.hh"
-#include "parameters/SearchParameters.hh"
 #include "shared/FragmentedVector.hh"
 
 #include <fstream>
 #include <iostream>
 #include <map>
 
+
+class SearchParameters;
 
 
 class BCRexternalBWT : public SXSI::BWTCollection
@@ -89,6 +90,9 @@ private:
     BwtReaderBase *instantiateBwtReaderForIntermediateCycle( const char *filenameIn, bool allowDefrag = false );
     BwtWriterBase *instantiateBwtWriterForIntermediateCycle( const char *filenameOut );
     BwtWriterBase *instantiateBwtWriterForLastCycle( const char *filenameOut );
+    BwtReaderBase *instantiateBwtReaderForLastCycle( const char *filenameOut );
+    bool writeEndPosFile( const uint8_t subSequenceNum, const bool lastFile );
+
     BwtWriterBase *pWriterBwt0_; // persistent file, as we only ever need to append (never insert) characters to it
     ToolParameters *toolParams_;
     BwtParameters *bwtParams_;

@@ -1,0 +1,100 @@
+#!/bin/bash
+
+## Copyright (c) 2013 Illumina, Inc.
+##
+## 
+## This software is covered by the "Illumina Non-Commercial Use Software
+## and Source Code License Agreement" and any user of this software or
+## source file is bound by the terms therein (see accompanying file
+## Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
+##
+
+## test-beetl-search
+## Regression tests for beetl-search
+## Author: Lilian Janin
+
+
+abscommand="$(cd "${0%/*}" 2>/dev/null; echo "$PWD"/"${0##*/}")"
+abspath=`dirname "$abscommand"`
+
+BEETL_BWT=`pwd`/../src/frontends/beetl-bwt
+BEETL_SEARCH=`pwd`/../src/frontends/beetl-search
+BEETL_EXTEND=`pwd`/../src/frontends/beetl-extend
+BEETL_EXTRACT=${abspath}/../scripts/beetlExtract.py
+BEETL_CONVERT=`pwd`/../src/frontends/beetl-convert
+
+DATA_DIR=${abspath}/data
+INPUT_FASTQ=${DATA_DIR}/testBeetlSearch.30x10k.fastq
+OUTPUT_DIR=${PWD}/testBeetlSearch
+
+KMERS_TO_SEARCH=${DATA_DIR}/kmersToSearch
+BEETL_SEARCH_OUTPUT=${OUTPUT_DIR}/beetlSearchOutput
+BEETL_EXTEND_OUTPUT1=${OUTPUT_DIR}/beetlExtendOutput.sequenceNumbers
+BEETL_EXTEND_OUTPUT2=${OUTPUT_DIR}/beetlExtendOutput.dollarPos
+#BEETL_EXTRACT_OUTPUT=${OUTPUT_DIR}/beetlExtractOutput
+BEETL_CONVERT_OUTPUT=${OUTPUT_DIR}/beetlConvertOutput.fastq
+
+
+# BWT creation
+if [ ! -r ${OUTPUT_DIR}/bwt-B00 ] # remove after hackathon: only generates BWT the first time
+then
+          rm -rf ${OUTPUT_DIR}
+          mkdir -p ${OUTPUT_DIR}
+          # Removed --input-format=${inputFormat} to check the format autodetection
+          COMMAND="${BEETL_BWT} -i ${INPUT_FASTQ} -o ${OUTPUT_DIR}/bwt --generate-end-pos-file" # --add-rev-comp"
+          echo ${COMMAND}
+          echo ${COMMAND} > ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+fi
+
+# Search
+          COMMAND="${BEETL_SEARCH} -i ${OUTPUT_DIR}/bwt -j ${KMERS_TO_SEARCH} -o ${BEETL_SEARCH_OUTPUT}"
+          echo ${COMMAND}
+          echo ${COMMAND} >> ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+
+# Extend
+          COMMAND="${BEETL_EXTEND} -i ${BEETL_SEARCH_OUTPUT} -b ${OUTPUT_DIR}/bwt -o ${BEETL_EXTEND_OUTPUT1} -p ${BEETL_EXTEND_OUTPUT2}"
+          echo ${COMMAND}
+          echo ${COMMAND} >> ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+
+# Extract v1
+          COMMAND="${BEETL_EXTRACT} -e ${OUTPUT_DIR}/bwt-end-pos -i ${BEETL_EXTEND_OUTPUT2} -f ${INPUT_FASTQ} -o ${OUTPUT_DIR} -p 0"
+          echo ${COMMAND}
+          echo ${COMMAND} >> ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi
+
+
+# Extract v2
+          COMMAND="${BEETL_CONVERT} -i ${INPUT_FASTQ} --extract-sequences=${BEETL_EXTEND_OUTPUT1} -o ${BEETL_CONVERT_OUTPUT}"
+          echo ${COMMAND}
+          echo ${COMMAND} >> ${OUTPUT_DIR}/command
+          ${COMMAND}
+          if [ $? != 0 ]
+          then
+              echo "Error detected."
+              exit 1
+          fi

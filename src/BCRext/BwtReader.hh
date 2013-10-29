@@ -28,6 +28,8 @@
 #include <string>
 #include <vector>
 
+//#define DONT_USE_MMAP
+
 
 class BwtWriterBase;
 
@@ -36,6 +38,7 @@ class BwtReaderBase
 public:
     BwtReaderBase( const string &fileName );
     virtual ~BwtReaderBase();
+    virtual BwtReaderBase *clone() const = 0;
 
     virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars ) = 0;
     LetterNumber readAndCount( LetterCount &c );
@@ -47,6 +50,7 @@ public:
 
 protected:
     FILE *pFile_;
+    const string fileName_;
 
     char buf_[ReadBufferSize];
 }; // ~class BwtReaderBase
@@ -62,7 +66,19 @@ public:
     {
     }
 
+    BwtReaderASCII( const BwtReaderASCII &obj ) :
+        BwtReaderBase( obj.fileName_ ),
+        currentPos_( 0 ),
+        lastChar_( notInAlphabet ),
+        runLength_( 0 )
+    {
+    }
+
     virtual ~BwtReaderASCII() {}
+    virtual BwtReaderASCII *clone() const
+    {
+        return new BwtReaderASCII( *this );
+    };
 
     virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
@@ -85,8 +101,13 @@ class BwtReaderRunLength : public BwtReaderBase
 {
 public:
     BwtReaderRunLength( const string &fileName );
+    BwtReaderRunLength( const BwtReaderRunLength &obj );
 
     virtual ~BwtReaderRunLength() {}
+    virtual BwtReaderRunLength *clone() const
+    {
+        return new BwtReaderRunLength( *this );
+    };
 
     virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
@@ -117,8 +138,26 @@ class BwtReaderRunLengthIndex : public BwtReaderRunLength
 {
 public:
     BwtReaderRunLengthIndex( const string &fileName );
+    //    BwtReaderRunLengthIndex( const BwtReaderRunLengthIndex & );
+
+    BwtReaderRunLengthIndex( const BwtReaderRunLengthIndex &obj ) :
+        BwtReaderRunLength( obj ),
+        indexFileName_( obj.indexFileName_ ),
+        pIndexFile_( obj.pIndexFile_ ),
+        indexPosBwt_( obj.indexPosBwt_ ),
+        indexPosFile_( obj.indexPosFile_ ),
+        indexCount_( obj.indexCount_ ),
+        indexNext_( obj.indexNext_ )
+    {
+        assert( pIndexFile_ == NULL ); // If it's not NULL, we may try to fclose it multiple times
+    }
+
 
     virtual ~BwtReaderRunLengthIndex() {}
+    virtual BwtReaderRunLengthIndex *clone() const
+    {
+        return new BwtReaderRunLengthIndex( *this );
+    };
 
     virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
@@ -129,7 +168,8 @@ public:
 
     virtual LetterNumber operator()( char *p, LetterNumber numChars )
     {
-        assert( 1 == 0 );
+        return BwtReaderRunLength::operator()( p, numChars );
+        //        assert( 1 == 0 );
     }
 
     virtual void rewindFile( void );
@@ -138,26 +178,21 @@ public:
 
     void buildIndex( FILE *pFile, const int indexBinSize );
 
-    void initIndex( const LetterCount &current );
+    void initIndex( void );
 
     //  bool getRun(void);
 protected:
 
 
-    //  string fileName_;
     string indexFileName_;
 
-    LetterCount temp_;
-    LetterCount currentIndex_; // count at last index at or before current pos
-    LetterCount current_; // index right now
-    LetterCount next_; // counts for next index point
-    LetterNumber currentIndexPos_; // position in BWT at last index point at or before current pos
-    LetterNumber currentFilePos_; // position in file at last index point at or before current pos
-    LetterNumber nextPos_; // position in BWT for next index point
-    LetterNumber nextFilePos_;// position in file for next index point
-    bool isNextIndex_; // is there a next index point?
 
     FILE *pIndexFile_;
+
+    vector<LetterNumber> indexPosBwt_;
+    vector<LetterNumber> indexPosFile_;
+    vector<LetterCountCompact> indexCount_;
+    uint32_t indexNext_;
 
 }; // class ~BwtReaderRunLengthIndex
 
@@ -167,6 +202,10 @@ public:
     BwtReaderIncrementalRunLength( const string &fileName );
 
     virtual ~BwtReaderIncrementalRunLength() {}
+    virtual BwtReaderIncrementalRunLength *clone() const
+    {
+        return new BwtReaderIncrementalRunLength( *this );
+    };
 
     virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
@@ -209,6 +248,11 @@ class BwtReaderHuffman : public BwtReaderBase
 {
 public:
     BwtReaderHuffman( const string &fileName );
+    virtual BwtReaderHuffman *clone() const
+    {
+        assert( false && "todo" );
+        return new BwtReaderHuffman( *this );
+    };
 
     virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
@@ -247,5 +291,49 @@ protected:
 
 }; // class ~BwtReaderHuffman
 
+
+
+class BwtReaderRunLengthRam : public BwtReaderBase
+{
+public:
+    BwtReaderRunLengthRam( const string &fileName );
+    BwtReaderRunLengthRam( const BwtReaderRunLengthRam & );
+
+    virtual ~BwtReaderRunLengthRam();
+    virtual BwtReaderRunLengthRam *clone() const
+    {
+        return new BwtReaderRunLengthRam( *this );
+    };
+
+    virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
+
+    virtual LetterNumber readAndSend( BwtWriterBase &writer, const LetterNumber numChars );
+
+    virtual LetterNumber operator()( char *p, LetterNumber numChars );
+
+    virtual void rewindFile( void );
+
+    virtual LetterNumber tellg( void ) const;
+
+    bool getRun( void );
+
+protected:
+    uint lengths_[256];
+    uchar codes_[256];
+    uint runLength_;
+    uchar lastChar_;
+    LetterNumber currentPos_;
+
+    char *fullFileBuf_;
+    LetterNumber posInFullFileBuf_;
+    LetterNumber sizeOfFullFileBuf_;
+
+#ifndef DONT_USE_MMAP
+    size_t mmapLength_;
+#endif
+
+private:
+    bool isClonedObject_;
+}; // class ~BwtReaderRunLengthRam
 
 #endif

@@ -58,7 +58,7 @@ COMPARE_OUT=${OUTPUT_DIR}/compare.out
 
 
 # Comparison
-          COMMAND="${BEETL_COMPARE} -a ${OUTPUT_DIR}/bwt1 -b ${OUTPUT_DIR}/bwt2 -m split"
+          COMMAND="${BEETL_COMPARE} -a ${OUTPUT_DIR}/bwt1 -b ${OUTPUT_DIR}/bwt2 -m splice --min-occ=1 --no-comparison-skip"
           echo ${COMMAND}
           echo ${COMMAND} >> ${OUTPUT_DIR}/command
           ${COMMAND} > ${COMPARE_OUT}
@@ -69,18 +69,18 @@ COMPARE_OUT=${OUTPUT_DIR}/compare.out
           fi
 
 
-# Check that we get 8 BKPT
+# Check that we get 24 BKPT
           COMMAND="grep -c BKPT ${COMPARE_OUT}"
           echo ${COMMAND}
           echo ${COMMAND} >> ${OUTPUT_DIR}/command
           RESULT=`${COMMAND}`
-          echo " => ${RESULT} (expecting 8)"
+          echo " => ${RESULT} (expecting 24)"
           if [ $? != 0 ]
           then
               echo "Error detected."
               exit 1
           fi
-          if [ ${RESULT} != 8 ]
+          if [ ${RESULT} != 24 ]
           then
               echo "Error detected."
               exit 1

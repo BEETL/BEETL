@@ -19,7 +19,7 @@
 #define INCLUDED_COUNTWORDS_HH
 
 #include "Algorithm.hh"
-#include "BackTracker.hh"
+#include "TwoBwtBackTracker.hh"
 #include "Config.hh"
 #include "LetterCount.hh"
 #include "RangeStore.hh"
@@ -28,6 +28,7 @@
 #include "IntervalHandlerReference.hh"
 #include "IntervalHandlerMetagenome.hh"
 #include "IntervalHandlerSplice.hh"
+#include "IntervalHandlerTumourNormal.hh"
 #include "parameters/CompareParameters.hh"
 
 #include <string>
@@ -35,7 +36,7 @@
 using std::string;
 
 
-//#define PROPAGATE_PREFIX 1
+//#define PROPAGATE_SEQUENCE 1
 
 class CountWords : public Algorithm
 {
@@ -47,23 +48,34 @@ public:
               );
 
     virtual ~CountWords() {}
-    void run( void );
+    virtual void run( void );
     void loadFileNumToTaxIds( const string &taxIdNames );
+    bool isDistributedProcessResponsibleForPile( const int pile );
 
 private:
+    void initialiseMetagomeMode();
+    void releaseMetagomeMode();
+    void CountWords_parallelSubsetThread(
+        const int subsetThreadNum
+        , const int cycle
+        , RangeStoreExternal &rangeStoreA
+        , RangeStoreExternal &rangeStoreB
+    );
+
     bool bothSetsCompressed_;
     bool inputACompressed_;
     bool inputBCompressed_;
-    char whichHandler_;
+    enum BeetlCompareParameters::Mode mode_;
 
-    int paramN_;
-    int paramK_;
+    const int numCycles_;
+    const int minOcc_;
 
     vector <string> setA_;
     vector <string> setB_;
     //Christina: this is needed for the metagenomics variation of the count word algorithm
     // set C of the merging algorithm, it contains for each BWT positions the fileNumber from which the suffix came
     vector <string> setC_;
+    vector<char *> mmappedCFiles_;
     //FileNumberToTaxTree. this should contain the taxonomic information of the database.
     //for each file number (corresponding to the Merge C set) there should be the taxonomic Ids ordered this way:
     //Filenumber superkingdom phylum class order family genus species strain
@@ -82,5 +94,26 @@ private:
     //uint minWordLength_;
     const string subset_; // Compute only the results that have this string as a suffix' suffix
     const CompareParameters *compareParams_;
+
+    // Switches
+    const bool doPauseBetweenCycles_;
+    const bool doesPropagateBkptToSeqNumInSetA_;
+    const bool doesPropagateBkptToSeqNumInSetB_;
+    bool noComparisonSkip_;
+    const bool bwtInRam_;
+
+    // Used for computations
+    vector <BwtReaderBase *> inBwtA_;
+    vector <BwtReaderBase *> inBwtB_;
+    LetterNumber numRanges_;
+    LetterNumber numSingletonRanges_;
+    LetterNumber numNotSkippedA_;
+    LetterNumber numNotSkippedB_;
+    LetterNumber numSkippedA_;
+    LetterNumber numSkippedB_;
+    string currentWord_; // only used if PROPAGATE_SEQUENCE is active
+    LetterCountEachPile countsCumulativeA_;
+    LetterCountEachPile countsCumulativeB_;
+    double fsizeRatio_;
 };
 #endif

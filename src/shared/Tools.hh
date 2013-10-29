@@ -77,5 +77,6 @@ void detectInputBwtProperties( const string &prefix, vector<string> &filenames, 
 
 int safeRename( const string &from, const string &to );
 void pauseBetweenCycles();
+void readProcSelfStat( int &out_pid, int &out_num_threads, int &out_processor );
 
 #endif

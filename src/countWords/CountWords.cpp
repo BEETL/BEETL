@@ -22,11 +22,21 @@
 #include "config.h"
 #include "libzoo/util/Logger.hh"
 
+#include <fcntl.h>
+#include <sstream>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #ifdef _OPENMP
 # include <omp.h>
 #endif //ifdef _OPENMP
 
 using namespace std;
+
+//#define DEBUG__FORCE_WRITE_COUNT
+//#define DEBUG__SKIP_ITERATION0
+//#define FIRST_CYCLE 14
 
 
 CountWords::CountWords( bool inputACompressed,
@@ -35,177 +45,404 @@ CountWords::CountWords( bool inputACompressed,
                         const vector<string> &setB, const vector<string> &setC,
                         const string &ncbiTax, bool testDB, unsigned int minWordLen, string prefix, string subset
                         , const CompareParameters *compareParams
-                      ) :
-    setA_( setA ), setB_( setB ), setC_( setC ), subset_( subset )
+                      )
+    : numCycles_( paramK )
+    , minOcc_( paramN )
+    , setA_( setA )
+    , setB_( setB )
+    , setC_( setC )
+    , subset_( subset )
     , compareParams_( compareParams )
+    , doPauseBetweenCycles_( compareParams_ ? ( *compareParams_ )["pause between cycles"] : false )
+    , doesPropagateBkptToSeqNumInSetA_( compareParams_ ? ( *compareParams_ )["generate seq num A"] : false )
+    , doesPropagateBkptToSeqNumInSetB_( compareParams_ ? ( *compareParams_ )["generate seq num B"] : false )
+    , noComparisonSkip_( compareParams_ ? ( *compareParams_ )["no comparison skip"] : false )
+    , bwtInRam_( compareParams_ ? ( *compareParams_ )["BWT in RAM"] : false )
+    , inBwtA_( alphabetSize )
+    , inBwtB_( alphabetSize )
 {
 
     if ( compareParams_ == NULL )
     {
         // Legacy mode, used only by the OldBeetl executable: We create a CompareParameters structure with default values
         compareParams_ = new CompareParameters;
-        ( *compareParams_ )[ "pause between cycles" ] = false;
-        ( *compareParams_ )[ "generate seq num A" ] = false;
-        ( *compareParams_ )[ "generate seq num B" ] = false;
-        ( *compareParams_ )[ "no comparison skip" ] = true;
+
+        // Three different modes, so a little parsing is needed (tumour-normal is not a legacy mode)
+        switch ( whichHandler )
+        {
+            case 's':
+                mode_ = BeetlCompareParameters::MODE_SPLICE;
+                break;
+            case 'r':
+                mode_ = BeetlCompareParameters::MODE_REFERENCE;
+                break;
+            case 'm':
+                mode_ = BeetlCompareParameters::MODE_METAGENOMICS;
+                break;
+            default:
+                assert( false && "unexpected compare mode" );
+        }
     }
+    else
+        mode_ = static_cast<enum BeetlCompareParameters::Mode>( compareParams_->getValue( "mode" ) );
 
-#ifdef XXX
-    // get memory allocated
-    setA_ = new char[setA.length() + 1];
-    setB_ = new char[setB.length() + 1];
-
-    // copt to char * in order to get valid c strings
-    setA.copy( setA_, setA.length() );
-    setB.copy( setB_, setB.length() );
-
-    // append \0 to obtain a valid escaped c string
-    setA_[setA.length()] = '\0';
-    setB_[setB.length()] = '\0';
-#endif
-    /*Information for metagenomics search.
-      only needed if countWords is used as a metagenome classifier
-    */
-
-    //ncbiInfo_ should be the information about which files in the database have which taxonomy
-    ncbiInfo_ = ncbiTax;
     // set tool flags
     inputACompressed_ = inputACompressed;
     inputBCompressed_ = inputBCompressed;
-    whichHandler_ = whichHandler;
+
+    tmpPrefix_ = prefix;
+
+    /*
+      Information for metagenomics search.
+      Only needed if countWords is used as a metagenome classifier
+    */
+    //ncbiInfo_ should be the information about which files in the database have which taxonomy
+    ncbiInfo_ = ncbiTax;
     //flag if the database of the metagenomics information should also be tested
     //the testing of the database uses a lot of disk space so it should be handled carefully
     testDB_ = testDB;
-
-    paramN_ = paramN;
-    paramK_ = paramK;
     //only used in the metagenomics part. tests of taxonomy only after a certain suffix length is reached
     minWordLen_ = minWordLen;
 
-    tmpPrefix_ = prefix;
+    if ( testDB_ && mode_ != BeetlCompareParameters::MODE_METAGENOMICS )
+    {
+        cerr << "WARNING Database test is only available in metagenome Mode" << endl
+             << "ABORTING Database test" << endl;
+        testDB_ = false;
+    }
 }
 
 void CountWords::run( void )
 {
     Timer  timer;
-    // input streams for BWT from previous iter - 1 per pile
-    // Used to compute the counts to do backward search
-    vector <BwtReaderBase *> inBwtA( alphabetSize );
-    vector <BwtReaderBase *> inBwtB( alphabetSize );
-    //  RangeStoreRAM rA,rB;
-    RangeStoreExternal rA( tmpPrefix_ + "count_A_1", tmpPrefix_ + "count_A_2" ), rB( tmpPrefix_ + "count_B_1", tmpPrefix_ + "count_B_2" );
-    LetterCountEachPile countsPerPileA, countsCumulativeA;
-    LetterCountEachPile countsPerPileB, countsCumulativeB;
-    bool referenceMode( false ); // if false, use splice junction mode
-    bool metagenomeMode( false );
-    bool doPauseBetweenCycles = ( *compareParams_ )["pause between cycles"];
-    bool doesPropagateBkptToSeqNumInSetA = ( *compareParams_ )["generate seq num A"];
-    bool doesPropagateBkptToSeqNumInSetB = ( *compareParams_ )["generate seq num B"];
-    bool noComparisonSkip = ( *compareParams_ )["no comparison skip"];
+    LetterCountEachPile countsPerPileA;
+    LetterCountEachPile countsPerPileB;
+    const bool useThreadsForSubsets = true;
+    int cyclesToSkipComparisonFor = -1;
+    int previousComparisonDeactivationLength = 0;
 
-    //Christina:
-    //now three different possibilities for count words, so a little parsing is needed here
-    referenceMode = ( whichHandler_ == 'r' ) ? true : false;
+    // Use nested openmp parallelisation
+    omp_set_nested( 1 );
 
-    metagenomeMode = ( whichHandler_ == 'm' ) ? true : false;
+    // Metagenomics-specific stuff
+    if ( mode_ == BeetlCompareParameters::MODE_METAGENOMICS )
+        initialiseMetagomeMode();
 
-    if ( referenceMode && testDB_ )
+    vector<RangeStoreExternal *> rangeStoresA;
+    vector<RangeStoreExternal *> rangeStoresB;
+    vector<int> pileToThread;
+    if ( !useThreadsForSubsets )
     {
-        cerr << "WARNING Database test in reference Mode not possible" << endl
-             << "ABORTING Dastabase test" << endl;
-        testDB_ = false;
+        rangeStoresA.push_back( new RangeStoreExternal( tmpPrefix_ + "Intervals_setA" ) );
+        rangeStoresB.push_back( new RangeStoreExternal( tmpPrefix_ + "Intervals_setB" ) );
+        pileToThread.resize( alphabetSize, 0 ); // All piles point to thread 0
     }
-    int numCycles( paramK_ );
-    int minOcc( paramN_ );
-
-    if ( metagenomeMode )
+    else
     {
-        loadFileNumToTaxIds( ncbiInfo_ );
-    }
-    vector<FILE *> mergeCSet;
-    mergeCSet.resize( alphabetSize );
-    #pragma omp parallel for
-    for ( int i = 0; i < alphabetSize; i++ )
-    {
-        if ( metagenomeMode )
+        for ( int i = 0; i < 4; ++i )
         {
-            //open the files containing the file numbers, in those files there should be a fileNumber for each BWTpostion
-            //indicating from which the this suffix came
-            FILE *mergC = fopen( setC_[i].c_str(), "r" );
-            if ( mergC == NULL )
+            ostringstream oss;
+            oss << tmpPrefix_ << "Intervals_subset" << i;
+            rangeStoresA.push_back( new RangeStoreExternal( oss.str() + "_setA" ) );
+            rangeStoresB.push_back( new RangeStoreExternal( oss.str() + "_setB" ) );
+        }
+        pileToThread.resize( alphabetSize, 0 );
+        pileToThread[whichPile['A']] = 0; // pile 'A' processed by thread 0
+        pileToThread[whichPile['C']] = 1; // pile 'C' processed by thread 1
+        pileToThread[whichPile['G']] = 2; // pile 'G' processed by thread 2
+        pileToThread[whichPile['T']] = 3; // pile 'T' processed by thread 3
+        pileToThread[whichPile['N']] = 1; // pile 'N' processed by thread 1
+        pileToThread[whichPile['Z']] = 2; // pile 'Z' processed by thread 2
+    }
+
+    //    cout << "OMP threadCount: " << omp_get_num_threads() << endl;
+    //omp_set_num_threads( 2 * alphabetSize );
+
+    // We reproduce the same nested parallel distribution here than during the real processing loops, in order to load the BWT data in the most appropriate NUMA nodes
+    const int subsetThreadCount = rangeStoresA.size();
+    omp_set_num_threads( subsetThreadCount * alphabetSize );
+    #pragma omp parallel for
+    for ( int threadNum = 0; threadNum < subsetThreadCount * alphabetSize; ++threadNum )
+    {
+        int subsetThreadNum = threadNum / alphabetSize; // for ( int subsetThreadNum = 0; subsetThreadNum < subsetThreadCount; ++subsetThreadNum )
+        int i = threadNum % alphabetSize; // for ( int i = 0; i < alphabetSize; ++i )
+
+        int datasetAorB;
+        switch ( subsetThreadNum )
+        {
+                // set A goes to same node as subsets 0&1: node 0
+                // We distribute the read&Count as follows: ACGT=>subset 0's cpus, others=>subset 1's cpus
+            case 0:
+                if ( alphabet[i] == 'A' || alphabet[i] == 'C' || alphabet[i] == 'G' || alphabet[i] == 'T' )
+                    datasetAorB = 0;
+                else
+                    continue;
+                break;
+            case 1:
+                if ( alphabet[i] == 'A' || alphabet[i] == 'C' || alphabet[i] == 'G' || alphabet[i] == 'T' )
+                    continue;
+                else
+                    datasetAorB = 0;
+                break;
+
+                // set B goes to same node as subsets 2&3: node 1
+                // We distribute the read&Count as follows: ACGT=>subset 2's cpus, others=>subset 3's cpus
+            case 2:
+                if ( alphabet[i] == 'A' || alphabet[i] == 'C' || alphabet[i] == 'G' || alphabet[i] == 'T' )
+                    datasetAorB = 1;
+                else
+                    continue;
+                break;
+            case 3:
+                if ( alphabet[i] == 'A' || alphabet[i] == 'C' || alphabet[i] == 'G' || alphabet[i] == 'T' )
+                    continue;
+                else
+                    datasetAorB = 1;
+                break;
+
+            default:
+                continue;
+        }
+        /*
+                omp_set_num_threads( alphabetSize );
+                #pragma omp parallel for
+                for ( int i = 0; i < alphabetSize; ++i )
+        */
+        {
+            Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+            {
+                int pid = -1;
+                int numThreads = -1;
+                int processor = -1;
+                readProcSelfStat( pid, numThreads, processor );
+                #pragma omp critical (IO)
+                cerr << "Reading BWT: subsetThreadNum=" << subsetThreadNum << " i=" << i << " pid=" << pid << " numThreads=" << numThreads << " processor=" << processor << endl;
+            }
+            if ( !isDistributedProcessResponsibleForPile( i ) )
+                continue;
+
+            Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
             {
                 #pragma omp critical (IO)
                 {
-                    cout << "Could not open File \"" << setC_[i] << "\"" << endl;
+                    Logger::out() << "i=" << i << ", alphabet[i]=" << alphabet[i] << ": ";
+                    if ( datasetAorB == 0 )
+                        Logger::out() << "setA[i]=" << setA_[i] << endl;
+                    else
+                        Logger::out() << "setB[i]=" << setB_[i] << endl;
                 }
             }
-            assert( mergC != NULL );
-            mergeCSet[i] = fopen( setC_[i].c_str(), "r" );
-        }
-        Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
-        {
-            #pragma omp critical (IO)
+
+            if ( datasetAorB == 0 )
             {
-                Logger::out() << "i=" << i << ", alphabet[i]=" << alphabet[i] << endl;
-                Logger::out() << "setA[i]=" << setA_[i] << ", setB[i]=" << setB_[i] << endl;
+                if ( inputACompressed_ == true )
+                {
+                    if ( bwtInRam_ )
+                        inBwtA_[i] = new BwtReaderRunLengthRam( setA_[i] );
+                    else
+                    {
+                        if ( ( *compareParams_ )["use indexing"].isSet() )
+                        {
+                            cout << "Using indexed BWT file for " << setA_[i] << endl;
+                            inBwtA_[i] = new BwtReaderRunLengthIndex( setA_[i] );
+                        }
+                        else
+                        {
+                            inBwtA_[i] = new BwtReaderRunLength( setA_[i] );
+                        }
+                    }
+                }
+                else
+                    inBwtA_[i] = new BwtReaderASCII( setA_[i] );
+#ifndef DEBUG__SKIP_ITERATION0
+                Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+                {
+                    int pid = -1;
+                    int numThreads = -1;
+                    int processor = -1;
+                    readProcSelfStat( pid, numThreads, processor );
+                    #pragma omp critical (IO)
+                    Logger::out() << "ReadAndCount set=A i=" << i << " pid=" << pid << " numThreads=" << numThreads << " processor=" << processor << endl;
+                }
+                inBwtA_[i]->readAndCount( countsPerPileA[i] );
+#endif //ifndef DEBUG__SKIP_ITERATION0
             }
-        }
-        if ( inputACompressed_ == true )
-            inBwtA[i] = new BwtReaderRunLengthIndex( setA_[i] );
-        else
-            inBwtA[i] = new BwtReaderASCII( setA_[i] );
-        inBwtA[i]->readAndCount( countsPerPileA[i] );
-
-        if ( inputBCompressed_ == true )
-            inBwtB[i] = new BwtReaderRunLengthIndex( setB_[i] );
-        else
-            inBwtB[i] = new BwtReaderASCII( setB_[i] );
-        //    inBwtB[i]= new BwtReaderASCII(args[i+alphabetSize+nextArg]);
-        inBwtB[i]->readAndCount( countsPerPileB[i] );
-
-        Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
-        {
-            #pragma omp critical (IO)
+            else
             {
-                countsPerPileA[i].print();
-                countsPerPileB[i].print();
+                if ( inputBCompressed_ == true )
+                {
+                    if ( bwtInRam_ )
+                        inBwtB_[i] = new BwtReaderRunLengthRam( setB_[i] );
+                    else
+                    {
+                        if ( ( *compareParams_ )["use indexing"].isSet() )
+                        {
+                            cout << "Using indexed BWT file for " << setB_[i] << endl;
+                            inBwtB_[i] = new BwtReaderRunLengthIndex( setB_[i] );
+                        }
+                        else
+                        {
+                            inBwtB_[i] = new BwtReaderRunLength( setB_[i] );
+                        }
+                    }
+                }
+                else
+                    inBwtB_[i] = new BwtReaderASCII( setB_[i] );
+#ifndef DEBUG__SKIP_ITERATION0
+                Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+                {
+                    int pid = -1;
+                    int numThreads = -1;
+                    int processor = -1;
+                    readProcSelfStat( pid, numThreads, processor );
+                    #pragma omp critical (IO)
+                    Logger::out() << "ReadAndCount set=B i=" << i << " pid=" << pid << " numThreads=" << numThreads << " processor=" << processor << endl;
+                }
+                inBwtB_[i]->readAndCount( countsPerPileB[i] );
+#endif //ifndef DEBUG__SKIP_ITERATION0
+            }
+
+            Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+            {
+                #pragma omp critical (IO)
+                {
+                    if ( datasetAorB == 0 )
+                        Logger::out() << "countsPerPileA[i=" << i << "]: " << countsPerPileA[i] << endl;
+                    else
+                        Logger::out() << "countsPerPileB[i=" << i << "]: " << countsPerPileB[i] << endl;
+                }
+            }
+
+#ifndef DEBUG__SKIP_ITERATION0
+            // Share counts via files if distributed processing
+#ifndef DEBUG__FORCE_WRITE_COUNT
+            if ( ( *compareParams_ )["4-way distributed"].isSet() )
+#endif
+            {
+                if ( datasetAorB == 0 )
+                {
+                    stringstream ss;
+                    ss << "counts.A." << i;
+                    ofstream ofs( ss.str() );
+                    ofs << countsPerPileA[i] << endl;
+                }
+                else
+                {
+                    stringstream ss;
+                    ss << "counts.B." << i;
+                    ofstream ofs( ss.str() );
+                    ofs << countsPerPileB[i] << endl;
+                }
+            }
+#endif //ifndef DEBUG__SKIP_ITERATION0
+        }
+    }
+
+    // Free bwt-B00, especially useful when keeping BWT in RAM
+    delete inBwtA_[0];
+    inBwtA_[0] = NULL;
+    delete inBwtB_[0];
+    inBwtB_[0] = NULL;
+
+    cerr << "Finished initialisation cycle, usage: " << timer << endl;
+
+    if ( doPauseBetweenCycles_ )
+        pauseBetweenCycles();
+
+    cerr << "Starting iteration " << 0 << ", time now: " << timer.timeNow();
+    cerr << "Starting iteration " << 0 << ", usage: " << timer << endl;
+
+    // Gather counts via files if distributed processing
+#ifndef DEBUG__SKIP_ITERATION0
+    if ( ( *compareParams_ )["4-way distributed"].isSet() )
+#endif
+    {
+        for ( int i = 0; i < alphabetSize; i++ )
+        {
+            {
+                stringstream ss;
+                ss << "counts.A." << i;
+                ifstream ifs( ss.str() );
+                ifs >> countsPerPileA[i];
+            }
+            {
+                stringstream ss;
+                ss << "counts.B." << i;
+                ifstream ifs( ss.str() );
+                ifs >> countsPerPileB[i];
+            }
+
+            Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+            {
+                #pragma omp critical (IO)
+                {
+                    Logger::out() << "countsPerPileA[i=" << i << "]: " << countsPerPileA[i] << endl;
+                    Logger::out() << "countsPerPileB[i=" << i << "]: " << countsPerPileB[i] << endl;
+                }
             }
         }
     }
 
-    countsCumulativeA = countsPerPileA;
-    countsCumulativeB = countsPerPileB;
+    // Calculating fsizeRatio
+    {
+        LetterNumber pile0LengthA = 0;
+        LetterNumber pile0LengthB = 0;
+        for ( int i( 0 ); i < alphabetSize; i++ )
+        {
+            pile0LengthA += countsPerPileA[0].count_[i];
+            pile0LengthB += countsPerPileB[0].count_[i];
+        }
+        fsizeRatio_ =  double( pile0LengthA ) / double( pile0LengthB );
+    }
+
+    countsCumulativeA_ = countsPerPileA;
+    countsCumulativeB_ = countsPerPileB;
     for ( int i( 1 ); i < alphabetSize; i++ )
     {
-        countsCumulativeA[i] += countsCumulativeA[i - 1];
-        countsCumulativeB[i] += countsCumulativeB[i - 1];
+        countsCumulativeA_[i] += countsCumulativeA_[i - 1];
+        countsCumulativeB_[i] += countsCumulativeB_[i - 1];
     }
 
     Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
     {
-        countsCumulativeA.print();
-        countsCumulativeB.print();
+        Logger::out() << "cumulative counts A: " << endl;
+        countsCumulativeA_.print();
+        Logger::out() << "cumulative counts B: " << endl;
+        countsCumulativeB_.print();
     }
-    string thisWord;
+
+    /*
+        #pragma omp parallel for
+        for ( int subsetNum = 0; subsetNum < 4; subsetNum++ )
+        {
+            string subsetValues[] = { "A", "C", "G", "T" };
+            string threadSubset = subsetValues[subsetNum];
+    */
+
+#ifndef DEBUG__SKIP_ITERATION0
     const int dontKnowIndex( whichPile[( int )dontKnowChar] );
 
     // sort out first iter
     for ( int i( 1 ); i < alphabetSize; ++i )
     {
+        const int subsetThreadNum = pileToThread[i];
         for ( int j( 1 ); j < alphabetSize; ++j )
         {
-            Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+            Logger_if( LOG_FOR_DEBUGGING )
             {
-                Logger::out() << i << " " << j << " " << matchFlag << endl;
-                Logger::out() << ( countsCumulativeA[i - 1].count_[j]
-                                   | ( matchFlag * ( countsPerPileB[i].count_[j] != 0 ) ) )
-                              << " " << ( countsCumulativeB[i - 1].count_[j]
-                                          | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ) << endl;
+                #pragma omp critical (IO)
+                {
+                    Logger::out() << i << " " << j << " " << matchFlag << endl;
+                    Logger::out() << ( countsCumulativeA_[i - 1].count_[j]
+                    | ( matchFlag * ( countsPerPileB[i].count_[j] != 0 ) ) )
+                    << " " << ( countsCumulativeB_[i - 1].count_[j]
+                    | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ) << endl;
+                }
             }
-#ifdef PROPAGATE_PREFIX
-            thisWord.clear();
-            thisWord += alphabet[j];
-            thisWord += alphabet[i];
+#ifdef PROPAGATE_SEQUENCE
+            currentWord_.clear();
+            currentWord_ += alphabet[j];
+            currentWord_ += alphabet[i];
 #else
             /*
                         if (!subset.empty() && subset[subset.size()-1] != alphabet[i])
@@ -216,138 +453,358 @@ void CountWords::run( void )
             */
 #endif
 
-            if ( ( i != dontKnowIndex ) && ( j != dontKnowIndex ) )
+            if ( ( i != dontKnowIndex ) && ( j != dontKnowIndex ) ) // don't process ranges with N in them
             {
-                // get rid of any ranges with N in them
                 if ( countsPerPileA[i].count_[j] != 0 )
-                    rA.addRange( Range(  thisWord,
-                                         ( countsCumulativeA[i - 1].count_[j]
-                                           | ( matchFlag * ( LetterNumber )( countsPerPileB[i].count_[j] != 0 ) ) ),
-                                         countsPerPileA[i].count_[j], false )
-                                 , j, i, subset_, 1 );
+                    rangeStoresA[subsetThreadNum]->addRange( Range(  currentWord_,
+                            ( countsCumulativeA_[i - 1].count_[j]
+                              | ( matchFlag * ( LetterNumber )( countsPerPileB[i].count_[j] != 0 ) ) ),
+                            countsPerPileA[i].count_[j], false )
+                            , j, i, subset_, 1 );
                 if ( countsPerPileB[i].count_[j] != 0 )
-                    rB.addRange( Range( thisWord,
-                                        ( countsCumulativeB[i - 1].count_[j]
-                                          | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ),
-                                        countsPerPileB[i].count_[j], false )
-                                 , j, i, subset_, 1 );
+                    rangeStoresB[subsetThreadNum]->addRange( Range( currentWord_,
+                            ( countsCumulativeB_[i - 1].count_[j]
+                              | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ),
+                            countsPerPileB[i].count_[j], false )
+                            , j, i, subset_, 1 );
             } // ~if
         } // ~for j
     } // ~for i
+#endif //ifndef DEBUG__SKIP_ITERATION0
 
-    if ( doPauseBetweenCycles )
+    // Get ready for next cycle (flush current files and delete next cycle's output files)
+    for ( auto rangeStore : rangeStoresA )
+        rangeStore->clear();
+    for ( auto rangeStore : rangeStoresB )
+        rangeStore->clear();
+
+    cerr << "Finished cycle 0, usage: " << timer << endl;
+
+    if ( doPauseBetweenCycles_ )
         pauseBetweenCycles();
 
-#if defined(PROPAGATE_PREFIX) and defined(_OPENMP)
-    // We need to disable parallelisation when PROPAGATE_PREFIX is activated, because of the shared 'thisWord' variable
+#if defined(PROPAGATE_SEQUENCE) and defined(_OPENMP)
+    // We need to disable parallelisation when PROPAGATE_SEQUENCE is activated, because of the shared 'currentWord_' variable
     omp_set_num_threads( 1 );
 #endif
 
-    //  Range thisRangeA,thisRangeB;
-    rA.clear();
-    rB.clear();
-    for ( int c( 0 ); c < numCycles; ++c )
+#ifdef DEBUG__SKIP_ITERATION0
+    //    omp_set_num_threads( 1 ); // for debugging
+#endif
+#ifdef FIRST_CYCLE
+    const int firstCycle = FIRST_CYCLE;
+#else
+    const int firstCycle = 1;
+#endif
+    for ( int cycle = firstCycle; cycle <= numCycles_; ++cycle )
     {
-        cerr << "Starting iteration " << c << ", time now: " << timer.timeNow();
-        cerr << "Starting iteration " << c << ", usage: " << timer << endl;
+        cerr << "Starting iteration " << cycle << ", time now: " << timer.timeNow();
+        cerr << "Starting iteration " << cycle << ", usage: " << timer << endl;
 
-#ifdef PROPAGATE_PREFIX
-        thisWord.resize( c + 3 );
+#ifdef PROPAGATE_SEQUENCE
+        currentWord_.resize( cycle + 2 );
 #endif
 
-        LetterNumber numRanges = 0;
-        LetterNumber numSingletonRanges = 0;
+        numRanges_ = 0;
+        numSingletonRanges_ = 0;
+        numNotSkippedA_ = 0;
+        numNotSkippedB_ = 0;
+        numSkippedA_ = 0;
+        numSkippedB_ = 0;
 
-        rA.swap();
-        rB.swap();
-
-        //    pTemp=pNext;pNext=pThis;pThis=pTemp;
-        #pragma omp parallel for
-        for ( int i = 1; i < alphabetSize; ++i )
-        {
-            LetterCount countsSoFarA, countsSoFarB;
-            LetterNumber currentPosA, currentPosB;
-
-            RangeStoreExternal parallel_rA( rA );
-            RangeStoreExternal parallel_rB( rB );
-
-            inBwtA[i]->rewindFile();
-            inBwtB[i]->rewindFile();
-            currentPosA = 0;
-            currentPosB = 0;
-            countsSoFarA.clear();
-            countsSoFarA += countsCumulativeA[i - 1];
-            countsSoFarB.clear();
-            countsSoFarB += countsCumulativeB[i - 1];
-
-#ifdef PROB_NOT_NEEDED
-            BwtReaderRunLengthIndex *pRun;
-
-            pRun = dynamic_cast<BwtReaderRunLengthIndex *>( inBwtA[i] );
-            if ( pRun != NULL )
-                pRun->initIndex( countsSoFarA );
-            else
-                inBwtA[i]->rewindFile();
-            //cout <<"fred" << endl;
-            pRun = dynamic_cast<BwtReaderRunLengthIndex *>( inBwtB[i] );
-            if ( pRun != NULL )
-                pRun->initIndex( countsSoFarB );
-            else
-                inBwtB[i]->rewindFile();
-#endif
-
-            for ( int j( 1 ); j < alphabetSize; ++j )
-            {
-                Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "positions - A: " << currentPosA << " B: " << currentPosB << endl;
-                parallel_rA.setPortion( i, j );
-                parallel_rB.setPortion( i, j );
-
-                BackTracker backTracker( inBwtA[i], inBwtB[i]
-                                         , currentPosA, currentPosB
-                                         , parallel_rA, parallel_rB, countsSoFarA, countsSoFarB
-                                         , minOcc, numCycles, subset_, c + 2
-                                         , doesPropagateBkptToSeqNumInSetA
-                                         , doesPropagateBkptToSeqNumInSetB
-                                         , noComparisonSkip
-                                       );
-                if ( referenceMode == true )
+        /*
+                #pragma omp parallel for
+                for ( int subsetThreadNum = 0; subsetThreadNum < subsetThreadCount; ++subsetThreadNum )
                 {
-                    IntervalHandlerReference intervalHandler( minOcc );
-                    backTracker( i, thisWord, intervalHandler );
+
+                    rangeStoresA[subsetThreadNum]->setCycleNum( cycle );
+                    rangeStoresB[subsetThreadNum]->setCycleNum( cycle );
+
+                    CountWords_parallelSubsetThread(
+                        subsetThreadNum
+                        , cycle
+                        , *( rangeStoresA[subsetThreadNum] )
+                        , *( rangeStoresB[subsetThreadNum] )
+                    );
                 }
-                else if ( metagenomeMode == true )
+        */
+        // Sequential initialisation before the big parallel loop
+        for ( int subsetThreadNum = 0; subsetThreadNum < subsetThreadCount; ++subsetThreadNum )
+        {
+            rangeStoresA[subsetThreadNum]->setCycleNum( cycle );
+            rangeStoresB[subsetThreadNum]->setCycleNum( cycle );
+        }
+
+        #pragma omp parallel for
+        for ( int threadNum = 0; threadNum < subsetThreadCount * alphabetSize; ++threadNum )
+        {
+            const int subsetThreadNum = threadNum / alphabetSize; // for ( int subsetThreadNum = 0; subsetThreadNum < subsetThreadCount; ++subsetThreadNum )
+            //const int i = threadNum % alphabetSize; // for ( int i = 0; i < alphabetSize; ++i )
+
+            CountWords_parallelSubsetThread(
+                threadNum
+                , cycle
+                , *( rangeStoresA[subsetThreadNum] )
+                , *( rangeStoresB[subsetThreadNum] )
+            );
+        }
+
+
+        cerr << "Finished cycle " << cycle << ": ranges=" << numRanges_
+             << " singletons=" << numSingletonRanges_
+             << " usage: " << timer << endl;
+        cerr
+                << " skippedA=" << numSkippedA_
+                << " skippedB=" << numSkippedB_
+                << " notSkippedA=" << numNotSkippedA_
+                << " notSkippedB=" << numNotSkippedB_
+                << endl;
+
+        if ( ( *compareParams_ )["no comparison skip"] == false )
+        {
+            if ( cyclesToSkipComparisonFor == -1 )
+            {
+                // if #intervals stopped increasing [by more than 2%], then it's time to start disabling comparisons
+                if ( numNotSkippedA_ < numRanges_ * 1.02 )
                 {
-                    IntervalHandlerMetagenome intervalHandler( minOcc, mergeCSet, fileNumToTaxIds_, testDB_, minWordLen_, paramK_ );
-                    backTracker( i, thisWord, intervalHandler );
+                    double ratio = numSkippedA_ / ( double )numNotSkippedA_;
+                    if ( ratio > 0.42 )
+                        cyclesToSkipComparisonFor = 0;
+                    else if ( ratio > 0.32 )
+                        cyclesToSkipComparisonFor = 1;
+                    else if ( ratio > 0.25 ) //(0.3*3/(0.7*3+0.49*2+0.34))
+                        cyclesToSkipComparisonFor = 2;
+                    else if ( ratio > 0.2 )
+                        cyclesToSkipComparisonFor = 4;
+                    else if ( ratio > 0.1 )
+                        cyclesToSkipComparisonFor = 6;
+                    else if ( ratio > 0.01 )
+                        cyclesToSkipComparisonFor = 10;
+                    else if ( ratio > 0.001 )
+                        cyclesToSkipComparisonFor = 20;
+                    else
+                        cyclesToSkipComparisonFor = 100;
+                    previousComparisonDeactivationLength = cyclesToSkipComparisonFor;
+                }
+            }
+            else
+            {
+                if ( noComparisonSkip_ )
+                {
+                    // it was deactivated => time to reactivate?
+                    --cyclesToSkipComparisonFor;
                 }
                 else
                 {
-                    IntervalHandlerSplice intervalHandler( minOcc );
-                    backTracker( i, thisWord, intervalHandler );
+                    // it was active => time to deactivate?
+                    double ratio = numSkippedA_ / ( double )numNotSkippedA_ / previousComparisonDeactivationLength;
+                    if ( ratio > 0.42 )
+                        cyclesToSkipComparisonFor = 0;
+                    else if ( ratio > 0.32 )
+                        cyclesToSkipComparisonFor = 1;
+                    else if ( ratio > 0.25 ) //(0.3*3/(0.7*3+0.49*2+0.34))
+                        cyclesToSkipComparisonFor = 2;
+                    else if ( ratio > 0.2 )
+                        cyclesToSkipComparisonFor = 4;
+                    else if ( ratio > 0.1 )
+                        cyclesToSkipComparisonFor = 6;
+                    else if ( ratio > 0.01 )
+                        cyclesToSkipComparisonFor = 10;
+                    else if ( ratio > 0.001 )
+                        cyclesToSkipComparisonFor = 20;
+                    else
+                        cyclesToSkipComparisonFor = 100;
+                    previousComparisonDeactivationLength = cyclesToSkipComparisonFor;
                 }
+            }
+            if ( cyclesToSkipComparisonFor == 0 && numNotSkippedA_ <= numSingletonRanges_ )
+            {
+                // If the number of interval decreases, don't reactivate comparison skips
+                Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Interval count decreasing. ";
+                cyclesToSkipComparisonFor = 1;
+            }
+            if ( cyclesToSkipComparisonFor > 0 )
+            {
+                Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Disabling comparison skips for " << cyclesToSkipComparisonFor << " iterations" << endl;
+                noComparisonSkip_ = true;
+            }
+            else
+            {
+                Logger_if( LOG_SHOW_IF_VERBOSE )
+                {
+                    if ( noComparisonSkip_ )
+                        Logger::out() << "Re-activating comparison skips" << endl;
+                    else
+                        Logger::out() << "Keeping comparison skips active" << endl;
+                }
+                noComparisonSkip_ = false;
+            }
+        }
 
-                #pragma omp atomic
-                numRanges += backTracker.numRanges_;
-                #pragma omp atomic
-                numSingletonRanges += backTracker.numSingletonRanges_;
-
-            } // ~for j
-            //cerr << "Done i " << i <<endl;
-            parallel_rA.clear( false );
-            parallel_rB.clear( false );
-        }     // ~for i
-        rA.clear( true );
-        rB.clear( true );
-        cerr << "Finished cycle " << c << ": ranges=" << numRanges
-             << " singletons=" << numSingletonRanges
-             << " usage: " << timer << endl;
-
-        if ( doPauseBetweenCycles )
+        if ( doPauseBetweenCycles_ )
             pauseBetweenCycles();
 
-        if ( numRanges == 0 ) break;
+        for ( auto rangeStore : rangeStoresA )
+            rangeStore->clear( false );
+        for ( auto rangeStore : rangeStoresB )
+            rangeStore->clear( false );
+
+        if ( numRanges_ == 0 ) break;
     } // ~for c
+
+    // Clean up
+    for ( auto rangeStore : rangeStoresA )
+        delete rangeStore;
+    for ( auto rangeStore : rangeStoresB )
+        delete rangeStore;
+    rangeStoresA.clear();
+    rangeStoresB.clear();
+    for ( auto & bwtReader : inBwtA_ )
+    {
+        delete bwtReader;
+        bwtReader = 0;
+    }
+    for ( auto & bwtReader : inBwtB_ )
+    {
+        delete bwtReader;
+        bwtReader = 0;
+    }
+
+    // Metagenomics-specific stuff
+    if ( mode_ == BeetlCompareParameters::MODE_METAGENOMICS )
+        releaseMetagomeMode();
 } // countWords::run()
+
+
+void CountWords::CountWords_parallelSubsetThread(
+    const int threadNum
+    , const int cycle
+    , RangeStoreExternal &rangeStoreA
+    , RangeStoreExternal &rangeStoreB
+)
+{
+    int subsetThreadNum = threadNum / alphabetSize; // for ( int subsetThreadNum = 0; subsetThreadNum < subsetThreadCount; ++subsetThreadNum )
+    int i = threadNum % alphabetSize; // for ( int i = 0; i < alphabetSize; ++i )
+    /*
+        {
+            int pid = -1;
+            int numThreads = -1;
+            int processor = -1;
+            readProcSelfStat( pid, numThreads, processor );
+            #pragma omp critical (IO)
+            cerr << "CountWords_parallelSubsetThread header cycle=" << cycle << " subsetThreadNum=" << subsetThreadNum << " pid=" << pid << " numThreads=" << numThreads << " processor=" << processor << endl;
+            usleep( 100 );
+        }
+
+        omp_set_num_threads( alphabetSize );
+        #pragma omp parallel for
+        for ( int i = 0; i < alphabetSize; ++i )
+    */
+    {
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+        {
+            int pid = -1;
+            int numThreads = -1;
+            int processor = -1;
+            readProcSelfStat( pid, numThreads, processor );
+            #pragma omp critical (IO)
+            Logger::out() << "CountWords_parallelSubsetThread cycle=" << cycle << " subsetThreadNum=" << subsetThreadNum << " i=" << i << " pid=" << pid << " numThreads=" << numThreads << " processor=" << processor << endl;
+        }
+
+        if ( i == 0 ) return;
+        if ( !isDistributedProcessResponsibleForPile( i ) )
+            return;
+
+        BwtReaderBase *inBwtA = inBwtA_[i]->clone();
+        BwtReaderBase *inBwtB = inBwtB_[i]->clone();
+        inBwtA->rewindFile();
+        inBwtB->rewindFile();
+
+        LetterCount countsSoFarA, countsSoFarB;
+        LetterNumber currentPosA, currentPosB;
+
+        RangeStoreExternal parallel_rA( rangeStoreA );
+        RangeStoreExternal parallel_rB( rangeStoreB );
+
+        inBwtA->rewindFile();
+        inBwtB->rewindFile();
+        currentPosA = 0;
+        currentPosB = 0;
+        countsSoFarA.clear();
+        countsSoFarA += countsCumulativeA_[i - 1];
+        countsSoFarB.clear();
+        countsSoFarB += countsCumulativeB_[i - 1];
+
+        for ( int j( 1 ); j < alphabetSize; ++j )
+        {
+            Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "positions - A: " << currentPosA << " B: " << currentPosB << endl;
+            parallel_rA.setPortion( i, j );
+            parallel_rB.setPortion( i, j );
+
+            TwoBwtBackTracker backTracker( inBwtA, inBwtB
+                                           , currentPosA, currentPosB
+                                           , parallel_rA, parallel_rB, countsSoFarA, countsSoFarB
+                                           , minOcc_, numCycles_, subset_, cycle + 1
+                                           , doesPropagateBkptToSeqNumInSetA_
+                                           , doesPropagateBkptToSeqNumInSetB_
+                                           , noComparisonSkip_
+                                         );
+            switch ( mode_ )
+            {
+                case BeetlCompareParameters::MODE_REFERENCE:
+                {
+                    IntervalHandlerReference intervalHandler( minOcc_ );
+                    backTracker.process( i, currentWord_, intervalHandler );
+                }
+                break;
+                case BeetlCompareParameters::MODE_METAGENOMICS:
+                {
+                    IntervalHandlerMetagenome intervalHandler( minOcc_, setC_, mmappedCFiles_, fileNumToTaxIds_, testDB_, minWordLen_, numCycles_ );
+                    backTracker.process( i, currentWord_, intervalHandler );
+                }
+                break;
+                case BeetlCompareParameters::MODE_SPLICE:
+                {
+                    IntervalHandlerSplice intervalHandler( minOcc_ );
+                    backTracker.process( i, currentWord_, intervalHandler );
+                }
+                break;
+                case BeetlCompareParameters::MODE_TUMOUR_NORMAL:
+                {
+                    IntervalHandlerTumourNormal intervalHandler( minOcc_, fsizeRatio_ );
+                    backTracker.process( i, currentWord_, intervalHandler );
+                }
+                break;
+                default:
+                    assert( false && "Unexpected mode" );
+            }
+
+            #pragma omp atomic
+            numRanges_ += backTracker.numRanges_;
+            #pragma omp atomic
+            numSingletonRanges_ += backTracker.numSingletonRanges_;
+            #pragma omp atomic
+            numNotSkippedA_ += backTracker.numNotSkippedA_;
+            #pragma omp atomic
+            numNotSkippedB_ += backTracker.numNotSkippedB_;
+            #pragma omp atomic
+            numSkippedA_ += backTracker.numSkippedA_;
+            #pragma omp atomic
+            numSkippedB_ += backTracker.numSkippedB_;
+
+            parallel_rA.deleteInputPortion( i, j );
+            parallel_rB.deleteInputPortion( i, j );
+        } // ~for j
+        //cerr << "Done i " << i <<endl;
+        parallel_rA.clear( false );
+        parallel_rB.clear( false );
+
+
+        delete inBwtA;
+        delete inBwtB;
+    }     // ~for i
+}
+
 
 /*
   @taxIdNames , file containing the taxonomic information about the database
@@ -361,12 +818,11 @@ void CountWords::loadFileNumToTaxIds( const string &taxIdNames )
     ifstream taxas( taxIdNames.c_str(), ios::in );
     string line;
     //each line should contain the fileNumber followed by the taxIds split up with one space character
-    while ( taxas.good() )
+    while ( getline( taxas, line ) )
     {
-        vector<int> taxIDs;
-        getline( taxas, line );
-        if ( line.compare( "" ) != 0 )
+        if ( !line.empty() )
         {
+            vector<int> taxIDs;
             unsigned int fileNum = atoi( line.substr( 0, line.find( " " ) ).c_str() );
             line = line.substr( line.find( " " ) + 1, line.length() );
             while ( line.find( " " ) != string::npos )
@@ -378,16 +834,13 @@ void CountWords::loadFileNumToTaxIds( const string &taxIdNames )
             taxIDs.push_back( atoi( line.c_str() ) );
             //test if all TaxIds were found
             if ( taxIDs.size() < taxLevelSize )
-            {
                 cerr << "Tax Ids have not enough taxonomic Information. Only  " << taxIDs.size() << " could be found " << endl
                      << "Will add unknown taxa until size is right" << endl;
-                for ( unsigned int i( taxIDs.size() - 1 ) ; i < taxLevelSize; i++ )
-                    taxIDs.push_back( 0 );
-            }
-            if ( taxIDs.size() > taxLevelSize )
+            else if ( taxIDs.size() > taxLevelSize )
                 cerr << "Tax Ids have to much taxonomic information. "
                      << "Please note, that the taxonomic information about one file should be shown as: " << endl
                      << "FileNumber Superkingdom Phylum Order Family Genus Species Strain " << endl;
+            taxIDs.resize( taxLevelSize );
             fileNumToTaxIds_.push_back( taxIDs );
             unsigned int test = fileNum + 1;
             if ( test != fileNumToTaxIds_.size() )
@@ -395,4 +848,77 @@ void CountWords::loadFileNumToTaxIds( const string &taxIdNames )
         }
     }
     //cout << " fineNumToTaxIds " << fileNumToTaxIds.size() <<endl;
+}
+
+void CountWords::initialiseMetagomeMode()
+{
+    loadFileNumToTaxIds( ncbiInfo_ );
+
+    if ( ( *compareParams_ )["mmap C files"] == true )
+    {
+        mmappedCFiles_.resize( alphabetSize );
+        for ( int i = 0; i < alphabetSize; i++ )
+        {
+            int fd = open( setC_[i].c_str(), O_RDONLY );
+            if ( fd == -1 )
+            {
+                #pragma omp critical (IO)
+                {
+                    cout << "ERROR: Could not open File \"" << setC_[i] << "\"" << endl;
+                }
+            }
+            assert( sizeof( off_t ) >= 8 && "64 bits architecture required to hold large files" );
+            off_t fileSize = lseek( fd, 0, SEEK_END );
+            mmappedCFiles_[i] = ( char * )mmap( NULL, fileSize, PROT_READ, MAP_SHARED , fd, 0 );
+            if ( mmappedCFiles_[i] == ( void * ) - 1 )
+            {
+                perror ( "Error mmap " );
+                mmappedCFiles_[i] = NULL;
+            }
+        }
+    }
+}
+
+void CountWords::releaseMetagomeMode()
+{
+    for ( int i = 0; i < alphabetSize; i++ )
+    {
+        if ( mmappedCFiles_.size() > i && mmappedCFiles_[i] != NULL )
+        {
+            int fd = open( setC_[i].c_str(), O_RDONLY );
+            off_t fileSize = lseek( fd, 0, SEEK_END );
+            munmap( mmappedCFiles_[i], fileSize );
+        }
+    }
+}
+
+bool CountWords::isDistributedProcessResponsibleForPile( const int pile )
+{
+    if ( ( *compareParams_ )["4-way distributed"].isSet() )
+    {
+        // Delete own barrier file
+        // Wait until all barrier files are deleted
+
+        int processNum = ( *compareParams_ )["4-way distributed"];
+        switch ( processNum )
+        {
+            case 0: // A
+                if ( pile != 1 ) return false;
+                break;
+            case 1: // C+[^ACGNT]
+                if ( pile != 2 && pile != 0 && pile <= 5 ) return false;
+                break;
+            case 2: // G+N
+                if ( pile != 3 && pile != 4 ) return false;
+                break;
+            case 3: // T
+                if ( pile != 5 ) return false;
+                break;
+        }
+
+        #pragma omp critical (IO)
+        cout << "process num = " << processNum << " processing pile " << pile << endl;
+    }
+
+    return true;
 }

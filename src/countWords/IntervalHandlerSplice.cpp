@@ -29,10 +29,15 @@ using namespace std;
 
 void IntervalHandlerSplice::foundInBoth
 ( const int pileNum,
-  const LetterCount &countsThisRangeA, const LetterCount &countsThisRangeB,
-  const Range &thisRangeA, const Range &thisRangeB,
-  AlphabetFlag &propagateIntervalA, AlphabetFlag &propagateIntervalB,
-  bool &isBreakpointDetected )
+  const LetterCount &countsThisRangeA,
+  const LetterCount &countsThisRangeB,
+  const Range &thisRangeA,
+  const Range &thisRangeB,
+  AlphabetFlag &propagateIntervalA,
+  AlphabetFlag &propagateIntervalB,
+  bool &isBreakpointDetected,
+  const int cycle
+)
 {
     bool sharedPath( false );
     LetterNumber maxSignalAOnly( 0 ), maxSignalBOnly( 0 );
@@ -66,29 +71,15 @@ void IntervalHandlerSplice::foundInBoth
 
 
         isBreakpointDetected = true;
-#ifdef PROPAGATE_PREFIX
         #pragma omp critical (IO)
-        Logger::out( LOG_ALWAYS_SHOW )
+        Logger::out()
                 << "BKPT"
+#ifdef PROPAGATE_SEQUENCE
                 << ' ' << thisRangeB.word_
-                << ' ' << countsThisRangeA.count_[0]
-                << ':' << countsThisRangeA.count_[1]
-                << ':' << countsThisRangeA.count_[2]
-                << ':' << countsThisRangeA.count_[3]
-                << ':' << countsThisRangeA.count_[4]
-                << ':' << countsThisRangeA.count_[5]
-                << ' ' << countsThisRangeB.count_[0]
-                << ':' << countsThisRangeB.count_[1]
-                << ':' << countsThisRangeB.count_[2]
-                << ':' << countsThisRangeB.count_[3]
-                << ':' << countsThisRangeB.count_[4]
-                << ':' << countsThisRangeB.count_[5]
-                << endl;
 #else
-        #pragma omp critical (IO)
-        Logger::out( LOG_ALWAYS_SHOW )
-                << "BKPT"
-                << ' ' << alphabet[pileNum]
+                // Print what we know of the sequence
+                << ' ' << alphabet[pileNum] << string( cycle - 1, 'x' )
+#endif
                 << ' ' << countsThisRangeA.count_[0]
                 << ':' << countsThisRangeA.count_[1]
                 << ':' << countsThisRangeA.count_[2]
@@ -103,12 +94,13 @@ void IntervalHandlerSplice::foundInBoth
                 << ':' << countsThisRangeB.count_[5]
                 << ' ' << ( thisRangeA.pos_ & matchMask )
                 << ' ' << ( thisRangeB.pos_ & matchMask )
+                << ' ' << thisRangeA.num_
+                << ' ' << thisRangeB.num_
                 << endl;
-#endif
 
 #ifdef OLD
         cout << "BKPT ";
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
         cout << thisRangeA.word_;
 #endif
         for ( int l( 0 ); l < alphabetSize; l++ )
@@ -129,15 +121,18 @@ void IntervalHandlerSplice::foundInAOnly
 ( const int pileNum,
   const LetterCount &countsSoFarA,
   const LetterCount &countsThisRangeA,
-  const Range &thisRangeA,
-  AlphabetFlag &propagateIntervalA )
+  const char *bwtSubstring,
+  Range &thisRangeA,
+  AlphabetFlag &propagateIntervalA,
+  const int cycle
+)
 {
     if ( countsThisRangeA.count_[0] > 0 )
     {
         #pragma omp critical (IO)
-        Logger::out( LOG_ALWAYS_SHOW )
+        Logger::out()
                 << "READ"
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                 << ' ' << thisRangeA.word_
 #else
                 << ' ' << alphabet[pileNum]
@@ -167,15 +162,18 @@ void IntervalHandlerSplice::foundInBOnly
 ( const int pileNum,
   const LetterCount &countsSoFarB,
   const LetterCount &countsThisRangeB,
-  const Range &thisRangeB,
-  AlphabetFlag &propagateIntervalB )
+  const char *bwtSubstring,
+  Range &thisRangeB,
+  AlphabetFlag &propagateIntervalB,
+  const int cycle
+)
 {
     if ( countsThisRangeB.count_[0] > 0 )
     {
         #pragma omp critical (IO)
-        Logger::out( LOG_ALWAYS_SHOW )
+        Logger::out()
                 << "INBS"
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                 << ' ' << thisRangeB.word_
 #else
                 << ' ' << alphabet[pileNum]

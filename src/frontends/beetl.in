@@ -15,6 +15,8 @@ Available commands:
     correct   Correct sequencing errors in a BWT
     compare   Compare two BWT datasets
     search    Search within a BWT dataset
+    extend    Extend BWT intervals to identify their associated sequence numbers
+    index     Generate index for BWT file to speed other algorithms up
     convert   Convert between file formats
 
 View sub-commands with:

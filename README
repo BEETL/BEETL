@@ -13,6 +13,16 @@ Documentation in: doc/BEETL.md
 
 *** Release notes ***
 
+Version 0.8.0 (29th October 2013)
+
+- New BWT-based tumour-normal filter (see example in doc/BEETL.md)
+- Beetl-compare modes: 'split' renamed to 'splice'
+- Beetl-compare modes: new 'tumour-normal'
+- 16-way parallel backtracker/beetl-compare
+- MetaBEETL is now able to run without sequence propagation (which is faster)
+- Upgraded requirement: autoconf 2.65 (improved regression testing)
+
+
 Version 0.7.0 (18th September 2013)
 
 - New beetl-correct tool

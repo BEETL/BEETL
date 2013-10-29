@@ -273,7 +273,7 @@ bool TransposeFasta::inputCycFile( const string &cycPrefix )
 }
 
 
-bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPrefix, const string &fileOutput, bool generatedFilesAreTemporary )
+bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPrefix, const string &fileOutput, bool generatedFilesAreTemporary, SequenceExtractor *sequenceExtractor )
 {
     bool outputIsFastq = hasSuffix( fileOutput, ".fastq" );
     vector <FILE *> inFilesCyc;
@@ -317,8 +317,34 @@ bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPr
     //I must read a char for each sequence. The chars at the position i corresponds to the chars of the sequence i.
     char symbol;
     string sequence = "";
+    // buf to accelerate SequenceExtractor usage
+    const int SEQ_EXTRACTION_BUF_SIZE = 1024;
+    char seqExtractionBuf[SEQ_EXTRACTION_BUF_SIZE];
+    int seqCountToSkip = 0;
     for ( SequenceNumber j = 0; j < nSeq; j++ )
     {
+        bool extractThisSeq = !sequenceExtractor || sequenceExtractor->doWeExtractNextSequence();
+
+        if ( !extractThisSeq )
+        {
+            ++seqCountToSkip;
+            continue;
+        }
+        else
+        {
+            while ( seqCountToSkip > 0 )
+            {
+                int skip = min( seqCountToSkip, SEQ_EXTRACTION_BUF_SIZE );
+                for ( SequenceLength i = 0; i < lengthRead; i++ )
+                {
+                    assert( fread ( seqExtractionBuf, sizeof( char ), skip, inFilesCyc[i] ) == skip );
+                    if ( outputIsFastq && inFilesCycQual.size() >= lengthRead )
+                        assert( fread ( seqExtractionBuf, sizeof( char ), skip, inFilesCycQual[i] ) == skip );
+                }
+                seqCountToSkip -= skip;
+            }
+        }
+
         if ( outputIsFastq )
             outFile << "@Read"  << j << std::endl;
         else

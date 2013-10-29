@@ -19,7 +19,7 @@
 #define INCLUDED_ERROR_CORRECTION_RANGE_HH
 
 #include "Config.hh"
-#include "countWords/Range.hh"
+#include "Range.hh"
 
 #include <string>
 
@@ -31,6 +31,23 @@ enum IntervalType
     INTERVAL_TYPE_ERROR = 2
 };
 
+
+struct BwtCorrectorDataForInterval//: public DataForSubIntervals
+{
+    BwtCorrectorDataForInterval()
+        : errorIntervalType( INTERVAL_TYPE_DEFAULT )
+    {}
+
+    //    virtual ~BwtCorrectorDataForInterval() {}
+    //    virtual void clear() {}
+
+    IntervalType errorIntervalType;
+    vector<LetterNumber> correctionForBwtPosns; //correctionBwtPosns;
+    vector<LetterNumber> errorsForBwtPosns; //errBwtPosns;
+
+};
+
+
 class ErrorCorrectionRange : public Range
 {
 public:
@@ -39,27 +56,11 @@ public:
         const LetterNumber pos,
         const LetterNumber num,
         const bool isBkptExtension,
-        const IntervalType intervalType,
-        const vector<LetterNumber> &bwtPosns,
-        const vector<LetterNumber> &errBwtPosns
+        Range &parentRange,
+        const int subIntervalNum
     ) :
         Range( word, pos, num, isBkptExtension ),
-        intervalType_( intervalType ),
-        bwtPosns_( bwtPosns ),
-        errBwtPosns_( errBwtPosns )
-    {}
-
-    ErrorCorrectionRange(
-        const string &word,
-        const LetterNumber pos,
-        const LetterNumber num,
-        const bool isBkptExtension,
-        const IntervalType intervalType
-    ) :
-        Range( word, pos, num, isBkptExtension ),
-        intervalType_( intervalType ),
-        bwtPosns_( vector<LetterNumber>() ),
-        errBwtPosns_( vector<LetterNumber>() )
+        data_( dynamic_cast< ErrorCorrectionRange & >( parentRange ).getDataForSubInterval( subIntervalNum ) )
     {}
 
     ErrorCorrectionRange(
@@ -68,17 +69,11 @@ public:
         const LetterNumber num,
         const bool isBkptExtension = false
     ):
-        Range( word, pos, num, isBkptExtension ),
-        intervalType_( INTERVAL_TYPE_DEFAULT ),
-        bwtPosns_( vector<LetterNumber>() ),
-        errBwtPosns_( vector<LetterNumber>() )
+        Range( word, pos, num, isBkptExtension )
     {}
 
     ErrorCorrectionRange( void ) :
-        Range(),
-        intervalType_( INTERVAL_TYPE_DEFAULT ),
-        bwtPosns_( vector<LetterNumber>() ),
-        errBwtPosns_( vector<LetterNumber>() )
+        Range()
     {}
 
     virtual ~ErrorCorrectionRange() {}
@@ -91,10 +86,25 @@ public:
     virtual bool writeTo( TemporaryFile *pFile, RangeState &currentState ) const;
     virtual bool readFrom( TemporaryFile *pFile, RangeState &currentState );
 
-    IntervalType intervalType_;
-    vector<LetterNumber> bwtPosns_;
-    vector<LetterNumber> errBwtPosns_;
+    BwtCorrectorDataForInterval data_;
 
+    void clearDataForSubIntervals()
+    {
+        dataForSubIntervals_.resize( alphabetSize );
+        for ( int i = 0; i < alphabetSize; i++ )
+        {
+            dataForSubIntervals_[i].errorIntervalType = INTERVAL_TYPE_DEFAULT;
+            dataForSubIntervals_[i].correctionForBwtPosns = vector<LetterNumber>();
+            dataForSubIntervals_[i].errorsForBwtPosns = vector<LetterNumber>();
+        }
+    }
+    BwtCorrectorDataForInterval &getDataForSubInterval( int l )
+    {
+        return dataForSubIntervals_[l];
+    }
+
+private:
+    vector<BwtCorrectorDataForInterval> dataForSubIntervals_;
 };
 
 

@@ -149,6 +149,7 @@ die("ERROR: Unrecognized command-line argument(s): @ARGV")  if (0 < @ARGV);
 my $myInt32 = "";
 my $myInt64 = "";
 my $myInt8 = "";
+my $myInt8b = "";
 open INF1, "<$PARAMS{input}" or die "Can't open $PARAMS{input}";
 open OUTF, ">$PARAMS{output}" or die "Can't open $PARAMS{output} for writing";
 binmode INF1;
@@ -156,19 +157,30 @@ binmode OUTF;
 openRangeFile();
 
 read (INF1, $myInt32, 4) or die "Can't read first 4 bytes in $PARAMS{input}";
-my $entriesCount = unpack('L',$myInt32);
+read (INF1, $myInt8, 1) or die "Can't read next 1 byte in $PARAMS{input}";
+read (INF1, $myInt8b, 1) or die "Can't read next 1 byte in $PARAMS{input}";
+my $seqCount = unpack('L',$myInt32);
+my $subSequenceCount = unpack('C',$myInt8);
+my $hasRevComp = unpack('C',$myInt8b);
+my $entriesCount = $seqCount*$subSequenceCount*(hasRevComp+1);
+print "seqCount=${seqCount}\n";
+print "subSequenceCount=${subSequenceCount}\n";
+print "hasRevComp=${hasRevComp}\n";
+print "=>entriesCount=${entriesCount}\n";
 for (my $i=0; $i<$entriesCount; $i++) {
   read (INF1, $myInt32, 4) or die "Error reading 4 bytes in $PARAMS{input}";
-  read (INF1, $myInt64, 8) or die "Error reading 8 bytes in $PARAMS{input}";
-  read (INF1, $myInt8, 1) or die "Error reading 1 byte in $PARAMS{input}";
+#  read (INF1, $myInt64, 8) or die "Error reading 8 bytes in $PARAMS{input}";
+#  read (INF1, $myInt8, 1) or die "Error reading 1 byte in $PARAMS{input}";
+  read (INF1, $myInt8b, 1) or die "Error reading 1 byte in $PARAMS{input}";
   my $seqN = unpack('L',$myInt32);
-  my $posN = unpack('Q',$myInt64);
-  my $pileN = unpack('C',$myInt8);
+  my $posN = 0; #unpack('Q',$myInt64);
+  my $pileN = 0; #unpack('C',$myInt8);
+  my $subSeqN = unpack('C',$myInt8b);
 #  print OUTF "1 $posN\t$seqN\t$pileN\n";
 #  $posN += $pileStartPos[$pileN];
 
 #  print "posN=$posN \t seqN=$seqN\n";
-  readAndProcessRangesUntil( $posN, $seqN, $pileN );
+  readAndProcessRangesUntil( $posN, $seqN, $pileN, $subSeqN );
 
 }
 close INF1;
@@ -199,7 +211,7 @@ sub openRangeFile {
 }
 
 sub readAndProcessRangesUntil {
-  my ( $posN, $seqN, $pileN ) = @_;
+  my ( $posN, $seqN, $pileN, $subSeqN ) = @_;
   if ($rangeFileAvailable) {
     do {
       #print "$posN\t$seqN\t\tvs\t$currentRangePos\t$currentRangeSize\n";
@@ -235,6 +247,6 @@ sub readAndProcessRangesUntil {
     } while (1);
   }
   else {
-    print OUTF "$posN\t$seqN\t$pileN\n";
+    print OUTF "$posN\t$seqN\t$pileN\t$subSeqN\n";
   }
 }

@@ -53,7 +53,14 @@ Running `beetl --help` shows a high-level description of each BEETL tool:
     beetl correct   Correct sequencing errors in a BWT
     beetl compare   Compare two BWT datasets
     beetl search    Search within a BWT dataset
+    beetl extend    Extend BWT intervals to identify their associated sequence numbers
+    beetl index     Generate index for BWT file to speed other algorithms up
     beetl convert   Convert between file formats
+
+
+...and more tools:
+
+    beetlflow-tumour-normal-filter.sh
 
 
 Examples
@@ -68,6 +75,24 @@ Examples
     beetl-unbwt -i myBWT -o output.fasta
 
 
+### K-mer search in FastQ using BWT
+
+    # FastQ to BWT
+    beetl-bwt -i input.fastq -o bwt --generate-end-pos-file
+
+    # Optional: Index BWT files
+    beetl-index -i bwt
+
+    # K-mer search (Remove --use-indexing if you didn't run the previous step)
+    beetl-search -i bwt -k ACGT -o searchedKmers.bwtIntervals --use-indexing
+
+    # Propagation of the found intervals to end of reads, in order to identify sequence numbers
+    beetl-extend -i searchedKmers.bwtIntervals -b bwt -o searchedKmers.sequenceNumbers
+
+    # Extraction of the FastQ lines
+    beetl-convert -i input.fastq --extract-sequences=searchedKmers.sequenceNumbers -o sequencesWithSearchedKmers.fastq
+
+
 ### Error correction using BWT
 
     # BWT creation from FASTA
@@ -80,14 +105,26 @@ Examples
     align-corrector-strings -i input.fasta -c corrections.csv -o corrected.fasta --input-reads-format=fasta --output-reads-format=fasta -a no-indels -q '?' --min-witness-length=14
 
 
-### Tumour-normal comparison using BWT
+### Tumour-normal filtering using BWT
 
-    # Generation of tumour and normal BWTs
-    beetl-bwt -i tumour.fastq -o tumourBWT --generate-end-pos-file
-    beetl-bwt -i normal.fastq -o normalBWT --generate-end-pos-file
-    
-    # BWT comparison with default output to stdout
-    beetl-compare --mode=split -a tumourBWT -b normalBWT
+The tool 'beetlflow-tumour-normal-filter.sh' takes 2 datasets (tumour and normal), each made of 2 paired-end fastq or fastq.gz files (one for read 1, one for read 2).  
+It extracts all the read pairs that contain suspected variants, and outputs 4 fastq files, subsets of the input files.  
+The output files are placed in the specified output directory and are called:
+- tumour\_read1.fastq
+- tumour\_read2.fastq
+- normal\_read1.fastq
+- normal\_read2.fastq
+
+Example:
+
+    beetlflow-tumour-normal-filter.sh \
+      Tumour/lane1_NoIndex_L001_R1_001.fastq.gz \
+      Tumour/lane1_NoIndex_L001_R2_001.fastq.gz \
+      Normal/lane1_NoIndex_L001_R1_001.fastq.gz \
+      Normal/lane1_NoIndex_L001_R2_001.fastq.gz \
+      filteredOutputDirectory
+
+Note: Intermediate files (also present in the specified output directory) are not currently deleted, as they may be useful for further experiments.
 
 
 ### Meta-BEETL Metagenomics
@@ -212,7 +249,7 @@ Run BEETL metagenomic classification:
       -k 100 \
         > metaBeetlOutput.txt
 
-Since the algorithm repeatedly looks up the filenumbers for each BWT-Position we recommend to put these files on a disk with fast read access.  
+Since the algorithm repeatedly looks up the filenumbers for each BWT-Position we recommend to put these ncbiMicros-C0* files on a disk with fast read access.  
 Setting k = sequence length gets you the maximal amount of information but the output file will be large.
 
 

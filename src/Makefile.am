@@ -8,7 +8,7 @@ noinst_LIBRARIES = libzoo.a liball.a
 OldBeetl_SOURCES = shared/Beetl.cpp
 OldBeetl_LDADD = liball.a libzoo.a ${BOOST_LDADD}
 OldBeetl_LDFLAGS = ${BOOST_LDFLAGS}
-OldBeetl_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords ${OPENMP_CXXFLAGS}
+OldBeetl_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords -I$(srcdir)/backtracker ${OPENMP_CXXFLAGS}
 
 # Unfinished tool?
 #indexBwt_SOURCES = BCRext/IndexBwt.cpp
@@ -33,26 +33,32 @@ liball_a_SOURCES = \
 	BCRext/ReadBuffer.cpp \
 	shared/Filename.cpp \
 	shared/SeqReader.cpp \
-	countWords/BackTracker.cpp \
-	countWords/IntervalHandlerBase.cpp \
+	shared/SequenceExtractor.cpp \
+	backtracker/BackTrackerBase.cpp \
+	backtracker/OneBwtBackTracker.cpp \
+	backtracker/TwoBwtBackTracker.cpp \
+	backtracker/Range.cpp \
+	backtracker/RangeStore.cpp \
+	backtracker/IntervalHandlerBase.cpp \
 	countWords/IntervalHandlerMetagenome.cpp \
 	countWords/IntervalHandlerReference.cpp \
 	countWords/IntervalHandlerSplice.cpp \
-	countWords/Range.cpp \
-	countWords/RangeStore.cpp \
-	errors/OneBwtBackTracker.cpp \
-	errors/HiTEC.cpp \
+	countWords/IntervalHandlerTumourNormal.cpp \
 	errors/WitnessReader.cpp \
-	errors/HiTECIntervalHandler.cpp \
 	errors/BwtCorrectorIntervalHandler.cpp \
 	errors/BwtCorrector.cpp \
-	errors/HiTECErrorLocation.cpp \
 	errors/HiTECStats.cpp \
 	errors/CorrectionAligner.cpp \
 	errors/ErrorInfo.cpp \
-	errors/ErrorCorrectionRange.cpp
+	errors/ErrorCorrectionRange.cpp \
+	search/SearchUsingBacktracker.cpp \
+	search/KmerSearchIntervalHandler.cpp \
+	search/KmerSearchRange.cpp \
+	search/IntervalFile.cpp \
+	search/Extender.cpp \
+	search/ExtenderIntervalHandler.cpp
 
-liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
+liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords -I$(srcdir)/backtracker ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
 
 
 libzoo_a_SOURCES = \

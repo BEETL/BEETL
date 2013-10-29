@@ -15,20 +15,17 @@
  **
  **/
 
-#include "Algorithm.hh"
-#include "OneBwtBackTracker.hh"
-#include "Config.hh"
-#include "LetterCount.hh"
-
-#include "countWords/RangeStore.hh"
-#include "Types.hh"
-#include "WitnessReader.hh"
 #include "BCRext.hh"
 #include "BCRexternalBWT.hh"
-
+#include "Algorithm.hh"
+#include "Config.hh"
+#include "LetterCount.hh"
+#include "OneBwtBackTracker.hh"
+#include "RangeStore.hh"
 #include "Timer.hh"
+#include "Types.hh"
+#include "WitnessReader.hh"
 #include "config.h"
-
 #include "libzoo/util/Logger.hh"
 #include "shared/SeqReader.hh"
 
@@ -45,6 +42,7 @@
 #define INCLUDED_ERRORINFO_HH
 
 using namespace std;
+
 
 struct ErrorInfo
 {

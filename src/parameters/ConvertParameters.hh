@@ -103,6 +103,7 @@ public:
         addEntry( -1, "sequence length", "--sequence-length", "-l", "If specified, cut the end of longer sequences and pads the start of shorter ones", "", TYPE_INT );
         addEntry( -1, "remove padding", "--remove-padding", "", "For FastQ->FastQ only: Remove 'N' bases from the beginning and end of reads", "", TYPE_SWITCH );
         addEntry( -1, "use missing data from", "--use-missing-data-from", "", "e.g. for FASTA->FASTQ: use the qualities from this file", "", TYPE_STRING );
+        addEntry( -1, "extract sequences", "--extract-sequences", "", "Input file containing the sequence numbers to extract (zero-based, one per line)", "", TYPE_STRING );
 
         addDefaultVerbosityAndHelpEntries();
     }

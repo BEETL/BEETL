@@ -100,7 +100,7 @@ int detectMemoryLimitInMB()
     // Use a default minimum in case all detections failed
     if ( result == 0 )
     {
-        Logger::out( LOG_ALWAYS_SHOW ) << "Warning: Couldn't determine RAM constraint. Using default 1024 MB, you can specify it with --memory-limit." << endl;
+        Logger::out() << "Warning: Couldn't determine RAM constraint. Using default 1024 MB, you can specify it with --memory-limit." << endl;
         result = 1024; // 1 GB
     }
 

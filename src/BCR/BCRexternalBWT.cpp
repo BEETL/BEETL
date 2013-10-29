@@ -22,6 +22,7 @@
 #include "Tools.hh"
 #include "TransposeFasta.hh"
 #include "parameters/BwtParameters.hh"
+#include "parameters/SearchParameters.hh"
 #include "parameters/UnbwtParameters.hh"
 #include "libzoo/util/Logger.hh"
 #include "libzoo/util/TemporaryFilesManager.hh"
@@ -360,7 +361,7 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
         result = SearchAndLocateKmer( file1, fileOutBwt, intermediateCycFiles, kmers, lenKmer, seqID );
         checkIfEqual( result, 1 );
         std::cerr << "\nBCRexternalBWT: We have located all kmers, Now we store the positions of the found kmers" << endl;
-        if ( seqID.size() == 0 )
+        if ( seqID.empty() )
             std::cerr << "BCRexternalBWT: None of the k-mers occur in the collection" << endl;
         else
         {
@@ -1861,6 +1862,10 @@ int BCRexternalBWT::decodeBCRnaiveForward( char const *file1, char const *fileOu
     numchar = fread ( &numText, sizeof( SequenceNumber ), 1 , InFileEndPos );
     checkIfEqual ( numchar, 1 );
     checkIfEqual ( nText, numText ); // we should always read the same number of Texts of the bwt
+    uint8_t subSequenceCount = 0;
+    numchar = fread ( &subSequenceCount, sizeof( uint8_t ), 1 , InFileEndPos );
+    uint8_t hasRevComp = 0;
+    numchar = fread ( &hasRevComp, sizeof( uint8_t ), 1 , InFileEndPos );
 
     numchar = 0;
     sortElement triple;
@@ -1878,13 +1883,17 @@ int BCRexternalBWT::decodeBCRnaiveForward( char const *file1, char const *fileOu
     }
     for ( SequenceNumber i = 0; i < nText; i++ )
     {
-        Logger::out( LOG_ALWAYS_SHOW ) << "Decoding sequence " << i << endl;
+        Logger::out() << "Decoding sequence " << i << endl;
 
         numchar = fread ( &triple.seqN, sizeof( SequenceNumber ), 1 , InFileEndPos );
         checkIfEqual( numchar, 1 ); // we should always read the same number of characters
-        numchar = fread ( &triple.posN, sizeof( LetterNumber ), 1 , InFileEndPos ); //it is the relative position of the $ in the partial BWT
-        checkIfEqual( numchar, 1 ); // we should always read the same number of characters
-        numchar = fread ( &triple.pileN, sizeof( AlphabetSymbol ), 1 , InFileEndPos );
+        //        numchar = fread ( &triple.posN, sizeof( LetterNumber ), 1 , InFileEndPos ); //it is the relative position of the $ in the partial BWT
+        //        checkIfEqual( numchar, 1 ); // we should always read the same number of characters
+        //        numchar = fread ( &triple.pileN, sizeof( AlphabetSymbol ), 1 , InFileEndPos );
+        //        checkIfEqual( numchar, 1 ); // we should always read the same number of characters
+        assert( false && "todo: recalculate posN and pileN which are not stored in end-pos file anymore" );
+        uint8_t subSequenceNum;
+        numchar = fread ( &subSequenceNum, sizeof( uint8_t ), 1 , InFileEndPos );
         checkIfEqual( numchar, 1 ); // we should always read the same number of characters
 
         //  if (verboseDecode == 1)
@@ -1974,7 +1983,7 @@ int BCRexternalBWT::decodeBCRmultipleReverse( char const *file1, char const *fil
     }
     for ( SequenceLength m = lengthRead ; m > 0 ; m-- )
     {
-        Logger::out( LOG_ALWAYS_SHOW ) << "Decoding cycle " << m << endl;
+        Logger::out() << "Decoding cycle " << m << endl;
 
         int resultNsymbol = -1;
         assert( unbwtParams_ || searchParams_ );
