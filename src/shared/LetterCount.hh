@@ -71,7 +71,7 @@ template<typename T> struct LetterCountTemplate
 
     friend std::istream &operator>>( std::istream &is, LetterCountTemplate &obj )
     {
-        char space, letter, colon;
+        char letter, colon;
         for ( int i( 0 ); i < alphabetSize; i++ )
         {
             is >> letter >> colon >> obj.count_[i];

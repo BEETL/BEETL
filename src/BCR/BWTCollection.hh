@@ -144,7 +144,7 @@ private:
     virtual int findBlockToRead( LetterNumber *, AlphabetSymbol , LetterNumber *, LetterNumber * ) = 0;
 protected:
     // Protected constructor; call the static function InitBWTCollection().
-    BWTCollection() { };
+    BWTCollection() : tableOcc( NULL ), sizeAlpha( 0 ), alphaInverse( NULL ) { }
 
     // No copy constructor or assignment
     BWTCollection( BWTCollection const & );

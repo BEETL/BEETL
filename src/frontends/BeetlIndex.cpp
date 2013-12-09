@@ -54,7 +54,6 @@ void launchBeetlIndex()
     bool compressed, forceOverwrite;
     vector<string> pileNames;
     string dummyStr;
-    BwtReaderBase *dollarPile;
 
     int blockSize( 2048 );
     if ( params["block size"].isSet() )
@@ -102,7 +101,7 @@ void launchBeetlIndex()
 
 
     for ( vector<string>::iterator thisPile( pileNames.begin() );
-          thisPile != pileNames.end(); thisPile++ )
+          thisPile != pileNames.end(); ++thisPile )
     {
         cerr << "Indexing file " << *thisPile << endl;
         BwtReaderRunLengthIndex reader( thisPile->c_str() );

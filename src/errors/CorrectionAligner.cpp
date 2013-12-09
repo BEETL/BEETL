@@ -83,10 +83,9 @@ void CorrectionAligner::ApplyCorrections(
 )
 {
 
-    int readLength = readsFile->length();
+    uint readLength = readsFile->length();
     readsFile->rewindFile();
-    char read[readLength];
-    int currentCorrection = 0;
+    uint currentCorrection = 0;
     int currentRead = 0;
 
     while ( readsFile->readNext(), !readsFile->allRead() )
@@ -104,7 +103,7 @@ void CorrectionAligner::ApplyCorrections(
             while ( currentCorrection < corrections.size() && corrections[currentCorrection].seqNum == currentRead )
             {
                 correctionsForCurrentRead.push_back( &corrections[currentCorrection] );
-                currentCorrection++;
+                ++currentCorrection;
             }
 
             string correctedRead, correctedQstr;
@@ -116,10 +115,12 @@ void CorrectionAligner::ApplyCorrections(
                 correctedReadsOut << MakeFastaRecord( currentRead, name, correctedRead, correctedQstr );
         }
         else if ( !correctionsOnly )
+        {
             if ( fileType == READS_FORMAT_FASTQ )
                 correctedReadsOut << MakeFastqRecord( currentRead, name, readStr, qStr );
             else if ( fileType == READS_FORMAT_FASTA )
                 correctedReadsOut << MakeFastaRecord( currentRead, name, readStr, qStr );
+        }
         currentRead++;
     }
 
@@ -153,13 +154,13 @@ void SmithWatermanCorrectionAligner::Align( const string &seq1, const string &se
     int **matrix = makeMatrix<int>( seq1.size() + 1, seq2.size() + 1 );
     AlignType **pointers = makeMatrix<AlignType>( seq1.size() + 1, seq2.size() + 1 );
 
-    for ( int seq1pos = 0; seq1pos <= seq1.size(); seq1pos++ )
+    for ( uint seq1pos = 0; seq1pos <= seq1.size(); seq1pos++ )
         matrix[seq1pos][0] = 0;
-    for ( int seq2pos = 0; seq2pos <= seq2.size(); seq2pos++ )
+    for ( uint seq2pos = 0; seq2pos <= seq2.size(); seq2pos++ )
         matrix[0][seq2pos] = 0;
 
-    for ( int seq1pos = 1; seq1pos <= seq1.size(); seq1pos++ )
-        for ( int seq2pos = 1; seq2pos <= seq2.size(); seq2pos++ )
+    for ( uint seq1pos = 1; seq1pos <= seq1.size(); seq1pos++ )
+        for ( uint seq2pos = 1; seq2pos <= seq2.size(); seq2pos++ )
         {
             AlignType alignType = POSITION_MATCH;
             int score = 0;
@@ -267,7 +268,7 @@ string SmithWatermanCorrectionAligner::Correct( const string &errorContainingRea
 {
     bool firstCorrection = true;
     string result( errorContainingRead );
-    for ( int currentCorrection = 0; currentCorrection < corrections.size(); currentCorrection++ )
+    for ( uint currentCorrection = 0; currentCorrection < corrections.size(); currentCorrection++ )
     {
         ErrorInfo *current = corrections[currentCorrection];
         string witness = ( current->reverseStrand ) ?
@@ -324,7 +325,7 @@ void NoIndelAligner::CorrectRead(
 
     sort( corrections.begin(), corrections.end(), SortByLastCycle );
 
-    for ( int currentCorrection = 0; currentCorrection < corrections.size(); currentCorrection++ )
+    for ( uint currentCorrection = 0; currentCorrection < corrections.size(); currentCorrection++ )
     {
         ErrorInfo *current = corrections[currentCorrection];
 

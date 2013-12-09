@@ -15,6 +15,9 @@
  **
  **/
 
+#include "../shared/Tools.hh"
+
+#include<cassert>
 #include<cstdlib>
 #include<cstring>
 #include<fstream>
@@ -44,19 +47,9 @@ struct SequenceInformation
     string fileName_;
     uint64_t giNumber_;
     string giString_;
-};
 
-vector<string>  split ( string s, string token )
-{
-    vector<string> vs;
-    while ( s.find( token ) != string::npos )
-    {
-        vs.push_back( s.substr( 0, s.find( token ) ) );
-        s = s.substr( s.find( token ) + ( token.length() ) );
-    }
-    vs.push_back( s );
-    return vs;
-}
+    SequenceInformation() : fileNum_( 0 ), giNumber_( 0 ) {}
+};
 
 
 vector<SequenceInformation> loadSequenceInfo( string headerFile, string fileCounter );
@@ -67,11 +60,12 @@ map<int, int> getGiTotaxId( string gitoTaxId, vector<int> giNumbers );
 
 int getTaxonomicLevel( string s );
 
-string getAncestors( map<int, NCBINode > idToNode, int id );
+void printAncestors( map<int, NCBINode > &idToNode, int id );
 
 //string levelNames[] = {"superkingdom","phylum" ,"class", "order", "family", "genus", "species"};
 
 map<int, int> giToTaxId;
+
 
 int main( int argc, char **argv )
 {
@@ -83,9 +77,8 @@ int main( int argc, char **argv )
     string fileCountFile;
     string giToTaxIdFile;
 
-    vector<string> inputGenomeFiles;
     if ( argc < 5 )
-        cout << "-nA namesfile, -nO nodesFile, -nM mergedFile, -nG giToTaxIdFile, -h headerFile, -f fileCountFile " << endl;
+        cout << "-nA namesfile, -nO nodesFile, [-nM mergedFile,] -nG giToTaxIdFile, -h headerFile, -f fileCountFile " << endl;
     for ( int i( 0 ) ; i < argc ; i++ )
     {
         if ( strcmp( argv[i], "-nA" ) == 0 )
@@ -118,26 +111,19 @@ int main( int argc, char **argv )
         if ( ! found )
         {
             gis.push_back( seqs[i].giNumber_ );
-            cerr << seqs[i].giNumber_ << "|" ;
+            //            clog << seqs[i].giNumber_ << "|" ;
         }
     }
-    cout << endl;
-    cerr << "Gi Id size " << gis.size() << endl;
+    //    clog << endl;
+    clog << "Gi Id size " << gis.size() << endl;
     giToTaxId = getGiTotaxId( giToTaxIdFile, gis );
     for ( unsigned int i ( 0 ); i < seqs.size() ; i++ )
     {
-        bool foundTaxa( false );
-        for ( map<int, int>::iterator it = giToTaxId.begin() ; it != giToTaxId.end(); it++ )
-        {
-            if ( ( *it ).first == ( int )seqs[i].giNumber_ )
-                foundTaxa = true;
-        }
-        if ( !foundTaxa )
-            cout << "NO taxId for " << seqs[i].giNumber_ << endl;
-
+        if ( giToTaxId.find( ( int )seqs[i].giNumber_ ) == giToTaxId.end() )
+            cout << "# No taxId for giNumber " << seqs[i].giNumber_ << " (seq " << i << ")" << endl;
     }
 
-    cerr << "got GI IDs " << giToTaxId.size() << endl;
+    clog << "got " << giToTaxId.size() << " GI IDs " << endl;
     findNCBITaxa( seqs, namesFile, nodesFile, mergedFile, output );
     return 0;
 }
@@ -145,31 +131,29 @@ int main( int argc, char **argv )
 vector<SequenceInformation> loadSequenceInfo( string headerFile, string fileCounter )
 {
     vector<SequenceInformation> seqsInfo;
-    ifstream fileCount( fileCounter.c_str(), ios::in );
-    SequenceInformation oneSeq;
+    ifstream fileCount( fileCounter );
     string line;
     string fName;
-    while  ( fileCount.good() )
+    while  ( getline( fileCount, line ) )
     {
-        getline( fileCount, line );
+        SequenceInformation oneSeq;
         unsigned short fileCNum = ( unsigned short ) strtoul( line.substr( 0, line.find( "," ) ).c_str(), NULL, 0 );
         oneSeq.fileNum_ = fileCNum;
         fName = line.substr( line.find( "," ) + 1 );
         oneSeq.fileName_ = fName;
         seqsInfo.push_back( oneSeq );
     }
-    ifstream head( headerFile.c_str() , ios::in );
+    ifstream head( headerFile );
     int tagCount( 0 );
 
-    while ( head.good() )
+    while ( getline( head, line ) )
     {
-        getline( head, line );
         string fileCount = line.substr( 0, line.find( "," ) );
         string tag = line.substr( line.find( "," ) + 1 );
         string f = "G_" + fileCount;
         string fr = "G_" + fileCount + "_rev";
         int revCount( 0 );
-        bool foundFile( false );
+        int foundFile( 0 );
 
         for ( unsigned int i ( 0 ); i < seqsInfo.size(); i++ )
         {
@@ -182,99 +166,84 @@ vector<SequenceInformation> loadSequenceInfo( string headerFile, string fileCoun
                     cerr << "wrong file number " << endl;
                 //1,gi|15604717|ref|NC_000117.1| Chlamydia trachomatis D/UW-3/CX, complete genome
                 seqsInfo[i].tag_ = tag;
-                vector<string> tagSplit = split( line, "|" );
+                vector<string> tagSplit = splitString( line, "|" );
                 seqsInfo[i].giNumber_ =  atol( tagSplit[1].c_str() );
 
                 seqsInfo[i].giString_ = tagSplit[1];
                 tagCount++;
-                foundFile = true;
+                ++foundFile;
             }
         }
-        if ( !foundFile )
+        if ( foundFile != 2 )
         {
-            cerr << "Found no File for " << line << endl;
+            cerr << "Found " << foundFile << " File for " << line << endl;
             cerr << "file should be " << f << " or " << fr << endl;
         }
     }
-    cerr << "TagCount " << tagCount << endl;
-    cerr << "Got Sequenceinformation " << seqsInfo.size() << endl;
+    clog << "TagCount " << tagCount << endl;
+    clog << "Got Sequenceinformation " << seqsInfo.size() << endl;
     return seqsInfo;
 }
 
 map<int, int> getGiTotaxId( string giToTaxIdFName, vector<int> giNumbers )
 {
-    ifstream giToTaxFile( giToTaxIdFName.c_str(), ios::in );
+    map<int, bool> giNumbersPresent;
+    for ( int giNum : giNumbers )
+        giNumbersPresent[giNum] = true;
+
+    ifstream giToTaxFile( giToTaxIdFName );
     string line;
     map<int, int> giToTaxId;
-    int smallestGiNumber = giNumbers[0];
-    cout << "all GI numbers " << giNumbers.size() << endl;
-    for ( unsigned int i( 0 ); i < giNumbers.size(); i++ )
-        smallestGiNumber = ( smallestGiNumber > giNumbers[i] && giNumbers[i] != 0 ) ? giNumbers[i] : smallestGiNumber;
-    cout << "smallest GI " << smallestGiNumber << endl;
-    int lineNumber( 0 );
-    while ( giToTaxFile.good() )
-    {
-        getline( giToTaxFile, line );
-        //    cout <<line <<endl;
-        lineNumber++;
-        if ( line.length() > 5 )
-        {
-            vector<string> lineVector = split( line, "\t" );
-            //cerr << "split 1 " << lineVector[1] <<endl;
-            //    cerr << "split 0 " << lineVector[0] <<endl;
-            int giNumber = atoi( lineVector[0].c_str() );
+    clog << "GI numbers count: " << giNumbers.size() << endl;
 
-            //cerr <<giNumber<<endl;
-            for ( unsigned int i( 0 ); i < giNumbers.size(); i++ )
+    while ( getline( giToTaxFile, line ) )
+    {
+        istringstream iss( line );
+        int giNumber = -1;// = atoi( lineVector[0].c_str() );
+        int taxId = -1; //atoi( lineVector[1].c_str() );
+
+        if ( iss >> giNumber >> taxId )
+        {
+            assert( taxId != -1 );
+            if ( giNumbersPresent.find( giNumber ) != giNumbersPresent.end() )
             {
-                if ( giNumber == giNumbers[i] )
-                {
-                    //	cerr<< "foudn gi tax |" <<lineVector[0] <<"|" <<endl;
-                    int taxId = atoi( lineVector[1].c_str() );
-                    giToTaxId[giNumber] = taxId;
-                    //cerr << giNumber << " " << taxId <<endl;
-                    break;
-                }
+                giToTaxId[giNumber] = taxId;
+                clog << "Found gi tax number->id (" << giToTaxId.size() << "/" << giNumbers.size() << "): " << giNumber << " " << taxId << endl;
             }
         }
     }
 
-    cout << " got all GIs " << giToTaxId.size() << endl;
+    clog << " got all " << giToTaxId.size() << " GIs" << endl;
 
-    giToTaxFile.close();
     return giToTaxId;
 }
 
 void findNCBITaxa( vector<SequenceInformation> &seqs, string namesDMP, string nodesDMP, string mergedDMP, string outputInfo )
 {
-    ifstream ncbiNames;
-    ncbiNames.open( namesDMP.c_str(), ios::in );
+    ifstream ncbiNames( namesDMP );
     vector<string> lineVector;
     string line;
-    map<string, int> nameToId;
+    //    map<string, int> nameToId;
     map<int, string> idToScientificName;
     map<int, NCBINode> idToNode;
     vector<  map<int, vector<unsigned short> > > taxLevelToFileCount;
     taxLevelToFileCount.resize( 7 );
 
-    while ( ncbiNames.good() )
+    while ( getline( ncbiNames, line ) )
     {
-        getline( ncbiNames, line );
-        lineVector = split( line , "\t|\t" );
+        lineVector = splitString( line , "\t|\t" );
         string name = lineVector[1];
         //    cout << "ncbiName >"<< name <<"<" <<endl;
         int id = atoi( lineVector[0].c_str() );
-        nameToId[name] = id;
+        //        nameToId[name] = id;
         if ( line.find( "scientific" ) != string::npos )
             idToScientificName[id] = name;
     }
-    ifstream ncbiNodes;
-    ncbiNodes.open( nodesDMP.c_str(), ios::in );
+    ifstream ncbiNodes( nodesDMP );
     NCBINode node;
-    while ( ncbiNodes.good() )
+    while ( getline( ncbiNodes, line ) )
     {
-        getline( ncbiNodes, line );
-        lineVector = split( line, "\t|\t" );
+        lineVector = splitString( line, "\t|\t" );
 
         int id = atoi( lineVector[0].c_str() );
         int parentId = atoi( lineVector[1].c_str() );
@@ -292,16 +261,16 @@ void findNCBITaxa( vector<SequenceInformation> &seqs, string namesDMP, string no
             cerr << "already has id " << id << " " << idToScientificName[id] << endl;
         idToNode[id] = node;
     }
-    cerr << "got ncbi names " << endl;
+    clog << "got ncbi names " << endl;
     //get parent levels, and change the taxLevel under species to strain
-    for ( map< int, NCBINode >::iterator it = idToNode.begin(); it != idToNode.end(); it++ )
+    for ( map< int, NCBINode >::iterator it = idToNode.begin(); it != idToNode.end(); ++it )
     {
-        NCBINode parent = idToNode[( *it ).second.parentId_];
+        NCBINode parent = idToNode[it->second.parentId_];
         if ( parent.taxLevel_ == getTaxonomicLevel( "species" ) )
-            ( *it ).second.taxLevel_ = getTaxonomicLevel( "strain" );
-        ( *it ).second.parentLevel_ = parent.taxLevel_;
+            it->second.taxLevel_ = getTaxonomicLevel( "strain" );
+        it->second.parentLevel_ = parent.taxLevel_;
     }
-    cerr << "node to id " << idToNode.size() << endl;
+    clog << "node to id " << idToNode.size() << endl;
 
     /*  ifstream mergedStream( mergedDMP.c_str(), ios::in);
     while(mergedStream.good()) {
@@ -317,67 +286,48 @@ void findNCBITaxa( vector<SequenceInformation> &seqs, string namesDMP, string no
       idToNode[newId] = oldNode;
       }*/
 
-    cerr << "after merged out " << idToNode.size() << endl;
-    cerr << "seq size " << seqs.size() << endl;
+    clog << "after merged out " << idToNode.size() << endl;
+    clog << "seq size " << seqs.size() << endl;
     for ( unsigned int j ( 0 ) ; j < seqs.size(); j++ )
     {
         unsigned short fileNum = seqs[j].fileNum_;
-        cerr << fileNum << endl;
-        //unsigned short fileNum = (unsigned short) strtoul(lineVec[1].c_str(), NULL, 0);
-        //    string line = seqs[j].tag_;
         //1,gi|15604717|ref|NC_000117.1| Chlamydia trachomatis D/UW-3/CX, complete genome
-        //vector<string> lineVector = split(line,"|");*/
         int gi = seqs[j].giNumber_;
-        cerr << gi << " " << giToTaxId[gi] << endl;
-        if ( giToTaxId[gi] != 0 )
+        clog << "fileNum " << fileNum << " (" << j << "/" << seqs.size() << "): gi=" << gi << ", taxId=" << giToTaxId[gi] << endl;
+        //        if ( giToTaxId[gi] != 0 )
         {
-            cout <<  fileNum;
-            cout << getAncestors( idToNode, giToTaxId[gi] );
+            cout << fileNum;
+            printAncestors( idToNode, giToTaxId[gi] );
+            cout << endl;
         }
     }
 }
 
 
-string getAncestors( map<int, NCBINode> idToNode, int id )
+void printAncestors( map<int, NCBINode> &idToNode, int id )
 {
-    stringstream tree;
-    cerr << "start id " << id << endl;
-    stringstream level( " " );
-    int taxIds[7];
-    tree << endl;
-    int i( 7 ), j( 0 );
-    while ( id != 1 )
+    clog << "Ancestors for id " << id;
+    vector<int> taxIds( 8 );
+
+    if ( id != 0 )
     {
-        NCBINode n = idToNode[id];
-        //cout <<"Level 10 reached" <<endl;
-        if ( n.taxLevel_ != 10 )
+        const NCBINode *n;
+        do
         {
-            level << " " << n.taxLevel_;
-            //  cerr << " i " << i << " l " << n.taxLevel_ << endl;
-            while ( n.taxLevel_ < i )
+            n = &idToNode[id];
+            if ( n->taxLevel_ < 8 )
             {
-                taxIds[j] = 0;
-                j++;
-                //	tree << " " << 0;
-                i--;
+                taxIds[ n->taxLevel_ ] = id;
             }
-            taxIds[j] = id;
-            //tree << " " << id;
-            i--;
-            j++;
+            clog << " => id " << id << "(lvl " << n->taxLevel_ << ")";
+            id = n->parentId_;
         }
-        cerr << "id " << id << " parent " << n.parentId_ << endl;
-        id = n.parentId_;
+        while ( n->taxLevel_ != 0 );
+        clog << endl;
     }
-    for ( int k( 6 ) ; k > -1 ; k-- )
+
+    for ( int k( 0 ) ; k < 8 ; ++k )
         cout << " " << taxIds[k];
-    //  cout <<endl;
-    if ( j != 7 )
-    {
-        //      cerr<< id << " something wrong " <<j << " i " << level.str() << endl;
-        //    cerr << tree.str()<<endl;
-    }
-    return tree.str();
 }
 
 
@@ -406,14 +356,3 @@ int getTaxonomicLevel( string s )
     return level;
 }
 
-vector<string>  splitString ( string s, string token )
-{
-    vector<string> vs;
-    while ( s.find( token ) != string::npos )
-    {
-        vs.push_back( s.substr( 0, s.find( token ) ) );
-        s = s.substr( s.find( token ) + ( token.length() ) );
-    }
-    vs.push_back( s );
-    return vs;
-}

@@ -42,9 +42,9 @@ HiTECStats::HiTECStats(
     const int readLength
 ):
     numberOfReads_( numberOfReads ),
+    readLength_( readLength ),
     genomeLength_( genomeLength ),
-    errorRate_( errorRate ),
-    readLength_( readLength )
+    errorRate_( errorRate )
 {
 
 }

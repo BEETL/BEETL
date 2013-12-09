@@ -38,9 +38,7 @@ void IntervalHandlerTumourNormal::foundInBoth
     int nonsharedPaths( 0 );
     int sharedPathsA( 0 );
     int sharedPathsB( 0 );
-    int zeroPaths( 0 );
-    double het_correction_factor( 2.0 );
-    LetterNumber meanSignalAOnly( 0 ), meanSignalBOnly( 0 ), current_minOccA_( 0 ), current_minOccB_( 0 ), countsThisRangeA_cimulative( 0 ), countsThisRangeB_cimulative( 0 );
+    LetterNumber meanSignalAOnly( 0 ), meanSignalBOnly( 0 ), current_minOccA_( 0 ), current_minOccB_( 0 );
 
     if ( cycle < 12 )
     {

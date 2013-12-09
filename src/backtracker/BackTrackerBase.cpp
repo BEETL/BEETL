@@ -69,8 +69,6 @@ void BackTrackerBase::processSingletons(
     , int sampleId
 )
 {
-    bool hasChild;
-
     while ( notAtLast )
     {
         notAtLast = rA_.getRange( thisRange );
@@ -168,7 +166,7 @@ void BackTrackerBase::processSingletons(
         }
 
         // add ranges for any children
-        hasChild = false;
+        bool hasChild = false;
         for ( int l( 1 ); l < alphabetSize; l++ )
         {
             //       if (countsThisRange.count_[l]>=minOcc)

@@ -458,7 +458,10 @@ void BwtWriterIncrementalRunLength::sendChar( unsigned char c, unsigned char met
     uint fnum = fileNumInReader_;
     size_t &fpos = filePosInReader_;
 
-    if ( LOCAL_DEBUG ) clog << "Inserting " << ( unsigned int )c << " in file " << fnum << " pos " << fpos << ", remainingRunLengthInReader=" << remainingRunLengthInReader_ << " fileNum=" << fileNum_ << " ramFiles[fileNum_].size()=" << ramFiles[fileNum_].size() << " ramFiles[fnum].size()=" << ramFiles[fnum].size() << endl;
+    if ( LOCAL_DEBUG )
+    {
+        clog << "Inserting " << ( unsigned int )c << " in file " << fnum << " pos " << fpos << ", remainingRunLengthInReader=" << remainingRunLengthInReader_ << " fileNum=" << fileNum_ << " ramFiles[fileNum_].size()=" << ramFiles[fileNum_].size() << " ramFiles[fnum].size()=" << ramFiles[fnum].size() << endl;
+    }
 
     if ( lastFileReturnNeeded_ )
     {

@@ -86,24 +86,37 @@ bool operator<( const SuffixInfo &lhs, const SuffixInfo &rhs )
     // return (strcmp(lhs.pSeq_+lhs.loc_,rhs.pSeq_+rhs.loc_)>0);
 }
 
+long getFileSize( const string &name )
+{
+    ifstream file( name );
+
+    // Find file size
+    file.seekg( 0, ios::end );
+    size_t fileSize = file.tellg();
+
+    return fileSize;
+}
 
 void readFastaFile( const char *name, vector<char> &data )
 {
     ifstream fastaFile( name, ios::in );
+    size_t fileSize = getFileSize( name );
+    data.reserve( data.size() + fileSize + 1 );
+
     string line;
-    while ( fastaFile.good() )
+    while ( getline( fastaFile, line ) )
     {
-        getline( fastaFile, line );
         if ( line[0] != '>' )
         {
             for ( unsigned int i( 0 ) ; i < line.length() ; i++ )
             {
-                if ( strchr( "ACGNT", line[i] ) == NULL )
+                char c = toupper( line[i] );
+                if ( strchr( "ACGNT", c ) == NULL )
                 {
-                    cout << "found wrong char " << line[i] << " in " << name << endl;
-                    line[i] = 'N';
+                    cout << "found wrong char " << c << " in " << name << " => replaced with 'N'." << endl;
+                    c = 'N';
                 }
-                data.push_back( line[i] );
+                data.push_back( c );
             }
         }
     }
@@ -119,7 +132,7 @@ void readFileList( const char *fileName, std::vector<string> &files )
         cerr << "Cannot open " << fileName << " for reading." << endl;
         exit( EXIT_FAILURE );
     }
-    string line, csvFileNum, csvFileName;
+    string line;
     while ( getline( fileList, line ) )
     {
         files.push_back( line );
@@ -152,8 +165,6 @@ int main ( int numArgs, const char *args[] )
     //  vector<vector<unsigned> > suffixstore;
     //vector<string> bwtstore;
 
-    FILE *arrayInputStream;
-    //FILE* bwtInputStream;
     FILE *pFileChrom;
 
     FILE *pFileArray;
@@ -208,7 +219,7 @@ int main ( int numArgs, const char *args[] )
         queue<char> bwtQue;
         suffixArrays.push_back( thisSuffArr );
         bwts.push_back( bwtQue );
-        arrayInputStream = fopen( fileName.c_str(), "r" );
+        FILE *arrayInputStream = fopen( fileName.c_str(), "r" );
         if ( arrayInputStream != NULL )
         {
             long fileSize = getFileSize( arrayInputStream );
@@ -230,17 +241,24 @@ int main ( int numArgs, const char *args[] )
         {
             //read the bwt
             getFileName( fileNameStem, 'B', pileNum, fileName );
+
             if ( i % 20 == 0 )
             {
                 cerr << "Will open BWT file " << fileName << endl;
             }
-            ifstream bwtIn( fileName.c_str(), ios::in );
+
+            ifstream bwtIn( fileName );
             if ( bwtIn.good() )
             {
-                string line;
-                getline( bwtIn, line );
-                for ( unsigned int s( 0 ); s < line.length(); s ++ )
-                    bwtQue.push( line[s] );
+                long fileSize = getFileSize( fileName );
+                //allocate the space
+                vector<char> arrayBuf( fileSize );
+                bwtIn.read( arrayBuf.data(), fileSize );
+
+                for ( int k( 0 ) ; k < fileSize; ++k )
+                {
+                    bwtQue.push( arrayBuf[k] );
+                }
                 bwts.back() = bwtQue;
             }
         }
@@ -261,7 +279,7 @@ int main ( int numArgs, const char *args[] )
         {
             //pointer to first char in vector<char> of the genome sequence
             thisSuffix.pSeq_ = &( chromSeqs[i][0] );
-            thisSuffix.fileNum_ = ( unsigned short ) i;
+            thisSuffix.fileNum_ = i;
             thisSuffix.loc_ = suffixArrays[i].front();
             suffixArrays[i].pop();
             thisSuffix.bwtSymbol_ = bwts[i].front();
@@ -302,7 +320,7 @@ int main ( int numArgs, const char *args[] )
         pq.pop();
         assert( fwrite( &thisSuffix.loc_, sizeof( unsigned ), 1, pFileArray ) == 1 );
         assert( fwrite( &thisSuffix.bwtSymbol_, sizeof( unsigned char ), 1, pFileBWT ) == 1 );
-        assert( fwrite( &thisSuffix.fileNum_, sizeof( unsigned short ), 1, pFileChrom ) == 1 );
+        assert( fwrite( &thisSuffix.fileNum_, sizeof( MetagFileNumRefType ), 1, pFileChrom ) == 1 );
 
         if ( ( j % 1000000 ) == 0 ) cout << "." << endl;
         j++;

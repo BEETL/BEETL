@@ -15,3 +15,8 @@
  **
  **/
 
+#ifndef BEETL_EXTEND_HH
+#define BEETL_EXTEND_HH
+
+
+#endif //ifndef BEETL_EXTEND_HH

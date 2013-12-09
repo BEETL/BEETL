@@ -415,8 +415,6 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
         Logger::out() << "Total length (with $): " << lengthTot_plus_eof << "\n";
     }
 
-    LetterNumber numchar;
-
     Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Partial File name for input: " << cycFilesPrefix << " \n\n";
 
     // Make sure that our temporary filenames are not already used
@@ -493,7 +491,7 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
                 cerr << "Triple[" << i << "]: " << vectTriple[i].seqN << " " << vectTriple[i].posN << " " << ( int )vectTriple[i].pileN << ", newSymb=" << newSymb[i] << endl;
         }
 
-        vector <sortElement> vectTriple2( nText );
+        //        vector <sortElement> vectTriple2( nText );
 
         SequenceNumber pos = 0;
         for ( AlphabetSymbol j = 0 ; j < sizeAlphaM1; j++ )
@@ -642,7 +640,7 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
                         vector<uchar> newSymb2( nText, '$' );
                         assert( newSymb2.size() == nText );
                         assert( newSymb2[nText - 1] == '$' );
-                        InsertNsymbols( &newSymb2[0], currentIteration, NULL );
+                        InsertNsymbols( newSymb2.data(), currentIteration, NULL );
                     }
 
                     if ( bwtParams->getValue( PARAMETER_GENERATE_ENDPOSFILE ) || BUILD_SA )
@@ -983,7 +981,7 @@ void BCRexternalBWT::InsertFirstsymbols( uchar const *newSymb, uchar const *newS
     if ( BUILD_SA == 1 )  //To store the SA
     {
         TmpFilename filenameOut( "sa_0" );
-        static FILE  *OutFileSA = fopen( filenameOut, "ab" );    // output file SA;
+        FILE *OutFileSA = fopen( filenameOut, "ab" );    // output file SA;
         if ( OutFileSA == NULL )
         {
             cerr << "SA file: Error opening: " << filenameOut << " (SA file $)" << endl;
@@ -1011,7 +1009,6 @@ void BCRexternalBWT::InsertFirstsymbols( uchar const *newSymb, uchar const *newS
 
 void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, SequenceLength iterationNum, uchar const *newQual )
 {
-    FILE *InFileBWT;                  // output and input file BWT;
     LetterNumber numchar = 0;
 
     // We first calculate at which index each pile starts
@@ -1051,7 +1048,7 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, SequenceLength iterat
         {
             TmpFilename filenameIn( mmm );
             //printf("===currentPile= %d\n",mmm);
-            InFileBWT = fopen( filenameIn, "r" );
+            FILE *InFileBWT = fopen( filenameIn, "r" );
             for ( SequenceNumber g = 0 ; g < SIZEBUFFER; g++ )
                 buffer[g] = '\0';
             numchar = fread( buffer, sizeof( uchar ), SIZEBUFFER, InFileBWT );
@@ -1070,13 +1067,12 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, SequenceLength iterat
     {
         if ( bwtParams_->getValue( PARAMETER_GENERATE_LCP ) == true )
         {
-            FILE *InFileLCP;                  // output and input file LCP;
             SequenceLength *bufferLCP = new SequenceLength[SIZEBUFFER];
             AlphabetSymbol mmm = 0;
             while ( mmm < alphabetSize )
             {
                 TmpFilename filenameInLCP( "", mmm, ".lcp" );
-                InFileLCP = fopen( filenameInLCP, "rb" );
+                FILE *InFileLCP = fopen( filenameInLCP, "rb" );
                 for ( LetterNumber g = 0 ; g < SIZEBUFFER; g++ )
                     bufferLCP[g] = 0;
                 numchar = fread( bufferLCP, sizeof( SequenceLength ), SIZEBUFFER, InFileLCP );
@@ -1520,17 +1516,13 @@ void BCRexternalBWT::storeBWT( uchar const *newSymb, uchar const *newQual )
     }
 
 
-    //static FILE *tmpFile;
-    //tmpFile = fopen("sizeFileBwt.txt", "a");
-    static FILE *OutFileBWT;                  // output and input file BWT;
-
     //Renaming new to old
     for ( AlphabetSymbol g = 0 ; g < alphabetSize - 1; g++ )
     {
         TmpFilename filenameIn( g );
         TmpFilename filenameOut( "new_", g );
         //cerr << "Filenames:" << filenameIn << "\t" <<filenameOut << endl;
-        OutFileBWT = fopen( filenameOut, "rb" );
+        FILE *OutFileBWT = fopen( filenameOut, "rb" );
 
         if ( OutFileBWT != NULL ) //If it exists
         {
@@ -1887,7 +1879,6 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
 void BCRexternalBWT::storeEntireBWT( const char *fn )
 {
 
-    static FILE *OutFileBWT, *InFileBWT;                  // output and input file BWT;
     LetterNumber numchar = 0;
     LetterNumber numcharWrite = 0;
 
@@ -1897,7 +1888,7 @@ void BCRexternalBWT::storeEntireBWT( const char *fn )
     for ( unsigned i = 0; i < 255; ++i )
         freqOut[i] = 0;
 
-    OutFileBWT = fopen( fn, "wb" );
+    FILE *OutFileBWT = fopen( fn, "wb" );
     if ( OutFileBWT == NULL )
     {
         cerr << "storeEntireBWT: Error opening " << endl;
@@ -1912,7 +1903,7 @@ void BCRexternalBWT::storeEntireBWT( const char *fn )
         {
             TmpFilename filenameIn( mmm );
             //printf("===Current BWT-partial= %d\n",mmm);
-            InFileBWT = fopen( filenameIn, "rb" );
+            FILE *InFileBWT = fopen( filenameIn, "rb" );
             for ( LetterNumber g = 0 ; g < SIZEBUFFER; g++ )
                 buffer[g] = '\0';
             numchar = fread( buffer, sizeof( uchar ), SIZEBUFFER, InFileBWT );
@@ -1944,7 +1935,7 @@ void BCRexternalBWT::storeEntireBWT( const char *fn )
     for ( AlphabetSymbol g = 0 ; g < alphabetSize; g++ )
     {
         TmpFilename filenameIn( g );
-        InFileBWT = fopen( filenameIn, "rb" );
+        FILE *InFileBWT = fopen( filenameIn, "rb" );
         if ( InFileBWT == NULL )
         {
             cerr << "storeEntireBWT: " << "BWT file " << ( int )g << ": Error opening " << endl;
@@ -2000,24 +1991,21 @@ void BCRexternalBWT::storeSA( SequenceLength iterationNum )
 
     //I have found the position where I have to insert the chars in the position t of the each text
     //Now I have to update the SA in each file.
-    static FILE *OutFileSA, *InFileSA;                  // output and input file SA;
 
     LetterNumber numchar = 0;
     LetterNumber numcharWrite = 0;
     ElementType *buffer = new ElementType[SIZEBUFFER];
     LetterNumber toRead = 0;
 
-    SequenceNumber j;
-    AlphabetSymbol currentPile;
-    j = 0;
+    SequenceNumber j = 0;
     while ( j < nText )
     {
-        currentPile = vectTriple[j].pileN;
+        AlphabetSymbol currentPile = vectTriple[j].pileN;
         //if (verboseEncode==1)
         // cerr << "\nNew Segment; index text j= " << j << " current SA segment is " << (int)currentPile << endl;
         //cerr << "Pile " << (int)currentPile << endl;
         TmpFilename filenameIn( "sa_", currentPile );
-        InFileSA = fopen( filenameIn, "rb" );
+        FILE *InFileSA = fopen( filenameIn, "rb" );
         if ( InFileSA == NULL )
         {
             cerr << "In SA file " << ( int )j << ": Error opening " << endl;
@@ -2025,7 +2013,7 @@ void BCRexternalBWT::storeSA( SequenceLength iterationNum )
         }
 
         TmpFilename filenameOut( "new_sa_", currentPile );
-        OutFileSA = fopen( filenameOut, "wb" );
+        FILE *OutFileSA = fopen( filenameOut, "wb" );
         if ( OutFileSA == NULL )
         {
             cerr << "Out SA file " << ( int )j << ": Error opening " << endl;
@@ -2127,7 +2115,7 @@ void BCRexternalBWT::storeSA( SequenceLength iterationNum )
         TmpFilename filenameIn( "sa_", g );
         TmpFilename filenameOut( "new_sa_", g );
         //cerr << "Filenames:" << filenameIn << "\t" <<filenameOut << endl;
-        OutFileSA = fopen( filenameOut, "rb" );
+        FILE *OutFileSA = fopen( filenameOut, "rb" );
 
         if ( OutFileSA != NULL ) //If it exists
         {
@@ -2162,13 +2150,12 @@ void BCRexternalBWT::storeEntirePairSA( const char *fn )
 
     cerr << "\nEntire Pairs SA file (position, number of sequence)" << endl;
 
-    static FILE *OutFileSA, *InFileSA;                  // output and input file SA;
     LetterNumber numcharWrite, numcharRead;
     ElementType *buffer = new ElementType[SIZEBUFFER];
 
     TmpFilename fnSA( fn, ".pairSA" );
 
-    OutFileSA = fopen( fnSA, "wb" );
+    FILE *OutFileSA = fopen( fnSA, "wb" );
     if ( OutFileSA == NULL )
     {
         cerr << "Entire Pairs SA file: Error opening " << fnSA << endl;
@@ -2179,7 +2166,7 @@ void BCRexternalBWT::storeEntirePairSA( const char *fn )
         vectLen.resize(nText);
 
         char *fileLen="outFileLen";
-        static FILE *InFileLen;                  // file of the lengths;
+        FILE *InFileLen;                  // file of the lengths;
         InFileLen = fopen(fileLen, "rb");
         if (InFileLen==NULL) {
                 cerr << "storeEntireSAfromPairSA: could not open file \"" << fileLen << "\"!"<< endl;
@@ -2194,7 +2181,7 @@ void BCRexternalBWT::storeEntirePairSA( const char *fn )
     for ( AlphabetSymbol g = 0 ; g < alphabetSize; g++ )
     {
         TmpFilename filenameIn( "sa_", g );
-        InFileSA = fopen( filenameIn, "rb" );
+        FILE *InFileSA = fopen( filenameIn, "rb" );
         if ( InFileSA == NULL )
         {
             cerr << "SA file " << ( int )g << ": Error opening " << endl;
@@ -2270,8 +2257,6 @@ void BCRexternalBWT::storeEntirePairSA( const char *fn )
 
 void BCRexternalBWT::storeEntireSAfromPairSA( const char *fn )
 {
-    static FILE *OutFileSA, *InFilePairSA;                  // output and input file SA;
-
     cerr << "\nSA file from pair SA file" << endl;
 
     LetterNumber numchar, numcharWrite;
@@ -2280,7 +2265,7 @@ void BCRexternalBWT::storeEntireSAfromPairSA( const char *fn )
         vector <SequenceLength> vectSumCumLen;
         vectSumCumLen.resize(nText+1);
         char *fileLen="outFileLen";
-        static FILE *InFileLen;                  // file of the lengths;
+        FILE *InFileLen;                  // file of the lengths;
         InFileLen = fopen(fileLen, "rb");
         if (InFileLen==NULL) {
                 cerr << "storeEntireSAfromPairSA: could not open file \"" << fileLen << "\"!"<< endl;
@@ -2301,14 +2286,14 @@ void BCRexternalBWT::storeEntireSAfromPairSA( const char *fn )
     TmpFilename fnSA    ( fn, ".sa" );
     TmpFilename fnPairSA( fn, ".pairSA" );
 
-    InFilePairSA = fopen( fnPairSA, "rb" );
+    FILE *InFilePairSA = fopen( fnPairSA, "rb" );
     if ( InFilePairSA == NULL )
     {
         cerr << "Entire Pairs SA file: Error opening " << fnPairSA << endl;
         exit ( EXIT_FAILURE );
     }
 
-    OutFileSA = fopen( fnSA, "wb" );
+    FILE *OutFileSA = fopen( fnSA, "wb" );
     if ( OutFileSA == NULL )
     {
         cerr << "Entire SA file: Error opening " << fnSA << endl;
@@ -2390,23 +2375,16 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
 
     //I have found the position where I have to insert the chars in the position t of the each text
     //Now I have to update the BWT in each file.
-    static FILE *OutFileBWT, *InFileBWT;                  // output and input file BWT;
-    static FILE *OutFileLCP, *InFileLCP;                  // output and input file LCP;
-
     LetterNumber numchar = 0;
     LetterNumber numcharWrite = 0;
     uchar *buffer = new uchar[SIZEBUFFER];
     SequenceLength *bufferLCP = new SequenceLength[SIZEBUFFER];
     LetterNumber toRead = 0;
 
-    SequenceNumber j;
-    AlphabetSymbol currentPile;
-    //uchar symbol='\0';
-
-    j = 0;
+    SequenceNumber j = 0;
     while ( j < nText )
     {
-        currentPile = vectTriple[j].pileN;
+        AlphabetSymbol currentPile = vectTriple[j].pileN;
         for ( AlphabetSymbol g = 0 ; g < alphabetSize; g++ )
         {
             minLCPcur[g] = maxValueLen;
@@ -2417,28 +2395,28 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
         }
         assert( currentPile <= alphabetSize );
         TmpFilename filenameIn( currentPile );
-        InFileBWT = fopen( filenameIn, "rb" );
+        FILE *InFileBWT = fopen( filenameIn, "rb" );
         if ( InFileBWT == NULL )
         {
             cerr << "(storeBWTandLCP) In BWT file " << filenameIn << ": Error opening " << endl;
             exit ( EXIT_FAILURE );
         }
         TmpFilename filenameOut( "new_", currentPile );
-        OutFileBWT = fopen( filenameOut, "wb" );
+        FILE *OutFileBWT = fopen( filenameOut, "wb" );
         if ( OutFileBWT == NULL )
         {
             cerr << "(storeBWTandLCP) Out BWT file " << filenameIn << ": Error opening " << endl;
             exit ( EXIT_FAILURE );
         }
         TmpFilename filenameInLCP( "", currentPile, ".lcp" );
-        InFileLCP = fopen( filenameInLCP, "rb" );
+        FILE *InFileLCP = fopen( filenameInLCP, "rb" );
         if ( InFileLCP == NULL )
         {
             cerr << "In LCP file " << filenameInLCP << ": Error opening "  << endl;
             exit ( EXIT_FAILURE );
         }
         TmpFilename filenameOutLCP( "new_", currentPile, ".lcp" );
-        OutFileLCP = fopen( filenameOutLCP, "wb" );
+        FILE *OutFileLCP = fopen( filenameOutLCP, "wb" );
         if ( OutFileLCP == NULL )
         {
             cerr << "Out LCP file " << filenameInLCP << ": Error opening " << filenameOutLCP << endl;
@@ -2849,9 +2827,6 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
         j = k;
     }
 
-    //static FILE *tmpFile;
-    //tmpFile = fopen("sizeFileBwt.txt", "a");
-
     if ( verboseEncode == 1 )
     {
         cerr << "After the computation of LCP for the next iteration" << endl;
@@ -2893,7 +2868,7 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
         TmpFilename filenameOut( "new_", g );
         TmpFilename filenameIn( g );
         //cerr << "Filenames:" << filenameIn << "\t" <<filenameOut << endl;
-        OutFileBWT = fopen( filenameOut, "rb" );
+        FILE *OutFileBWT = fopen( filenameOut, "rb" );
         if ( OutFileBWT != NULL ) //If it exists
         {
             fclose( OutFileBWT );
@@ -2906,7 +2881,7 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
         TmpFilename filenameOutLCP( "new_", g, ".lcp" );
         TmpFilename filenameInLCP( "", g, ".lcp" );
         //cerr << "Filenames:" << filenameIn << "\t" <<filenameOut << endl;
-        OutFileLCP = fopen( filenameOutLCP, "rb" );
+        FILE *OutFileLCP = fopen( filenameOutLCP, "rb" );
         if ( OutFileLCP != NULL ) //If it exists
         {
             fclose( OutFileLCP );
@@ -2932,7 +2907,7 @@ void BCRexternalBWT::pauseBetweenCyclesIfNeeded()
         pauseBetweenCycles();
 }
 
-bool BCRexternalBWT::writeEndPosFile( const uint8_t subSequenceNum, const bool lastFile )
+void BCRexternalBWT::writeEndPosFile( const uint8_t subSequenceNum, const bool lastFile )
 {
     Logger_if( LOG_SHOW_IF_VERBOSE )
     {
@@ -3012,7 +2987,7 @@ bool BCRexternalBWT::writeEndPosFile( const uint8_t subSequenceNum, const bool l
 
             // how many '$' signs found? transfer as many end-pos-intermediate entries
             Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "Transfer " << counters.count_[0] << " entries" << endl;
-            for ( int j = 0; j < counters.count_[0]; ++j )
+            for ( unsigned int j = 0; j < counters.count_[0]; ++j )
             {
                 fread( inBuf, sizeof( SequenceNumber ) + sizeof( uint8_t ), 1, inFileEndPos );
                 fwrite( inBuf, sizeof( SequenceNumber ) + sizeof( uint8_t ), 1, OutFileEndPos );
@@ -3042,7 +3017,7 @@ bool BCRexternalBWT::writeEndPosFile( const uint8_t subSequenceNum, const bool l
 
         // how many '$' signs found? transfer as many end-pos-intermediate entries
         Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "Transfer(2) " << counters.count_[0] << " entries" << endl;
-        for ( int j = 0; j < counters.count_[0]; ++j )
+        for ( unsigned int j = 0; j < counters.count_[0]; ++j )
         {
             fread( inBuf, sizeof( SequenceNumber ) + sizeof( uint8_t ), 1, inFileEndPos );
             fwrite( inBuf, sizeof( SequenceNumber ) + sizeof( uint8_t ), 1, OutFileEndPos );

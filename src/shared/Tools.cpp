@@ -165,7 +165,7 @@ void getFileName( const string &stem, const char code, const int pile,
 bool isValidFastaFile( const char *fileName )
 {
     FILE *file;
-    char probe_char;
+    int probe_char;
 
     file = fopen( fileName, "r" );
 
@@ -186,6 +186,7 @@ bool isValidFastaFile( const char *fileName )
     {
         cerr << "Validation of fasta file " << fileName
              << " failed. Maybe wrong format?" << endl;
+        fclose( file );
         return 0;
     }
     ungetc( probe_char, file );
@@ -197,7 +198,7 @@ bool isValidFastaFile( const char *fileName )
 bool isValidReadFile( const char *fileName )
 {
     FILE *file;
-    char probe_char;
+    int probe_char;
 
     file = fopen( fileName, "r" );
 
@@ -219,6 +220,7 @@ bool isValidReadFile( const char *fileName )
     {
         cerr << "Validation of read file " << fileName
              << " failed. Maybe wrong format?" << endl;
+        fclose( file );
         return 0;
     }
     ungetc( probe_char, file );
@@ -274,6 +276,18 @@ bool hasSuffix( const string &fullString, const string &suffix )
 {
     return fullString.size() >= suffix.size()
            && fullString.compare( fullString.size() - suffix.size(), suffix.size(), suffix ) == 0;
+}
+
+vector<string> splitString ( string s, const string &token )
+{
+    vector<string> vs;
+    while ( s.find( token ) != string::npos )
+    {
+        vs.push_back( s.substr( 0, s.find( token ) ) );
+        s = s.substr( s.find( token ) + ( token.length() ) );
+    }
+    vs.push_back( s );
+    return vs;
 }
 
 bool isBwtFileCompressed( const string &filename )
@@ -350,9 +364,13 @@ void detectInputBwtProperties( const string &prefix, vector<string> &filenames, 
         }
     }
     if ( isBwtCompressed )
+    {
         Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "BWT files detected as RLE compressed" << endl;
+    }
     else
+    {
         Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "BWT files detected as ASCII" << endl;
+    }
 }
 
 int safeRename( const string &from, const string &to )
@@ -408,11 +426,11 @@ void readProcSelfStat( int &out_pid, int &out_num_threads, int &out_processor )
 
     // dummy vars for leading entries in stat that we don't care about
     //
-    string pid, comm, state, ppid, pgrp, session, tty_nr, tpgid;
+    string /*pid,*/ comm, state, ppid, pgrp, session, tty_nr, tpgid;
     string flags, minflt, cminflt, majflt, cmajflt, utime, stime, cutime;
-    string cstime, priority, nice, num_threads, itrealvalue, starttime, vsize, rss;
+    string cstime, priority, nice, /*num_threads,*/ itrealvalue, starttime, vsize, rss;
     string rsslim, startcode, endcode, startstack, kstkesp, kstkeip, signal, blocked;
-    string sigignore, sigcatch, wchan, nswap, cnswap, exit_signal, processor, rt_priority;
+    string sigignore, sigcatch, wchan, nswap, cnswap, exit_signal, /*processor,*/ rt_priority;
     string policy, delayacct_blkio_ticks;
 
 

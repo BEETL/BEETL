@@ -52,7 +52,7 @@
 
 /* Control parameters - modify and recompile to change program behaviour */
 
-const int maxSeqSize( 1023 );
+const int maxSeqSize( 32 * 1024 ); // 32k to fit Moleculo reads
 const int bwtBufferSize( 16384 ); // 1<<20=1048576
 const int huffmanBufferSize( 128 );
 const int huffmanWriterBufferSize( 2097152 );

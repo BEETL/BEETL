@@ -65,9 +65,9 @@ void printUsage()
 void outputSequenceConstrainedWithSequenceLength( ofstream &outputStream, string &str2, const ParameterEntry &sequenceLength )
 {
     // Warning: may modify str2
-    if ( sequenceLength.isSet() && str2.size() != sequenceLength )
+    if ( sequenceLength.isSet() && str2.size() != ( uint )sequenceLength )
     {
-        if ( str2.size() < sequenceLength )
+        if ( str2.size() < ( uint )sequenceLength )
             outputStream << string( sequenceLength - str2.size(), 'N' ); // pre-pad with 'N'
         else
             str2.erase( sequenceLength );
@@ -130,7 +130,7 @@ void launchBeetlConvert()
                     getline( inputStream, str2 ) )
             {
                 assert( !str1.empty() && str1[0] == '>' );
-                outputStream << str2 << '\n';
+                outputSequenceConstrainedWithSequenceLength( outputStream, str2, params["sequence length"] );
             }
             return;
         }
@@ -230,7 +230,7 @@ void launchBeetlConvert()
                     assert( str2.size() == str4.size() && "Bases and Qualities must have the same length" );
                     int firstValidIndex = 0;
                     int lastValidIndex = str2.size() - 1;
-                    while ( firstValidIndex < str2.size() && str2[firstValidIndex] == 'N' )
+                    while ( ( uint )firstValidIndex < str2.size() && str2[firstValidIndex] == 'N' )
                         ++firstValidIndex;
                     while ( lastValidIndex >= 0 && str2[lastValidIndex] == 'N' )
                         --lastValidIndex;
@@ -399,13 +399,21 @@ void launchBeetlConvert()
                 baseToBin[( int )'C'] = 1;
                 baseToBin[( int )'G'] = 2;
                 baseToBin[( int )'T'] = 3;
+                baseToBin[( int )'N'] = 0;
                 while ( is.get( c ) )
                 {
                     assert ( isQual.get( q ) );
-                    unsigned char b = baseToBin[( int )c];
-                    assert( b <= 3 );
-                    assert( q >= 33 && q < ( 33 + 64 ) );
-                    os.put( b | ( ( q - 33 ) << 2 ) );
+                    if ( c != 'N' )
+                    {
+                        unsigned char b = baseToBin[( int )c];
+                        assert( b <= 3 );
+                        assert( q >= 33 && q < ( 33 + 64 ) );
+                        os.put( b | ( ( q - 33 ) << 2 ) );
+                    }
+                    else
+                    {
+                        os.put( 0 );
+                    }
                 }
 
                 if ( cycleNum == -1 )
@@ -548,8 +556,9 @@ void launchBeetlConvert()
                 {
                     if ( !filterFile.get( filterVal ) || filterVal != '\0' )
                     {
-                        os.put( binToBase[c & 3] );
-                        osQual.put( 33 + ( ( ( unsigned char )c ) >> 2 ) );
+                        unsigned char q = ( ( ( unsigned char )c ) >> 2 );
+                        os.put( q ? binToBase[c & 3] : 'N' );
+                        osQual.put( 33 + q );
                     }
                 }
 
@@ -603,8 +612,9 @@ void launchBeetlConvert()
                     for ( uint i = 0; i < cycleCount; ++i )
                     {
                         char c = bclValues[i];
-                        outCyc[i]->put( binToBase[c & 3] );
-                        outCycQual[i]->put( 33 + ( ( ( unsigned char )c ) >> 2 ) );
+                        unsigned char q = ( ( ( unsigned char )c ) >> 2 );
+                        outCyc[i]->put( q ? binToBase[c & 3] : 'N' );
+                        outCycQual[i]->put( 33 + q );
                     }
                 }
                 cout << "processed " << count << " reads" << endl;
@@ -730,9 +740,11 @@ int main( const int argc, const char **argv )
     // Check for unsupported cases
     if ( params["sequence length"].isSet() )
     {
-        if ( ! ( params["input format"] == INPUT_FORMAT_FASTQ && ( params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_FASTA ) ) )
+        if ( ! ( ( params["input format"] == INPUT_FORMAT_FASTQ && ( params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_FASTA ) ) ||
+                 ( params["input format"] == INPUT_FORMAT_FASTA && params["output format"] == OUTPUT_FORMAT_SEQ ) )
+           )
         {
-            cerr << "Error: --sequence-length is currently only implemented for FASTQ->SEQ and FASTQ->FASTA conversions." << endl;
+            cerr << "Error: --sequence-length is currently only implemented for FASTQ->SEQ, FASTQ->FASTA and FASTA->SEQ conversions." << endl;
             exit( 1 );
         }
     }

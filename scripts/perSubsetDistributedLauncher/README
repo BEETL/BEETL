@@ -1,3 +1,0 @@
-Usage example:
-	./launchPerSubset.pl -j 4 -c "sleep 1; echo"
-

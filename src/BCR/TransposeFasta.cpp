@@ -30,6 +30,9 @@ using namespace std;
 
 
 TransposeFasta::TransposeFasta()
+    : pReader_( NULL )
+    , cycleNum_( 0 )
+    , processQualities_( false )
 {
     for ( int i( 0 ); i < 256; i++ ) freq[i] = 0;
 }
@@ -89,12 +92,30 @@ bool TransposeFasta::convert( const string &input, const string &output, bool ge
     {
         Filename fn( output, i, "" );
         outputFiles_[i] = fopen( fn, "w" );
+        if ( outputFiles_[i] == NULL )
+        {
+            cerr << "Error: couldn't open output file " << fn << endl;
+            if ( i > 0 )
+            {
+                cerr << "  You may have reached the maximum number of opened files (see `ulimit -n`) or the maximum number of files allowed in one directory, as we create one file per cycle (and a second one if qualities are present)" << endl;
+                exit ( -1 );
+            }
+        }
         if ( generatedFilesAreTemporary )
             TemporaryFilesManager::get().addFilename( fn );
         if ( processQualities_ )
         {
             Filename fnQual( output + "qual.", i, "" );
             outputFilesQual[i] = fopen( fnQual, "w" );
+            if ( outputFilesQual[i] == NULL )
+            {
+                cerr << "Error: couldn't open output file " << fnQual << endl;
+                if ( i > 0 )
+                {
+                    cerr << "  You may have reached the maximum number of opened files (see `ulimit -n`) or the maximum number of files allowed in one directory, as we create one file per cycle (and a second one if qualities are present)" << endl;
+                    exit ( -1 );
+                }
+            }
             if ( generatedFilesAreTemporary )
                 TemporaryFilesManager::get().addFilename( fnQual );
         }
@@ -123,11 +144,11 @@ bool TransposeFasta::convert( const string &input, const string &output, bool ge
             for ( SequenceLength i = 0; i < cycleNum_; i++ )
             {
                 //cerr << "writing to " << i << " : " << buf_[i] << endl;
-                num_write = fwrite ( ( void * )( &buf_[i][0] ), sizeof( char ), charsBuffered, outputFiles_[i] );
+                num_write = fwrite ( buf_[i].data(), sizeof( char ), charsBuffered, outputFiles_[i] );
                 lengthTexts += num_write;
                 if ( processQualities_ )
                 {
-                    size_t num_write_qual = fwrite ( ( void * )( &bufQual[i][0] ), sizeof( char ), charsBuffered, outputFilesQual[i] );
+                    size_t num_write_qual = fwrite ( bufQual[i].data(), sizeof( char ), charsBuffered, outputFilesQual[i] );
                     checkIfEqual( num_write, num_write_qual );
                 }
             }
@@ -176,11 +197,11 @@ bool TransposeFasta::convert( const string &input, const string &output, bool ge
     // write the rest
     for ( SequenceLength i = 0; i < cycleNum_; i++ )
     {
-        num_write = fwrite ( ( void * )( &buf_[i][0] ), sizeof( uchar ), charsBuffered, outputFiles_[i] );
+        num_write = fwrite ( buf_[i].data(), sizeof( uchar ), charsBuffered, outputFiles_[i] );
         lengthTexts += num_write;
         if ( processQualities_ )
         {
-            size_t num_write_qual = fwrite ( ( void * )( &bufQual[i][0] ), sizeof( uchar ), charsBuffered, outputFilesQual[i] );
+            size_t num_write_qual = fwrite ( bufQual[i].data(), sizeof( uchar ), charsBuffered, outputFilesQual[i] );
             checkIfEqual( num_write, num_write_qual );
         }
     }
@@ -334,7 +355,7 @@ bool TransposeFasta::convertFromCycFileToFastaOrFastq( const string &fileInputPr
         {
             while ( seqCountToSkip > 0 )
             {
-                int skip = min( seqCountToSkip, SEQ_EXTRACTION_BUF_SIZE );
+                size_t skip = min( seqCountToSkip, SEQ_EXTRACTION_BUF_SIZE );
                 for ( SequenceLength i = 0; i < lengthRead; i++ )
                 {
                     assert( fread ( seqExtractionBuf, sizeof( char ), skip, inFilesCyc[i] ) == skip );

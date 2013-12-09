@@ -95,11 +95,11 @@ void BclRunFolder::generateLanesAndTilesList( const string &laneFormat, const st
         for ( unsigned laneNum = 0; laneNum < lanes.size(); ++laneNum )
         {
             DIR *dp;
-            struct dirent *ep;
             dp = opendir( ( runFolder_ + "/Data/Intensities/BaseCalls/" + lanes[laneNum] + "/C1.1/" ).c_str() );
 
             if ( dp )
             {
+                struct dirent *ep;
                 while ( ( ep = readdir( dp ) ) != 0 )
                 {
                     string filename( ep->d_name );
@@ -111,6 +111,7 @@ void BclRunFolder::generateLanesAndTilesList( const string &laneFormat, const st
                         lanesAndTiles_.push_back( make_pair( lanes[laneNum], tileName ) );
                     }
                 }
+                closedir( dp );
             }
             if ( tiles.empty() )
             {

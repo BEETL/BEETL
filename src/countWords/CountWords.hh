@@ -36,8 +36,6 @@
 using std::string;
 
 
-//#define PROPAGATE_SEQUENCE 1
-
 class CountWords : public Algorithm
 {
 
@@ -62,7 +60,6 @@ private:
         , RangeStoreExternal &rangeStoreB
     );
 
-    bool bothSetsCompressed_;
     bool inputACompressed_;
     bool inputBCompressed_;
     enum BeetlCompareParameters::Mode mode_;

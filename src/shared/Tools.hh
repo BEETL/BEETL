@@ -72,6 +72,7 @@ void checkIfNotEqual( const int arg1, const int arg2 );
 
 bool hasPrefix( const string &fullString, const string &prefix );
 bool hasSuffix( const string &fullString, const string &suffix );
+vector<string> splitString ( string s, const string &token );
 
 void detectInputBwtProperties( const string &prefix, vector<string> &filenames, bool &isBwtCompressed, string &availableFileLetters );
 

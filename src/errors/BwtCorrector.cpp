@@ -57,7 +57,6 @@ int BwtCorrector::getMinSupport( int cycle )
 
 ErrorStore BwtCorrector::findErrors()
 {
-    int width = 0;
     ErrorStore result;
 
     Timer  timer;
@@ -221,7 +220,7 @@ void BwtCorrector::run()
     cout << "There were " << numErrors << " errors discovered..." << endl;
 
     //we have completed the error info, we do not need the bwt-positions... so just load them into a vector...
-    for ( map<LetterNumber, ErrorInfo>::iterator it = errors.begin(); it != errors.end(); it++ )
+    for ( map<LetterNumber, ErrorInfo>::iterator it = errors.begin(); it != errors.end(); ++it )
         errorLocations.push_back(
             ErrorInfo(
                 it->second.seqNum,

@@ -214,11 +214,10 @@ BwtReaderRunLength::BwtReaderRunLength( const string &fileName ):
     finished_( false ),
     currentPos_( 0 )
 {
-    unsigned int j;
     for ( unsigned int i( 0 ); i < 256; i++ )
     {
         lengths_[i] = 1 + ( i >> 4 );
-        j = ( i & 0xF );
+        uint j = ( i & 0xF );
         codes_[i] = ( j < alphabetSize ) ? alphabet[j] : notInAlphabet;
     } // ~for i
 } // ~ctor
@@ -232,11 +231,10 @@ BwtReaderRunLength::BwtReaderRunLength( const BwtReaderRunLength &obj ):
     finished_( false ),
     currentPos_( 0 )
 {
-    unsigned int j;
     for ( unsigned int i( 0 ); i < 256; i++ )
     {
         lengths_[i] = 1 + ( i >> 4 );
-        j = ( i & 0xF );
+        uint j = ( i & 0xF );
         codes_[i] = ( j < alphabetSize ) ? alphabet[j] : notInAlphabet;
     } // ~for i
 } // ~ctor
@@ -640,11 +638,10 @@ BwtReaderIncrementalRunLength::BwtReaderIncrementalRunLength( const string &file
     //    cout << "   => file #" << fileNum_ << endl;
     assert( ( int )ramFiles.size() > fileNum_ );
 
-    uint j;
     for ( uint i( 0 ); i < 256; i++ )
     {
         lengths_[i] = 1 + ( i >> 4 );
-        j = ( i & 0xF );
+        uint j = ( i & 0xF );
         codes_[i] = ( j < alphabetSize ) ? alphabet[j] : notInAlphabet;
     } // ~for i
 } // ~ctor
@@ -1180,7 +1177,6 @@ bool BwtReaderHuffman::getRun( void )
 
             while ( 1 )
             {
-                int i( 0 );
                 codeNum = tokenTable_[soFar_.ui & tokenMask];
                 if ( ( codeNum & 0x1 ) == 0 )
                 {
@@ -1206,6 +1202,7 @@ bool BwtReaderHuffman::getRun( void )
                     soFar_.ull >>= codeSize;
                     bitsUsed_ -= codeSize;
                     assert( bitsUsed_ > 0 );
+                    int i( 0 );
                     runLength = getNum( i );
                     numSymbols_++;
                     symBuf[numSymbols_] = alphabet[codeNum];
@@ -1356,11 +1353,10 @@ BwtReaderRunLengthRam::BwtReaderRunLengthRam( const string &fileName ):
     fclose( pFile_ );
     pFile_ = NULL;
 
-    unsigned int j;
     for ( unsigned int i( 0 ); i < 256; i++ )
     {
         lengths_[i] = 1 + ( i >> 4 );
-        j = ( i & 0xF );
+        uint j = ( i & 0xF );
         codes_[i] = ( j < alphabetSize ) ? alphabet[j] : notInAlphabet;
     } // ~for i
 } // ~ctor
@@ -1370,6 +1366,9 @@ BwtReaderRunLengthRam::BwtReaderRunLengthRam( const BwtReaderRunLengthRam &obj )
     runLength_( 0 ),
     lastChar_( notInAlphabet ),
     currentPos_( 0 ),
+#ifndef DONT_USE_MMAP
+    mmapLength_( 0 ),
+#endif
     isClonedObject_( true )
 {
     fullFileBuf_ = obj.fullFileBuf_;
@@ -1380,11 +1379,10 @@ BwtReaderRunLengthRam::BwtReaderRunLengthRam( const BwtReaderRunLengthRam &obj )
     fclose( pFile_ );
     pFile_ = NULL;
 
-    unsigned int j;
     for ( unsigned int i( 0 ); i < 256; i++ )
     {
         lengths_[i] = 1 + ( i >> 4 );
-        j = ( i & 0xF );
+        uint j = ( i & 0xF );
         codes_[i] = ( j < alphabetSize ) ? alphabet[j] : notInAlphabet;
     }
 } // ~copy ctor

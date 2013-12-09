@@ -213,7 +213,9 @@ struct BwtWriterHuffman : public BwtWriterFile
 struct BwtWriterImplicit : public BwtWriterBase
 {
     BwtWriterImplicit( BwtWriterBase *pWriter ) :
-        BwtWriterBase(),  pWriter_( pWriter ),
+        BwtWriterBase(),
+        firstSAP_( 0 ),
+        pWriter_( pWriter ),
         lastChar_( notInAlphabet ), lastRun_( 0 ), inSAP_( false ) {}
 
     virtual ~BwtWriterImplicit();

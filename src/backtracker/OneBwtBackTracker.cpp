@@ -43,7 +43,10 @@ OneBwtBackTracker::OneBwtBackTracker(
     //    numSingletonRanges_( 0 ),
     doesPropagateBkptToSeqNumInSet_( doesPropagateBkptToSeqNumInSet )
     //    noComparisonSkip_( noComparisonSkip )
-{}
+{
+    for ( int l( 0 ); l < alphabetSize; ++l )
+        propagateInterval_[l] = false;
+}
 
 void OneBwtBackTracker::process (
     int pileNum,
@@ -54,7 +57,6 @@ void OneBwtBackTracker::process (
 {
     LetterCount countsThisRange;
     bool notAtLast( true );
-    bool hasChild;
 
     processSingletons(
         pileNum

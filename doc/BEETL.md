@@ -205,7 +205,19 @@ How to create a database of reference genomes for metaBEETL:
   
    Files -B0\* and -C0\* are needed for the countWords algorithm. 
 
-6. Download the NCBI taxonomy from ftp://ftp.ncbi.nih.gov/pub/taxonomy/  
+6. Optionally, convert the ASCII BWT files to RLE BWT, to make subsequent processing faster:  
+```
+   for pileNum in `seq 0 5`; do \  
+     mv ncbiMicros-B0${pileNum} ncbiMicros-B0${pileNum}.ascii ;  \
+     beetl-convert \  
+       --input-format=bwt_ascii \  
+       --output-format=bwt_rle \  
+       -i ncbiMicros-B0${pileNum}.ascii \  
+       -o ncbiMicros-B0${pileNum} ; \  
+   done
+```
+
+7. Download the NCBI taxonomy from ftp://ftp.ncbi.nih.gov/pub/taxonomy/  
    You will need the files names.dmp, nodes.dmp and the gi\_taxid\_nucl.dmp, which are packaged as taxdump.tar.gz and gi\_taxid\_nucl.dmp.gz:  
 ```
    cd downloads
@@ -225,12 +237,23 @@ How to create a database of reference genomes for metaBEETL:
    Sometimes there are just missing taxa in the taxonomy. 
 ```
    findTaxa \
-     -nA names.dmp \
-     -nO nodes.dmp \
-     -nG gi_taxid_nucl.dmp \
-     -h headerFile.csv \
-     -f filecounter.csv \
+     -nA downloads/names.dmp \
+     -nO downloads/nodes.dmp \
+     -nG downloads/gi_taxid_nucl.dmp \
+     -h singleSeqGenomes/headerFile.csv \
+     -f singleSeqGenomes/filecounter.csv \
      > ncbiFileNumToTaxTree
+```
+
+8. Link (or move) all the useful files to a final directory  
+```
+   mkdir metaBeetlNcbiDb
+   cd metaBeetlNcbiDb
+   ln -s ../ncbiFileNumToTaxTree
+   ln -s ../downloads/names.dmp
+   ln -s ../singleSeqGenomes/filecounter.csv
+   ln -s ../singleSeqGenomes/headerFile.csv
+   for i in ../singleSeqGenomes/ncbiMicros-[BC]0[0-5]; do ln -s $i ; done
 ```
 
 Now everything should be ready to run metaBEETL!  :-)
@@ -286,11 +309,16 @@ Run BEETL metagenomic classification:
       -w 50 \
       -n 1 \
       -k 100 \
-      --no-comparison-skip \
-        > metaBeetlOutput.txt
+      --no-comparison-skip
 
+It currently generates many output files in a `metaBeetl.out` subdirectory.
 Since the algorithm repeatedly looks up the filenumbers for each BWT-Position we recommend to put these ncbiMicros-C0* files on a disk with fast read access.  
 Setting k = sequence length gets you the maximal amount of information but the output file will be large.
+
+If you are using development snapshots, a different experimental flow is in use from this point.  
+With the main BEETL release, we need to concatenate all the results into one file:
+
+    cat metaBeetl.out/cycle* > metaBeetlOutput.txt
 
 
 #### Visualisation of metagenomic results

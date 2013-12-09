@@ -128,7 +128,7 @@ void BwtCorrectorIntervalHandler::foundInAOnly(
         assert( needSubstring );
         //'correct' is the letter we believe is the correct one for the interval
         //when scanning along the bwtSubstring, anything other than a dollar or this 'correct' letter is treated as an error
-        for ( int relativePos = 0; relativePos < thisRangeA.num_; relativePos++ )
+        for ( uint relativePos = 0; relativePos < thisRangeA.num_; relativePos++ )
             if ( bwtSubstring[relativePos] != alphabet[correct] && bwtSubstring[relativePos] != '$' )
             {
                 //we have identified that bwtSubstring[relativePos] is not the correct letter for this range and not a dollar
@@ -150,14 +150,14 @@ void BwtCorrectorIntervalHandler::foundInAOnly(
                     //finding putative error for the first time, so flag next generation of intervals...
 
                     //flag the 'extend by putativeError' interval as error type...
-                    thisRangeA.getDataForSubInterval( whichPile[putativeError] ).errorIntervalType = INTERVAL_TYPE_ERROR;
+                    thisRangeA.getDataForSubInterval( whichPile[( int )putativeError] ).errorIntervalType = INTERVAL_TYPE_ERROR;
 
                     //flag the 'extend by correct letter' interval as corrector type...
                     thisRangeA.getDataForSubInterval( correct ).errorIntervalType = INTERVAL_TYPE_CORRECTOR;
 
                     //tag the 'extend by putativeError' interval and 'extend by correct letter' interval
                     //with position of putativeError in the BWT...
-                    thisRangeA.getDataForSubInterval( whichPile[putativeError] ).errorsForBwtPosns.push_back( errBwtPos );
+                    thisRangeA.getDataForSubInterval( whichPile[( int )putativeError] ).errorsForBwtPosns.push_back( errBwtPos );
                     thisRangeA.getDataForSubInterval( correct ).correctionForBwtPosns.push_back( errBwtPos );
                 }
                 else
@@ -189,7 +189,7 @@ void BwtCorrectorIntervalHandler::foundInAOnly(
             //now for each BWT position with which this corrector interval is tagged, we'll
             //extend the corrector string of the corresponding error objects in the error store...
             //and add it to BWT positions with which the extension by the 'dominator' is tagged...
-            for ( int errNo = 0; errNo < thisRangeA.data_.correctionForBwtPosns.size(); errNo++ )
+            for ( uint errNo = 0; errNo < thisRangeA.data_.correctionForBwtPosns.size(); ++errNo )
             {
                 errorStore_[thisRangeA.data_.correctionForBwtPosns[errNo]].corrector += alphabet[dominator];
                 thisRangeA.getDataForSubInterval( dominator ).correctionForBwtPosns.push_back( thisRangeA.data_.correctionForBwtPosns[errNo] );

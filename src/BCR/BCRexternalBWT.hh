@@ -91,7 +91,7 @@ private:
     BwtWriterBase *instantiateBwtWriterForIntermediateCycle( const char *filenameOut );
     BwtWriterBase *instantiateBwtWriterForLastCycle( const char *filenameOut );
     BwtReaderBase *instantiateBwtReaderForLastCycle( const char *filenameOut );
-    bool writeEndPosFile( const uint8_t subSequenceNum, const bool lastFile );
+    void writeEndPosFile( const uint8_t subSequenceNum, const bool lastFile );
 
     BwtWriterBase *pWriterBwt0_; // persistent file, as we only ever need to append (never insert) characters to it
     ToolParameters *toolParams_;

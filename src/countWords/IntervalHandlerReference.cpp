@@ -145,17 +145,6 @@ void IntervalHandlerReference::foundInBoth
 
 } // ~foundInBoth
 
-#ifdef OLD
-{
-    for ( int l( 1 ); l < alphabetSize; l++ )
-    {
-        propagateIntervalA[l] = ( countsThisRangeA.count_[l] >= minOcc_ );
-        propagateIntervalB[l] = ( countsThisRangeB.count_[l] > 0 );
-    } // ~for l
-} // ~foundInBoth
-#endif
-
-
 
 void IntervalHandlerReference::foundInAOnly
 ( const int pileNum,

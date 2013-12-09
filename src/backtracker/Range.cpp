@@ -239,7 +239,7 @@ void RangeState::getSeq( string &word )
         }
         //        wordLast_[ seqLen ] = 0;
 
-        unsigned int wordLastLen = seqLen; //strlen( wordLast_ );
+        //unsigned int wordLastLen = seqLen; //strlen( wordLast_ );
         //wordLast_[ wordLastLen - 1] = '\0';
         //--wordLastLen;
         //        for ( unsigned int i( 0 ); i < wordLastLen; i++ )
@@ -283,11 +283,13 @@ RangeState &RangeState::operator>>( Range &r )
         getSeq( r.word_ );
 #endif
     }
-    else
-    {
-        // Range object was cleared during readFrom
-        // Error state is detectable by calling good()
-    }
+    /*
+        else
+        {
+            // Range object was cleared during readFrom
+            // Error state is detectable by calling good()
+        }
+    */
     return *this;
 }
 

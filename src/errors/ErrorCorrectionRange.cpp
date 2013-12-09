@@ -26,10 +26,10 @@ bool ErrorCorrectionRange::writeTo( TemporaryFile *pFile, RangeState &currentSta
 
     writeCompressedNum( pFile, static_cast<LetterNumber>( data_.errorIntervalType ) );
     writeCompressedNum( pFile, data_.correctionForBwtPosns.size() );
-    for ( int i = 0; i < data_.correctionForBwtPosns.size(); i++ )
+    for ( uint i = 0; i < data_.correctionForBwtPosns.size(); i++ )
         writeCompressedNum( pFile, data_.correctionForBwtPosns[i] );
     writeCompressedNum( pFile, data_.errorsForBwtPosns.size() );
-    for ( int i = 0; i < data_.errorsForBwtPosns.size(); i++ )
+    for ( uint i = 0; i < data_.errorsForBwtPosns.size(); i++ )
         writeCompressedNum( pFile, data_.errorsForBwtPosns[i] );
 
     return true;
@@ -47,7 +47,7 @@ bool ErrorCorrectionRange::readFrom( TemporaryFile *pFile, RangeState &currentSt
     assert( data_.correctionForBwtPosns.empty() );
     LetterNumber numBwtPosns;
     readCompressedNum( pFile, numBwtPosns );
-    for ( int i = 0; i < numBwtPosns; i++ )
+    for ( uint i = 0; i < numBwtPosns; i++ )
     {
         LetterNumber newBwtPos;
         readCompressedNum( pFile, newBwtPos );
@@ -57,7 +57,7 @@ bool ErrorCorrectionRange::readFrom( TemporaryFile *pFile, RangeState &currentSt
     assert( data_.errorsForBwtPosns.empty() );
     LetterNumber numErrBwtPosns;
     readCompressedNum( pFile, numErrBwtPosns );
-    for ( int i = 0; i < numErrBwtPosns; i++ )
+    for ( uint i = 0; i < numErrBwtPosns; i++ )
     {
         LetterNumber newErrBwtPos;
         readCompressedNum( pFile, newErrBwtPos );

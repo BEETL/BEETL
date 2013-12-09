@@ -53,7 +53,7 @@ const LetterNumber matchFlag( ( ( LetterNumber )1 ) << ( ( 8 * sizeof( LetterNum
 const LetterNumber matchMask( ~matchFlag );
 
 // For Metagenomics
-const string taxLevel[] = {"superkingdom", "phylum", "class", "order", "family", "genus", "species", "strain"};
+const string taxLevelNames[] = {"superkingdom", "phylum", "class", "order", "family", "genus", "species", "strain"};
 const uint taxLevelSize = 8;
 typedef uint32_t MetagFileNumRefType;
 

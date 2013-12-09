@@ -32,7 +32,16 @@ using namespace std;
 class FastOFStream
 {
 public:
-    FastOFStream( ) : usedAsBaseClass_( true ) {}
+    FastOFStream( )
+        : fd( 0 )
+        , buffer( NULL )
+        , currentlyFlushingBuffer( NULL )
+        , bufferPtr( NULL )
+        , buffer2( NULL )
+        , terminate_( false )
+        , usedAsBaseClass_( true ) // <- This is the important one
+        , bufferOffsetWithFile_( 0 )
+    {}
     FastOFStream( const char *filename, const char *mode );
     virtual ~FastOFStream();
     virtual size_t fwrite( const void *ptr, size_t size, size_t count );

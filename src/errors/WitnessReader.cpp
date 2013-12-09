@@ -26,20 +26,21 @@ WitnessReader::WitnessReader(
     int minimumSupport,
     bool rleBWT
 )
+    : pFile_( fopen( lcpFileName.c_str(), "rb" ) )
+    , filledTo_( 0 )
+    , at_( 0 )
+    , lastBlockEnd_( 0 )
+    , filePos_( 0 )
+    , witnessLength_( witnessLength )
+    , minimumSupport_( minimumSupport )
+    , lastLcpBlockSupport_( 0 )
 {
-    for ( int i = 0; i < ReadBufferSize; i++ )
+    for ( unsigned int i = 0; i < ReadBufferSize; i++ )
         lcpBuf_[i] = 0;
-    at_ = 0;
-    filePos_ = 0;
-    lastLcpBlockSupport_ = 0;
-    filledTo_ = 0;
-    pFile_ = fopen( lcpFileName.c_str(), "rb" );
     if ( rleBWT )
         bwtReader_ = new BwtReaderRunLength( bwtFileName );
     else
         bwtReader_ = new BwtReaderASCII( bwtFileName );
-    witnessLength_ = witnessLength;
-    minimumSupport_ = minimumSupport;
     totalCountSoFar_.clear();
     refill_();
 }

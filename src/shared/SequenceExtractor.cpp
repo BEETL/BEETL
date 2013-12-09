@@ -26,20 +26,20 @@ using namespace std;
 
 SequenceExtractor::SequenceExtractor() : isActive_( false ) {}
 
-void SequenceExtractor::init( const string seqNumFilename )
+void SequenceExtractor::init( const string &seqNumFilename )
 {
     seqNums_.clear();
     index_ = 0;
     currentSeqNum_ = -1;
 
-    ifstream seqNumFile( seqNumFilename.c_str() );
+    ifstream seqNumFile( seqNumFilename );
     string line;
     while ( getline( seqNumFile, line ) )
     {
         istringstream iss( line );
-        SequenceNumber seqNum = -1;
+        SequenceNumber seqNum = ( SequenceNumber ) - 1;
         iss >> seqNum;
-        if ( seqNum != -1 )
+        if ( seqNum != ( SequenceNumber ) - 1 )
             seqNums_.push_back( seqNum );
     }
 

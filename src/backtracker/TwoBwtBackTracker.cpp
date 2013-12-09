@@ -31,19 +31,20 @@ TwoBwtBackTracker::TwoBwtBackTracker( BwtReaderBase *inBwtA, BwtReaderBase *inBw
                                       const bool doesPropagateBkptToSeqNumInSetB,
                                       const bool noComparisonSkip )
     : BackTrackerBase( subset, cycle, noComparisonSkip )
-    , inBwtA_( inBwtA ), inBwtB_( inBwtB ),
-    currentPosA_( currentPosA ), currentPosB_( currentPosB ),
-    rA_( rA ), rB_( rB ), countsSoFarA_( countsSoFarA ), countsSoFarB_( countsSoFarB ),
-    numNotSkippedA_( 0 ),
-    numNotSkippedB_( 0 ),
-    numSkippedA_( 0 ),
-    numSkippedB_( 0 ),
-    minOcc_( minOcc ), maxLength_( maxLength ), subset_( subset ), cycle_( cycle )
-    //, numRanges_( 0 ), numSingletonRanges_( 0 )
+    , inBwtA_( inBwtA ), inBwtB_( inBwtB )
+    , currentPosA_( currentPosA ), currentPosB_( currentPosB )
+    , rA_( rA ), rB_( rB ), countsSoFarA_( countsSoFarA ), countsSoFarB_( countsSoFarB )
+    , minOcc_( minOcc ), maxLength_( maxLength ), subset_( subset ), cycle_( cycle )
+    , numNotSkippedA_( 0 )
+    , numNotSkippedB_( 0 )
+    , numSkippedA_( 0 )
+    , numSkippedB_( 0 )
     , doesPropagateBkptToSeqNumInSetA_( doesPropagateBkptToSeqNumInSetA )
     , doesPropagateBkptToSeqNumInSetB_( doesPropagateBkptToSeqNumInSetB )
-    //    , noComparisonSkip_( noComparisonSkip )
-{}
+{
+    for ( int l( 0 ); l < alphabetSize; ++l )
+        propagateIntervalA_[l] = propagateIntervalB_[l] = false;
+}
 
 /*
 void TwoBwtBackTracker::process (
@@ -245,12 +246,12 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
             if ( ( notAtLastA == false ) || ( ( thisRangeA.pos_ & matchFlag ) != 0 ) ) break;
 
             Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "RangeA: " << i << " "
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                     << thisRangeA.word_ << " "
 #endif
                     << thisRangeA.pos_ << " " << thisRangeA.num_
                     << " -- " << currentPosA_
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                     << " < " << thisRangeB.word_
 #endif
                     << endl;
@@ -299,7 +300,7 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
                 //       if (countsThisRangeA.count_[l]>=minOcc)
                 if ( propagateIntervalA_[l] == true )
                 {
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                     if ( hasChild == false )
                     {
                         // assert(thisWord.size()==thisRangeA.word_.size()+1);
@@ -324,7 +325,7 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
 #ifdef OLD
                 //  if no children, print word itself
                 cout << "GOLD ";
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                 cout << thisRangeA.word_;
 #endif
                 cout << " " << thisRangeA.num_ << endl;
@@ -344,12 +345,12 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
             if ( ( notAtLastB == false ) || ( ( thisRangeB.pos_ & matchFlag ) != 0 ) ) break;
 
             Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "RangeB: " << i << " "
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                     << thisRangeB.word_ << " "
 #endif
                     << thisRangeB.pos_ << " " << thisRangeB.num_
                     << " -- " << currentPosB_
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                     << " < " << thisRangeB.word_
 #endif
                     << endl;
@@ -377,7 +378,7 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
             //#endif
 
             // add ranges for any children
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
             hasChild = false;
 #endif
             for ( int l( 1 ); l < alphabetSize; l++ )
@@ -385,7 +386,7 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
                 //       if (countsThisRangeB.count_[l]>=minOcc)
                 if ( propagateIntervalB_[l] == true )
                 {
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                     if ( hasChild == false )
                     {
                         // assert(thisWord.size()==thisRangeB.word_.size()+1);
@@ -429,13 +430,13 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
             assert( ( thisRangeB.pos_ & matchFlag ) != 0 );
 
             Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "RangeA: " << i << " "
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                     << thisRangeA.word_ << " "
 #endif
                     << thisRangeA.pos_ << " " << thisRangeA.num_
                     << " -- " << currentPosA_ << " = ";
             Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "RangeB: " << i << " "
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                     << thisRangeB.word_ << " "
 #endif
                     << thisRangeB.pos_ << " " << thisRangeB.num_
@@ -463,7 +464,7 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
                 Logger::out() << countsThisRangeB << endl;
             }
 
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
             assert( thisRangeA.word_.size() == thisRangeB.word_.size() );
 #endif
             bool isBreakpointDetected = false;
@@ -480,7 +481,7 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
             }
 
 
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
             hasChild = false;
 #endif
             for ( int l( 1 ); l < alphabetSize; l++ )
@@ -488,7 +489,7 @@ void TwoBwtBackTracker::process ( int i, string &thisWord, IntervalHandlerBase &
                 if ( ( propagateIntervalA_[l] == true )
                      || ( propagateIntervalB_[l] == true ) )
                 {
-#ifdef PROPAGATE_PREFIX
+#ifdef PROPAGATE_SEQUENCE
                     if ( hasChild == false )
                     {
                         // assert(thisWord.size()==thisRangeA.word_.size()+1);

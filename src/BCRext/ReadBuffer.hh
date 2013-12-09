@@ -147,7 +147,6 @@ struct ReadBuffer4Bits : public ReadBufferBase
     } // ~operator[]
     virtual void convertFromASCII( void )
     {
-        char code;
 #ifdef DEBUG
         std::cout << seqBuf_;
 #endif
@@ -156,7 +155,7 @@ struct ReadBuffer4Bits : public ReadBufferBase
 #ifdef DEBUG
             std::cout << seqBuf_[i];
 #endif
-            code = ( char )whichPile[( int )seqBuf_[i]];
+            char code = ( char )whichPile[( int )seqBuf_[i]];
             if ( ( i % 2 ) == 0 )
                 seqBuf_[j] = code;
             else

@@ -51,7 +51,7 @@ struct sortElement
 
 #else
 
-    sortElement() : lcpCurN( 0 ), lcpSucN( 0 ) {}
+    sortElement() : pileN( 0 ), lcpCurN( 0 ), lcpSucN( 0 ) {}
 
     sortElement( AlphabetSymbol z, LetterNumber x, SequenceNumber y, SequenceLength l1 = 0, SequenceLength l2 = 0 )
         : pileN( z )

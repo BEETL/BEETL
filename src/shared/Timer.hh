@@ -36,7 +36,6 @@ public:
     const char *timeNow( void ) const;
 
 private:
-    int numStamps;
     rusage thisUsage_;
     rusage lastUsage_;
     timeval thisTime_;

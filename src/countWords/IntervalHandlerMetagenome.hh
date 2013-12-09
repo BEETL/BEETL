@@ -26,6 +26,7 @@
 #include "Types.hh"
 
 #include <cstdlib>
+#include <fstream>
 #include <unistd.h>
 
 using std::vector;
@@ -81,7 +82,7 @@ struct IntervalHandlerMetagenome : public IntervalHandlerBase
     );
 
     vector<bool> intervalInSameTaxa( vector<uint> &sharedTaxIds, vector<MetagFileNumRefType> &fileNumbers );
-    void getFileNumbersForRange( const int &pileNum, const LetterNumber &bwtPosition, const uint &num, vector<MetagFileNumRefType> &fileNumbers );
+    void getFileNumbersForRange( const unsigned int &pileNum, const LetterNumber &bwtPosition, const uint &num, vector<MetagFileNumRefType> &fileNumbers );
 
     const LetterNumber minOcc_;
     //setC of the merging algorithm from Tony,
@@ -97,6 +98,9 @@ struct IntervalHandlerMetagenome : public IntervalHandlerBase
     //because the fileNumbers and taxa do not have to be checked before the minimal wordLength is reached
     uint minWordLength_;
     uint maxWordLength_;
+
+    void createOutputFile( const int subsetThreadNum, const int i, const int j, const int cycle );
+    std::ofstream outFile_;
 };
 
 

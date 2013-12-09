@@ -87,7 +87,7 @@ void Extender::fillRangeStore( RangeStoreExternal &rangeStore, const LetterCount
             for ( int i( 0 ); i < alphabetSize; i++ )
             {
                 start = end;
-                end += countsPerPile[whichPile[rec.kmer[0]]].count_[i];
+                end += countsPerPile[whichPile[( int )rec.kmer[0]]].count_[i];
 
                 LetterNumber intersectionStart = max( pos, start );
                 LetterNumber intersectionEnd = min( pos + count, end );
@@ -103,7 +103,7 @@ void Extender::fillRangeStore( RangeStoreExternal &rangeStore, const LetterCount
                             true, // hasUserData
                             &rec
                         ),
-                        whichPile[rec.kmer[0]],
+                        whichPile[( int )rec.kmer[0]],
                         i,
                         "", //subset
                         1 //initial cycle
@@ -164,10 +164,7 @@ void Extender::run()
     fillRangeStore( r, countsPerPile, countsCumulative );
 
 
-    string currentWord_notUsed;
-    int startPosInKmerList2 = 0;
-    int endPosInKmerList2 = 0;
-
+    string currentWord;
 
     LetterCount countsSoFar;
     LetterNumber currentPos;
@@ -183,6 +180,10 @@ void Extender::run()
             Logger::out() << "   time now: " << timer.timeNow();
             Logger::out() << "   usage: " << timer << endl;
         }
+
+#ifdef PROPAGATE_SEQUENCE
+        currentWord.resize( cycle + 2 );
+#endif
 
         numRanges = 0;
         numSingletonRanges = 0;
@@ -212,7 +213,7 @@ void Extender::run()
 
                 ExtenderIntervalHandler intervalHandler;
                 Range rangeObject( true );
-                backTracker.process( i, currentWord_notUsed, intervalHandler, rangeObject );
+                backTracker.process( i, currentWord, intervalHandler, rangeObject );
 
                 numRanges += backTracker.numRanges_;
                 numSingletonRanges += backTracker.numSingletonRanges_;

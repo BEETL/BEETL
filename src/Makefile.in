@@ -101,29 +101,29 @@ am__v_AR_1 =
 liball_a_AR = $(AR) $(ARFLAGS)
 liball_a_LIBADD =
 am__dirstamp = $(am__leading_dot)dirstamp
-am_liball_a_OBJECTS = BCRext/liball_a-BCRext.$(OBJEXT) \
-	BCR/liball_a-BCR_BWTCollection.$(OBJEXT) \
-	countWords/liball_a-CountWords.$(OBJEXT) \
-	shared/liball_a-Timer.$(OBJEXT) \
-	shared/liball_a-Tools.$(OBJEXT) \
+am_liball_a_OBJECTS = BCR/liball_a-BCR_BWTCollection.$(OBJEXT) \
+	BCR/liball_a-BuildBCR.$(OBJEXT) \
 	BCR/liball_a-BWTCollection.$(OBJEXT) \
 	BCR/liball_a-BCRexternalBWT.$(OBJEXT) \
-	BCR/liball_a-BuildBCR.$(OBJEXT) \
 	BCR/liball_a-PredictiveEncoding.$(OBJEXT) \
 	BCR/liball_a-Sorting.$(OBJEXT) \
 	BCR/liball_a-TransposeFasta.$(OBJEXT) \
-	BCRext/liball_a-BwtReader.$(OBJEXT) \
-	BCRext/liball_a-BwtWriter.$(OBJEXT) \
-	BCRext/liball_a-ReadBuffer.$(OBJEXT) \
+	shared/liball_a-Timer.$(OBJEXT) \
+	shared/liball_a-Tools.$(OBJEXT) \
 	shared/liball_a-Filename.$(OBJEXT) \
 	shared/liball_a-SeqReader.$(OBJEXT) \
 	shared/liball_a-SequenceExtractor.$(OBJEXT) \
+	BCRext/liball_a-BwtReader.$(OBJEXT) \
+	BCRext/liball_a-BwtWriter.$(OBJEXT) \
+	BCRext/liball_a-ReadBuffer.$(OBJEXT) \
+	BCRext/liball_a-BCRext.$(OBJEXT) \
 	backtracker/liball_a-BackTrackerBase.$(OBJEXT) \
 	backtracker/liball_a-OneBwtBackTracker.$(OBJEXT) \
 	backtracker/liball_a-TwoBwtBackTracker.$(OBJEXT) \
 	backtracker/liball_a-Range.$(OBJEXT) \
 	backtracker/liball_a-RangeStore.$(OBJEXT) \
 	backtracker/liball_a-IntervalHandlerBase.$(OBJEXT) \
+	countWords/liball_a-CountWords.$(OBJEXT) \
 	countWords/liball_a-IntervalHandlerMetagenome.$(OBJEXT) \
 	countWords/liball_a-IntervalHandlerReference.$(OBJEXT) \
 	countWords/liball_a-IntervalHandlerSplice.$(OBJEXT) \
@@ -192,6 +192,18 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_@AM_V@)
+am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
+am__v_CC_0 = @echo "  CC      " $@;
+am__v_CC_1 = 
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_@AM_V@)
+am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
+am__v_CCLD_0 = @echo "  CCLD    " $@;
+am__v_CCLD_1 = 
 SOURCES = $(liball_a_SOURCES) $(libzoo_a_SOURCES) $(OldBeetl_SOURCES)
 DIST_SOURCES = $(liball_a_SOURCES) $(libzoo_a_SOURCES) \
 	$(OldBeetl_SOURCES)
@@ -367,7 +379,7 @@ top_srcdir = @top_srcdir@
 SUBDIRS = . frontends metagenomics
 AM_CXXFLAGS = ${OPENMP_CXXFLAGS}
 noinst_LIBRARIES = libzoo.a liball.a
-OldBeetl_SOURCES = shared/Beetl.cpp
+OldBeetl_SOURCES = shared/Beetl.cpp shared/Beetl.hh
 OldBeetl_LDADD = liball.a libzoo.a ${BOOST_LDADD}
 OldBeetl_LDFLAGS = ${BOOST_LDFLAGS}
 OldBeetl_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords -I$(srcdir)/backtracker ${OPENMP_CXXFLAGS}
@@ -377,55 +389,116 @@ OldBeetl_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/B
 #indexBwt_LDADD = liball.a
 #indexBwt_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords
 liball_a_SOURCES = \
-	BCRext/BCRext.cpp \
 	BCR/BCR_BWTCollection.cpp \
-	countWords/CountWords.cpp \
-	shared/Timer.cpp \
-	shared/Tools.cpp \
-	BCR/BWTCollection.cpp \
-	BCR/BCRexternalBWT.cpp \
 	BCR/BuildBCR.cpp \
+	BCR/BWTCollection.cpp \
+	BCR/BWTCollection.hh \
+	BCR/BCRexternalBWT.cpp \
+	BCR/BCRexternalBWT.hh \
 	BCR/PredictiveEncoding.cpp \
+	BCR/PredictiveEncoding.hh \
 	BCR/Sorting.cpp \
+	BCR/Sorting.hh \
 	BCR/TransposeFasta.cpp \
-	BCRext/BwtReader.cpp \
-	BCRext/BwtWriter.cpp \
-	BCRext/ReadBuffer.cpp \
+	BCR/TransposeFasta.hh \
+	shared/Algorithm.hh \
+	shared/Alphabet.hh \
+	shared/Config.hh \
+	shared/FragmentedVector.hh \
+	shared/LetterCount.hh \
+	shared/Types.hh \
+	shared/Timer.cpp \
+	shared/Timer.hh \
+	shared/Tools.cpp \
+	shared/Tools.hh \
 	shared/Filename.cpp \
+	shared/Filename.hh \
 	shared/SeqReader.cpp \
+	shared/SeqReader.hh \
 	shared/SequenceExtractor.cpp \
+	shared/SequenceExtractor.hh \
+	parameters/BwtParameters.hh \
+	parameters/CompareParameters.hh \
+	parameters/ConvertParameters.hh \
+	parameters/ExtendParameters.hh \
+	parameters/IndexParameters.hh \
+	parameters/SearchParameters.hh \
+	parameters/UnbwtParameters.hh \
+	BCRext/BwtReader.cpp \
+	BCRext/BwtReader.hh \
+	BCRext/BwtWriter.cpp \
+	BCRext/BwtWriter.hh \
+	BCRext/ReadBuffer.cpp \
+	BCRext/ReadBuffer.hh \
+	BCRext/BCRext.cpp \
+	BCRext/BCRext.hh \
 	backtracker/BackTrackerBase.cpp \
+	backtracker/BackTrackerBase.hh \
 	backtracker/OneBwtBackTracker.cpp \
+	backtracker/OneBwtBackTracker.hh \
 	backtracker/TwoBwtBackTracker.cpp \
+	backtracker/TwoBwtBackTracker.hh \
 	backtracker/Range.cpp \
+	backtracker/Range.hh \
 	backtracker/RangeStore.cpp \
+	backtracker/RangeStore.hh \
 	backtracker/IntervalHandlerBase.cpp \
+	backtracker/IntervalHandlerBase.hh \
+	countWords/CountWords.cpp \
+	countWords/CountWords.hh \
 	countWords/IntervalHandlerMetagenome.cpp \
+	countWords/IntervalHandlerMetagenome.hh \
 	countWords/IntervalHandlerReference.cpp \
+	countWords/IntervalHandlerReference.hh \
 	countWords/IntervalHandlerSplice.cpp \
+	countWords/IntervalHandlerSplice.hh \
 	countWords/IntervalHandlerTumourNormal.cpp \
+	countWords/IntervalHandlerTumourNormal.hh \
+	errors/AlignmentParameters.hh \
+	errors/BwtCorrectorParameters.hh \
 	errors/WitnessReader.cpp \
+	errors/WitnessReader.hh \
 	errors/BwtCorrectorIntervalHandler.cpp \
+	errors/BwtCorrectorIntervalHandler.hh \
 	errors/BwtCorrector.cpp \
+	errors/BwtCorrector.hh \
 	errors/HiTECStats.cpp \
+	errors/HiTECStats.hh \
 	errors/CorrectionAligner.cpp \
+	errors/CorrectionAligner.hh \
 	errors/ErrorInfo.cpp \
+	errors/ErrorInfo.hh \
 	errors/ErrorCorrectionRange.cpp \
+	errors/ErrorCorrectionRange.hh \
 	search/SearchUsingBacktracker.cpp \
+	search/SearchUsingBacktracker.hh \
 	search/KmerSearchIntervalHandler.cpp \
+	search/KmerSearchIntervalHandler.hh \
 	search/KmerSearchRange.cpp \
+	search/KmerSearchRange.hh \
 	search/IntervalFile.cpp \
+	search/IntervalFile.hh \
 	search/Extender.cpp \
-	search/ExtenderIntervalHandler.cpp
+	search/Extender.hh \
+	search/ExtenderIntervalHandler.cpp \
+	search/ExtenderIntervalHandler.hh
 
 liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/BCRext -I$(srcdir)/countWords -I$(srcdir)/backtracker ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
 libzoo_a_SOURCES = \
+	../redist/gzstream.hh \
 	libzoo/cli/Common.cpp \
+	libzoo/cli/Common.hh \
 	libzoo/cli/ToolParameters.cpp \
+	libzoo/cli/ToolParameters.hh \
 	libzoo/io/Bcl.cpp \
+	libzoo/io/Bcl.hh \
 	libzoo/io/FastOFStream.cpp \
+	libzoo/io/FastOFStream.hh \
 	libzoo/util/Logger.cpp \
-	libzoo/util/TemporaryFilesManager.cpp
+	libzoo/util/Logger.hh \
+	libzoo/util/TemporaryFilesManager.cpp \
+	libzoo/util/TemporaryFilesManager.hh \
+	libzoo/util/AutoGrowVector.hh
 
 libzoo_a_CXXFLAGS = -I$(srcdir) ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
 all: all-recursive
@@ -465,14 +538,6 @@ $(am__aclocal_m4_deps):
 
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
-BCRext/$(am__dirstamp):
-	@$(MKDIR_P) BCRext
-	@: > BCRext/$(am__dirstamp)
-BCRext/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) BCRext/$(DEPDIR)
-	@: > BCRext/$(DEPDIR)/$(am__dirstamp)
-BCRext/liball_a-BCRext.$(OBJEXT): BCRext/$(am__dirstamp) \
-	BCRext/$(DEPDIR)/$(am__dirstamp)
 BCR/$(am__dirstamp):
 	@$(MKDIR_P) BCR
 	@: > BCR/$(am__dirstamp)
@@ -481,14 +546,18 @@ BCR/$(DEPDIR)/$(am__dirstamp):
 	@: > BCR/$(DEPDIR)/$(am__dirstamp)
 BCR/liball_a-BCR_BWTCollection.$(OBJEXT): BCR/$(am__dirstamp) \
 	BCR/$(DEPDIR)/$(am__dirstamp)
-countWords/$(am__dirstamp):
-	@$(MKDIR_P) countWords
-	@: > countWords/$(am__dirstamp)
-countWords/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) countWords/$(DEPDIR)
-	@: > countWords/$(DEPDIR)/$(am__dirstamp)
-countWords/liball_a-CountWords.$(OBJEXT): countWords/$(am__dirstamp) \
-	countWords/$(DEPDIR)/$(am__dirstamp)
+BCR/liball_a-BuildBCR.$(OBJEXT): BCR/$(am__dirstamp) \
+	BCR/$(DEPDIR)/$(am__dirstamp)
+BCR/liball_a-BWTCollection.$(OBJEXT): BCR/$(am__dirstamp) \
+	BCR/$(DEPDIR)/$(am__dirstamp)
+BCR/liball_a-BCRexternalBWT.$(OBJEXT): BCR/$(am__dirstamp) \
+	BCR/$(DEPDIR)/$(am__dirstamp)
+BCR/liball_a-PredictiveEncoding.$(OBJEXT): BCR/$(am__dirstamp) \
+	BCR/$(DEPDIR)/$(am__dirstamp)
+BCR/liball_a-Sorting.$(OBJEXT): BCR/$(am__dirstamp) \
+	BCR/$(DEPDIR)/$(am__dirstamp)
+BCR/liball_a-TransposeFasta.$(OBJEXT): BCR/$(am__dirstamp) \
+	BCR/$(DEPDIR)/$(am__dirstamp)
 shared/$(am__dirstamp):
 	@$(MKDIR_P) shared
 	@: > shared/$(am__dirstamp)
@@ -499,30 +568,26 @@ shared/liball_a-Timer.$(OBJEXT): shared/$(am__dirstamp) \
 	shared/$(DEPDIR)/$(am__dirstamp)
 shared/liball_a-Tools.$(OBJEXT): shared/$(am__dirstamp) \
 	shared/$(DEPDIR)/$(am__dirstamp)
-BCR/liball_a-BWTCollection.$(OBJEXT): BCR/$(am__dirstamp) \
-	BCR/$(DEPDIR)/$(am__dirstamp)
-BCR/liball_a-BCRexternalBWT.$(OBJEXT): BCR/$(am__dirstamp) \
-	BCR/$(DEPDIR)/$(am__dirstamp)
-BCR/liball_a-BuildBCR.$(OBJEXT): BCR/$(am__dirstamp) \
-	BCR/$(DEPDIR)/$(am__dirstamp)
-BCR/liball_a-PredictiveEncoding.$(OBJEXT): BCR/$(am__dirstamp) \
-	BCR/$(DEPDIR)/$(am__dirstamp)
-BCR/liball_a-Sorting.$(OBJEXT): BCR/$(am__dirstamp) \
-	BCR/$(DEPDIR)/$(am__dirstamp)
-BCR/liball_a-TransposeFasta.$(OBJEXT): BCR/$(am__dirstamp) \
-	BCR/$(DEPDIR)/$(am__dirstamp)
-BCRext/liball_a-BwtReader.$(OBJEXT): BCRext/$(am__dirstamp) \
-	BCRext/$(DEPDIR)/$(am__dirstamp)
-BCRext/liball_a-BwtWriter.$(OBJEXT): BCRext/$(am__dirstamp) \
-	BCRext/$(DEPDIR)/$(am__dirstamp)
-BCRext/liball_a-ReadBuffer.$(OBJEXT): BCRext/$(am__dirstamp) \
-	BCRext/$(DEPDIR)/$(am__dirstamp)
 shared/liball_a-Filename.$(OBJEXT): shared/$(am__dirstamp) \
 	shared/$(DEPDIR)/$(am__dirstamp)
 shared/liball_a-SeqReader.$(OBJEXT): shared/$(am__dirstamp) \
 	shared/$(DEPDIR)/$(am__dirstamp)
 shared/liball_a-SequenceExtractor.$(OBJEXT): shared/$(am__dirstamp) \
 	shared/$(DEPDIR)/$(am__dirstamp)
+BCRext/$(am__dirstamp):
+	@$(MKDIR_P) BCRext
+	@: > BCRext/$(am__dirstamp)
+BCRext/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) BCRext/$(DEPDIR)
+	@: > BCRext/$(DEPDIR)/$(am__dirstamp)
+BCRext/liball_a-BwtReader.$(OBJEXT): BCRext/$(am__dirstamp) \
+	BCRext/$(DEPDIR)/$(am__dirstamp)
+BCRext/liball_a-BwtWriter.$(OBJEXT): BCRext/$(am__dirstamp) \
+	BCRext/$(DEPDIR)/$(am__dirstamp)
+BCRext/liball_a-ReadBuffer.$(OBJEXT): BCRext/$(am__dirstamp) \
+	BCRext/$(DEPDIR)/$(am__dirstamp)
+BCRext/liball_a-BCRext.$(OBJEXT): BCRext/$(am__dirstamp) \
+	BCRext/$(DEPDIR)/$(am__dirstamp)
 backtracker/$(am__dirstamp):
 	@$(MKDIR_P) backtracker
 	@: > backtracker/$(am__dirstamp)
@@ -546,6 +611,14 @@ backtracker/liball_a-RangeStore.$(OBJEXT):  \
 backtracker/liball_a-IntervalHandlerBase.$(OBJEXT):  \
 	backtracker/$(am__dirstamp) \
 	backtracker/$(DEPDIR)/$(am__dirstamp)
+countWords/$(am__dirstamp):
+	@$(MKDIR_P) countWords
+	@: > countWords/$(am__dirstamp)
+countWords/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) countWords/$(DEPDIR)
+	@: > countWords/$(DEPDIR)/$(am__dirstamp)
+countWords/liball_a-CountWords.$(OBJEXT): countWords/$(am__dirstamp) \
+	countWords/$(DEPDIR)/$(am__dirstamp)
 countWords/liball_a-IntervalHandlerMetagenome.$(OBJEXT):  \
 	countWords/$(am__dirstamp) \
 	countWords/$(DEPDIR)/$(am__dirstamp)
@@ -767,20 +840,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-BCRext/liball_a-BCRext.o: BCRext/BCRext.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BCRext.o -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BCRext.Tpo -c -o BCRext/liball_a-BCRext.o `test -f 'BCRext/BCRext.cpp' || echo '$(srcdir)/'`BCRext/BCRext.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BCRext.Tpo BCRext/$(DEPDIR)/liball_a-BCRext.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BCRext.cpp' object='BCRext/liball_a-BCRext.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BCRext.o `test -f 'BCRext/BCRext.cpp' || echo '$(srcdir)/'`BCRext/BCRext.cpp
-
-BCRext/liball_a-BCRext.obj: BCRext/BCRext.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BCRext.obj -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BCRext.Tpo -c -o BCRext/liball_a-BCRext.obj `if test -f 'BCRext/BCRext.cpp'; then $(CYGPATH_W) 'BCRext/BCRext.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BCRext.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BCRext.Tpo BCRext/$(DEPDIR)/liball_a-BCRext.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BCRext.cpp' object='BCRext/liball_a-BCRext.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BCRext.obj `if test -f 'BCRext/BCRext.cpp'; then $(CYGPATH_W) 'BCRext/BCRext.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BCRext.cpp'; fi`
-
 BCR/liball_a-BCR_BWTCollection.o: BCR/BCR_BWTCollection.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCR/liball_a-BCR_BWTCollection.o -MD -MP -MF BCR/$(DEPDIR)/liball_a-BCR_BWTCollection.Tpo -c -o BCR/liball_a-BCR_BWTCollection.o `test -f 'BCR/BCR_BWTCollection.cpp' || echo '$(srcdir)/'`BCR/BCR_BWTCollection.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCR/$(DEPDIR)/liball_a-BCR_BWTCollection.Tpo BCR/$(DEPDIR)/liball_a-BCR_BWTCollection.Po
@@ -795,47 +854,19 @@ BCR/liball_a-BCR_BWTCollection.obj: BCR/BCR_BWTCollection.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCR/liball_a-BCR_BWTCollection.obj `if test -f 'BCR/BCR_BWTCollection.cpp'; then $(CYGPATH_W) 'BCR/BCR_BWTCollection.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/BCR_BWTCollection.cpp'; fi`
 
-countWords/liball_a-CountWords.o: countWords/CountWords.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT countWords/liball_a-CountWords.o -MD -MP -MF countWords/$(DEPDIR)/liball_a-CountWords.Tpo -c -o countWords/liball_a-CountWords.o `test -f 'countWords/CountWords.cpp' || echo '$(srcdir)/'`countWords/CountWords.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) countWords/$(DEPDIR)/liball_a-CountWords.Tpo countWords/$(DEPDIR)/liball_a-CountWords.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='countWords/CountWords.cpp' object='countWords/liball_a-CountWords.o' libtool=no @AMDEPBACKSLASH@
+BCR/liball_a-BuildBCR.o: BCR/BuildBCR.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCR/liball_a-BuildBCR.o -MD -MP -MF BCR/$(DEPDIR)/liball_a-BuildBCR.Tpo -c -o BCR/liball_a-BuildBCR.o `test -f 'BCR/BuildBCR.cpp' || echo '$(srcdir)/'`BCR/BuildBCR.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCR/$(DEPDIR)/liball_a-BuildBCR.Tpo BCR/$(DEPDIR)/liball_a-BuildBCR.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCR/BuildBCR.cpp' object='BCR/liball_a-BuildBCR.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o countWords/liball_a-CountWords.o `test -f 'countWords/CountWords.cpp' || echo '$(srcdir)/'`countWords/CountWords.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCR/liball_a-BuildBCR.o `test -f 'BCR/BuildBCR.cpp' || echo '$(srcdir)/'`BCR/BuildBCR.cpp
 
-countWords/liball_a-CountWords.obj: countWords/CountWords.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT countWords/liball_a-CountWords.obj -MD -MP -MF countWords/$(DEPDIR)/liball_a-CountWords.Tpo -c -o countWords/liball_a-CountWords.obj `if test -f 'countWords/CountWords.cpp'; then $(CYGPATH_W) 'countWords/CountWords.cpp'; else $(CYGPATH_W) '$(srcdir)/countWords/CountWords.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) countWords/$(DEPDIR)/liball_a-CountWords.Tpo countWords/$(DEPDIR)/liball_a-CountWords.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='countWords/CountWords.cpp' object='countWords/liball_a-CountWords.obj' libtool=no @AMDEPBACKSLASH@
+BCR/liball_a-BuildBCR.obj: BCR/BuildBCR.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCR/liball_a-BuildBCR.obj -MD -MP -MF BCR/$(DEPDIR)/liball_a-BuildBCR.Tpo -c -o BCR/liball_a-BuildBCR.obj `if test -f 'BCR/BuildBCR.cpp'; then $(CYGPATH_W) 'BCR/BuildBCR.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/BuildBCR.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCR/$(DEPDIR)/liball_a-BuildBCR.Tpo BCR/$(DEPDIR)/liball_a-BuildBCR.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCR/BuildBCR.cpp' object='BCR/liball_a-BuildBCR.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o countWords/liball_a-CountWords.obj `if test -f 'countWords/CountWords.cpp'; then $(CYGPATH_W) 'countWords/CountWords.cpp'; else $(CYGPATH_W) '$(srcdir)/countWords/CountWords.cpp'; fi`
-
-shared/liball_a-Timer.o: shared/Timer.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Timer.o -MD -MP -MF shared/$(DEPDIR)/liball_a-Timer.Tpo -c -o shared/liball_a-Timer.o `test -f 'shared/Timer.cpp' || echo '$(srcdir)/'`shared/Timer.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-Timer.Tpo shared/$(DEPDIR)/liball_a-Timer.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/Timer.cpp' object='shared/liball_a-Timer.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-Timer.o `test -f 'shared/Timer.cpp' || echo '$(srcdir)/'`shared/Timer.cpp
-
-shared/liball_a-Timer.obj: shared/Timer.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Timer.obj -MD -MP -MF shared/$(DEPDIR)/liball_a-Timer.Tpo -c -o shared/liball_a-Timer.obj `if test -f 'shared/Timer.cpp'; then $(CYGPATH_W) 'shared/Timer.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Timer.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-Timer.Tpo shared/$(DEPDIR)/liball_a-Timer.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/Timer.cpp' object='shared/liball_a-Timer.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-Timer.obj `if test -f 'shared/Timer.cpp'; then $(CYGPATH_W) 'shared/Timer.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Timer.cpp'; fi`
-
-shared/liball_a-Tools.o: shared/Tools.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Tools.o -MD -MP -MF shared/$(DEPDIR)/liball_a-Tools.Tpo -c -o shared/liball_a-Tools.o `test -f 'shared/Tools.cpp' || echo '$(srcdir)/'`shared/Tools.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-Tools.Tpo shared/$(DEPDIR)/liball_a-Tools.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/Tools.cpp' object='shared/liball_a-Tools.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-Tools.o `test -f 'shared/Tools.cpp' || echo '$(srcdir)/'`shared/Tools.cpp
-
-shared/liball_a-Tools.obj: shared/Tools.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Tools.obj -MD -MP -MF shared/$(DEPDIR)/liball_a-Tools.Tpo -c -o shared/liball_a-Tools.obj `if test -f 'shared/Tools.cpp'; then $(CYGPATH_W) 'shared/Tools.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Tools.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-Tools.Tpo shared/$(DEPDIR)/liball_a-Tools.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/Tools.cpp' object='shared/liball_a-Tools.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-Tools.obj `if test -f 'shared/Tools.cpp'; then $(CYGPATH_W) 'shared/Tools.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Tools.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCR/liball_a-BuildBCR.obj `if test -f 'BCR/BuildBCR.cpp'; then $(CYGPATH_W) 'BCR/BuildBCR.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/BuildBCR.cpp'; fi`
 
 BCR/liball_a-BWTCollection.o: BCR/BWTCollection.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCR/liball_a-BWTCollection.o -MD -MP -MF BCR/$(DEPDIR)/liball_a-BWTCollection.Tpo -c -o BCR/liball_a-BWTCollection.o `test -f 'BCR/BWTCollection.cpp' || echo '$(srcdir)/'`BCR/BWTCollection.cpp
@@ -864,20 +895,6 @@ BCR/liball_a-BCRexternalBWT.obj: BCR/BCRexternalBWT.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCR/BCRexternalBWT.cpp' object='BCR/liball_a-BCRexternalBWT.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCR/liball_a-BCRexternalBWT.obj `if test -f 'BCR/BCRexternalBWT.cpp'; then $(CYGPATH_W) 'BCR/BCRexternalBWT.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/BCRexternalBWT.cpp'; fi`
-
-BCR/liball_a-BuildBCR.o: BCR/BuildBCR.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCR/liball_a-BuildBCR.o -MD -MP -MF BCR/$(DEPDIR)/liball_a-BuildBCR.Tpo -c -o BCR/liball_a-BuildBCR.o `test -f 'BCR/BuildBCR.cpp' || echo '$(srcdir)/'`BCR/BuildBCR.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCR/$(DEPDIR)/liball_a-BuildBCR.Tpo BCR/$(DEPDIR)/liball_a-BuildBCR.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCR/BuildBCR.cpp' object='BCR/liball_a-BuildBCR.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCR/liball_a-BuildBCR.o `test -f 'BCR/BuildBCR.cpp' || echo '$(srcdir)/'`BCR/BuildBCR.cpp
-
-BCR/liball_a-BuildBCR.obj: BCR/BuildBCR.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCR/liball_a-BuildBCR.obj -MD -MP -MF BCR/$(DEPDIR)/liball_a-BuildBCR.Tpo -c -o BCR/liball_a-BuildBCR.obj `if test -f 'BCR/BuildBCR.cpp'; then $(CYGPATH_W) 'BCR/BuildBCR.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/BuildBCR.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCR/$(DEPDIR)/liball_a-BuildBCR.Tpo BCR/$(DEPDIR)/liball_a-BuildBCR.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCR/BuildBCR.cpp' object='BCR/liball_a-BuildBCR.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCR/liball_a-BuildBCR.obj `if test -f 'BCR/BuildBCR.cpp'; then $(CYGPATH_W) 'BCR/BuildBCR.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/BuildBCR.cpp'; fi`
 
 BCR/liball_a-PredictiveEncoding.o: BCR/PredictiveEncoding.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCR/liball_a-PredictiveEncoding.o -MD -MP -MF BCR/$(DEPDIR)/liball_a-PredictiveEncoding.Tpo -c -o BCR/liball_a-PredictiveEncoding.o `test -f 'BCR/PredictiveEncoding.cpp' || echo '$(srcdir)/'`BCR/PredictiveEncoding.cpp
@@ -921,47 +938,33 @@ BCR/liball_a-TransposeFasta.obj: BCR/TransposeFasta.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCR/liball_a-TransposeFasta.obj `if test -f 'BCR/TransposeFasta.cpp'; then $(CYGPATH_W) 'BCR/TransposeFasta.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/TransposeFasta.cpp'; fi`
 
-BCRext/liball_a-BwtReader.o: BCRext/BwtReader.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BwtReader.o -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BwtReader.Tpo -c -o BCRext/liball_a-BwtReader.o `test -f 'BCRext/BwtReader.cpp' || echo '$(srcdir)/'`BCRext/BwtReader.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BwtReader.Tpo BCRext/$(DEPDIR)/liball_a-BwtReader.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BwtReader.cpp' object='BCRext/liball_a-BwtReader.o' libtool=no @AMDEPBACKSLASH@
+shared/liball_a-Timer.o: shared/Timer.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Timer.o -MD -MP -MF shared/$(DEPDIR)/liball_a-Timer.Tpo -c -o shared/liball_a-Timer.o `test -f 'shared/Timer.cpp' || echo '$(srcdir)/'`shared/Timer.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-Timer.Tpo shared/$(DEPDIR)/liball_a-Timer.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/Timer.cpp' object='shared/liball_a-Timer.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BwtReader.o `test -f 'BCRext/BwtReader.cpp' || echo '$(srcdir)/'`BCRext/BwtReader.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-Timer.o `test -f 'shared/Timer.cpp' || echo '$(srcdir)/'`shared/Timer.cpp
 
-BCRext/liball_a-BwtReader.obj: BCRext/BwtReader.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BwtReader.obj -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BwtReader.Tpo -c -o BCRext/liball_a-BwtReader.obj `if test -f 'BCRext/BwtReader.cpp'; then $(CYGPATH_W) 'BCRext/BwtReader.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BwtReader.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BwtReader.Tpo BCRext/$(DEPDIR)/liball_a-BwtReader.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BwtReader.cpp' object='BCRext/liball_a-BwtReader.obj' libtool=no @AMDEPBACKSLASH@
+shared/liball_a-Timer.obj: shared/Timer.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Timer.obj -MD -MP -MF shared/$(DEPDIR)/liball_a-Timer.Tpo -c -o shared/liball_a-Timer.obj `if test -f 'shared/Timer.cpp'; then $(CYGPATH_W) 'shared/Timer.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Timer.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-Timer.Tpo shared/$(DEPDIR)/liball_a-Timer.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/Timer.cpp' object='shared/liball_a-Timer.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BwtReader.obj `if test -f 'BCRext/BwtReader.cpp'; then $(CYGPATH_W) 'BCRext/BwtReader.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BwtReader.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-Timer.obj `if test -f 'shared/Timer.cpp'; then $(CYGPATH_W) 'shared/Timer.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Timer.cpp'; fi`
 
-BCRext/liball_a-BwtWriter.o: BCRext/BwtWriter.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BwtWriter.o -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BwtWriter.Tpo -c -o BCRext/liball_a-BwtWriter.o `test -f 'BCRext/BwtWriter.cpp' || echo '$(srcdir)/'`BCRext/BwtWriter.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BwtWriter.Tpo BCRext/$(DEPDIR)/liball_a-BwtWriter.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BwtWriter.cpp' object='BCRext/liball_a-BwtWriter.o' libtool=no @AMDEPBACKSLASH@
+shared/liball_a-Tools.o: shared/Tools.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Tools.o -MD -MP -MF shared/$(DEPDIR)/liball_a-Tools.Tpo -c -o shared/liball_a-Tools.o `test -f 'shared/Tools.cpp' || echo '$(srcdir)/'`shared/Tools.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-Tools.Tpo shared/$(DEPDIR)/liball_a-Tools.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/Tools.cpp' object='shared/liball_a-Tools.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BwtWriter.o `test -f 'BCRext/BwtWriter.cpp' || echo '$(srcdir)/'`BCRext/BwtWriter.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-Tools.o `test -f 'shared/Tools.cpp' || echo '$(srcdir)/'`shared/Tools.cpp
 
-BCRext/liball_a-BwtWriter.obj: BCRext/BwtWriter.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BwtWriter.obj -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BwtWriter.Tpo -c -o BCRext/liball_a-BwtWriter.obj `if test -f 'BCRext/BwtWriter.cpp'; then $(CYGPATH_W) 'BCRext/BwtWriter.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BwtWriter.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BwtWriter.Tpo BCRext/$(DEPDIR)/liball_a-BwtWriter.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BwtWriter.cpp' object='BCRext/liball_a-BwtWriter.obj' libtool=no @AMDEPBACKSLASH@
+shared/liball_a-Tools.obj: shared/Tools.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Tools.obj -MD -MP -MF shared/$(DEPDIR)/liball_a-Tools.Tpo -c -o shared/liball_a-Tools.obj `if test -f 'shared/Tools.cpp'; then $(CYGPATH_W) 'shared/Tools.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Tools.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-Tools.Tpo shared/$(DEPDIR)/liball_a-Tools.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/Tools.cpp' object='shared/liball_a-Tools.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BwtWriter.obj `if test -f 'BCRext/BwtWriter.cpp'; then $(CYGPATH_W) 'BCRext/BwtWriter.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BwtWriter.cpp'; fi`
-
-BCRext/liball_a-ReadBuffer.o: BCRext/ReadBuffer.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-ReadBuffer.o -MD -MP -MF BCRext/$(DEPDIR)/liball_a-ReadBuffer.Tpo -c -o BCRext/liball_a-ReadBuffer.o `test -f 'BCRext/ReadBuffer.cpp' || echo '$(srcdir)/'`BCRext/ReadBuffer.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-ReadBuffer.Tpo BCRext/$(DEPDIR)/liball_a-ReadBuffer.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/ReadBuffer.cpp' object='BCRext/liball_a-ReadBuffer.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-ReadBuffer.o `test -f 'BCRext/ReadBuffer.cpp' || echo '$(srcdir)/'`BCRext/ReadBuffer.cpp
-
-BCRext/liball_a-ReadBuffer.obj: BCRext/ReadBuffer.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-ReadBuffer.obj -MD -MP -MF BCRext/$(DEPDIR)/liball_a-ReadBuffer.Tpo -c -o BCRext/liball_a-ReadBuffer.obj `if test -f 'BCRext/ReadBuffer.cpp'; then $(CYGPATH_W) 'BCRext/ReadBuffer.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/ReadBuffer.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-ReadBuffer.Tpo BCRext/$(DEPDIR)/liball_a-ReadBuffer.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/ReadBuffer.cpp' object='BCRext/liball_a-ReadBuffer.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-ReadBuffer.obj `if test -f 'BCRext/ReadBuffer.cpp'; then $(CYGPATH_W) 'BCRext/ReadBuffer.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/ReadBuffer.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-Tools.obj `if test -f 'shared/Tools.cpp'; then $(CYGPATH_W) 'shared/Tools.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/Tools.cpp'; fi`
 
 shared/liball_a-Filename.o: shared/Filename.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Filename.o -MD -MP -MF shared/$(DEPDIR)/liball_a-Filename.Tpo -c -o shared/liball_a-Filename.o `test -f 'shared/Filename.cpp' || echo '$(srcdir)/'`shared/Filename.cpp
@@ -1004,6 +1007,62 @@ shared/liball_a-SequenceExtractor.obj: shared/SequenceExtractor.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/SequenceExtractor.cpp' object='shared/liball_a-SequenceExtractor.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-SequenceExtractor.obj `if test -f 'shared/SequenceExtractor.cpp'; then $(CYGPATH_W) 'shared/SequenceExtractor.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/SequenceExtractor.cpp'; fi`
+
+BCRext/liball_a-BwtReader.o: BCRext/BwtReader.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BwtReader.o -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BwtReader.Tpo -c -o BCRext/liball_a-BwtReader.o `test -f 'BCRext/BwtReader.cpp' || echo '$(srcdir)/'`BCRext/BwtReader.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BwtReader.Tpo BCRext/$(DEPDIR)/liball_a-BwtReader.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BwtReader.cpp' object='BCRext/liball_a-BwtReader.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BwtReader.o `test -f 'BCRext/BwtReader.cpp' || echo '$(srcdir)/'`BCRext/BwtReader.cpp
+
+BCRext/liball_a-BwtReader.obj: BCRext/BwtReader.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BwtReader.obj -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BwtReader.Tpo -c -o BCRext/liball_a-BwtReader.obj `if test -f 'BCRext/BwtReader.cpp'; then $(CYGPATH_W) 'BCRext/BwtReader.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BwtReader.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BwtReader.Tpo BCRext/$(DEPDIR)/liball_a-BwtReader.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BwtReader.cpp' object='BCRext/liball_a-BwtReader.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BwtReader.obj `if test -f 'BCRext/BwtReader.cpp'; then $(CYGPATH_W) 'BCRext/BwtReader.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BwtReader.cpp'; fi`
+
+BCRext/liball_a-BwtWriter.o: BCRext/BwtWriter.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BwtWriter.o -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BwtWriter.Tpo -c -o BCRext/liball_a-BwtWriter.o `test -f 'BCRext/BwtWriter.cpp' || echo '$(srcdir)/'`BCRext/BwtWriter.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BwtWriter.Tpo BCRext/$(DEPDIR)/liball_a-BwtWriter.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BwtWriter.cpp' object='BCRext/liball_a-BwtWriter.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BwtWriter.o `test -f 'BCRext/BwtWriter.cpp' || echo '$(srcdir)/'`BCRext/BwtWriter.cpp
+
+BCRext/liball_a-BwtWriter.obj: BCRext/BwtWriter.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BwtWriter.obj -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BwtWriter.Tpo -c -o BCRext/liball_a-BwtWriter.obj `if test -f 'BCRext/BwtWriter.cpp'; then $(CYGPATH_W) 'BCRext/BwtWriter.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BwtWriter.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BwtWriter.Tpo BCRext/$(DEPDIR)/liball_a-BwtWriter.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BwtWriter.cpp' object='BCRext/liball_a-BwtWriter.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BwtWriter.obj `if test -f 'BCRext/BwtWriter.cpp'; then $(CYGPATH_W) 'BCRext/BwtWriter.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BwtWriter.cpp'; fi`
+
+BCRext/liball_a-ReadBuffer.o: BCRext/ReadBuffer.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-ReadBuffer.o -MD -MP -MF BCRext/$(DEPDIR)/liball_a-ReadBuffer.Tpo -c -o BCRext/liball_a-ReadBuffer.o `test -f 'BCRext/ReadBuffer.cpp' || echo '$(srcdir)/'`BCRext/ReadBuffer.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-ReadBuffer.Tpo BCRext/$(DEPDIR)/liball_a-ReadBuffer.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/ReadBuffer.cpp' object='BCRext/liball_a-ReadBuffer.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-ReadBuffer.o `test -f 'BCRext/ReadBuffer.cpp' || echo '$(srcdir)/'`BCRext/ReadBuffer.cpp
+
+BCRext/liball_a-ReadBuffer.obj: BCRext/ReadBuffer.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-ReadBuffer.obj -MD -MP -MF BCRext/$(DEPDIR)/liball_a-ReadBuffer.Tpo -c -o BCRext/liball_a-ReadBuffer.obj `if test -f 'BCRext/ReadBuffer.cpp'; then $(CYGPATH_W) 'BCRext/ReadBuffer.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/ReadBuffer.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-ReadBuffer.Tpo BCRext/$(DEPDIR)/liball_a-ReadBuffer.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/ReadBuffer.cpp' object='BCRext/liball_a-ReadBuffer.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-ReadBuffer.obj `if test -f 'BCRext/ReadBuffer.cpp'; then $(CYGPATH_W) 'BCRext/ReadBuffer.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/ReadBuffer.cpp'; fi`
+
+BCRext/liball_a-BCRext.o: BCRext/BCRext.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BCRext.o -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BCRext.Tpo -c -o BCRext/liball_a-BCRext.o `test -f 'BCRext/BCRext.cpp' || echo '$(srcdir)/'`BCRext/BCRext.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BCRext.Tpo BCRext/$(DEPDIR)/liball_a-BCRext.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BCRext.cpp' object='BCRext/liball_a-BCRext.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BCRext.o `test -f 'BCRext/BCRext.cpp' || echo '$(srcdir)/'`BCRext/BCRext.cpp
+
+BCRext/liball_a-BCRext.obj: BCRext/BCRext.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT BCRext/liball_a-BCRext.obj -MD -MP -MF BCRext/$(DEPDIR)/liball_a-BCRext.Tpo -c -o BCRext/liball_a-BCRext.obj `if test -f 'BCRext/BCRext.cpp'; then $(CYGPATH_W) 'BCRext/BCRext.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BCRext.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) BCRext/$(DEPDIR)/liball_a-BCRext.Tpo BCRext/$(DEPDIR)/liball_a-BCRext.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCRext/BCRext.cpp' object='BCRext/liball_a-BCRext.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCRext/liball_a-BCRext.obj `if test -f 'BCRext/BCRext.cpp'; then $(CYGPATH_W) 'BCRext/BCRext.cpp'; else $(CYGPATH_W) '$(srcdir)/BCRext/BCRext.cpp'; fi`
 
 backtracker/liball_a-BackTrackerBase.o: backtracker/BackTrackerBase.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT backtracker/liball_a-BackTrackerBase.o -MD -MP -MF backtracker/$(DEPDIR)/liball_a-BackTrackerBase.Tpo -c -o backtracker/liball_a-BackTrackerBase.o `test -f 'backtracker/BackTrackerBase.cpp' || echo '$(srcdir)/'`backtracker/BackTrackerBase.cpp
@@ -1088,6 +1147,20 @@ backtracker/liball_a-IntervalHandlerBase.obj: backtracker/IntervalHandlerBase.cp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='backtracker/IntervalHandlerBase.cpp' object='backtracker/liball_a-IntervalHandlerBase.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o backtracker/liball_a-IntervalHandlerBase.obj `if test -f 'backtracker/IntervalHandlerBase.cpp'; then $(CYGPATH_W) 'backtracker/IntervalHandlerBase.cpp'; else $(CYGPATH_W) '$(srcdir)/backtracker/IntervalHandlerBase.cpp'; fi`
+
+countWords/liball_a-CountWords.o: countWords/CountWords.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT countWords/liball_a-CountWords.o -MD -MP -MF countWords/$(DEPDIR)/liball_a-CountWords.Tpo -c -o countWords/liball_a-CountWords.o `test -f 'countWords/CountWords.cpp' || echo '$(srcdir)/'`countWords/CountWords.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) countWords/$(DEPDIR)/liball_a-CountWords.Tpo countWords/$(DEPDIR)/liball_a-CountWords.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='countWords/CountWords.cpp' object='countWords/liball_a-CountWords.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o countWords/liball_a-CountWords.o `test -f 'countWords/CountWords.cpp' || echo '$(srcdir)/'`countWords/CountWords.cpp
+
+countWords/liball_a-CountWords.obj: countWords/CountWords.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT countWords/liball_a-CountWords.obj -MD -MP -MF countWords/$(DEPDIR)/liball_a-CountWords.Tpo -c -o countWords/liball_a-CountWords.obj `if test -f 'countWords/CountWords.cpp'; then $(CYGPATH_W) 'countWords/CountWords.cpp'; else $(CYGPATH_W) '$(srcdir)/countWords/CountWords.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) countWords/$(DEPDIR)/liball_a-CountWords.Tpo countWords/$(DEPDIR)/liball_a-CountWords.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='countWords/CountWords.cpp' object='countWords/liball_a-CountWords.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o countWords/liball_a-CountWords.obj `if test -f 'countWords/CountWords.cpp'; then $(CYGPATH_W) 'countWords/CountWords.cpp'; else $(CYGPATH_W) '$(srcdir)/countWords/CountWords.cpp'; fi`
 
 countWords/liball_a-IntervalHandlerMetagenome.o: countWords/IntervalHandlerMetagenome.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT countWords/liball_a-IntervalHandlerMetagenome.o -MD -MP -MF countWords/$(DEPDIR)/liball_a-IntervalHandlerMetagenome.Tpo -c -o countWords/liball_a-IntervalHandlerMetagenome.o `test -f 'countWords/IntervalHandlerMetagenome.cpp' || echo '$(srcdir)/'`countWords/IntervalHandlerMetagenome.cpp

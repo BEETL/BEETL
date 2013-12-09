@@ -32,8 +32,8 @@ class Filename
 {
 public:
     Filename( const std::string &str )
+        : str_( str )
     {
-        str_ = str;
     }
 
     Filename( const int i )

@@ -58,9 +58,9 @@ void KmerSearchIntervalHandler::foundInAOnly
         string &kmer = kmerSearchItem.kmer;
         Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "  " << kmer << endl;
         assert( kmer[cycle - 1] == alphabet[pileNum] );
-        if ( kmer.size() == cycle )
+        if ( ( int )kmer.size() == cycle )
         {
-            LetterNumber total = std::accumulate( &countsThisRangeA.count_[0], &countsThisRangeA.count_[alphabetSize], 0 );
+            LetterNumber total = std::accumulate( &countsThisRangeA.count_[0], &countsThisRangeA.count_[alphabetSize], ( LetterNumber )0 );
             assert( total == thisRangeBaseA.num_ );
             Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "    -> FOUND " << total << " " << kmer << endl;
             //            LetterNumber totalSoFar = std::accumulate( &countsSoFarA.count_[0], &countsSoFarA.count_[alphabetSize], 0 );
@@ -70,7 +70,7 @@ void KmerSearchIntervalHandler::foundInAOnly
         }
         else
         {
-            int pile = whichPile[kmer[cycle]];
+            int pile = whichPile[( int )kmer[cycle]];
             propagateIntervalA[pile] = true;
 
             if ( pile != lastPile )

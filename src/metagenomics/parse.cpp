@@ -15,6 +15,9 @@
  **
  **/
 
+#include "../shared/Tools.hh"
+#include "metaShared.hh"
+
 #include <cassert>
 #include <cstring>
 #include <cstdlib>
@@ -31,6 +34,7 @@ using namespace std;
 
 int printUsage( string message );
 
+/*
 struct Overlap
 {
     unsigned int start_;
@@ -39,55 +43,8 @@ struct Overlap
     unsigned int readCount_;
 
 };
+*/
 
-struct BWTInformation
-{
-    unsigned short pileNum_;
-    double readCount_;
-    //  unsigned double readAverage_;
-    unsigned short wordLength_;
-    unsigned int taxId_;
-    unsigned short taxLevel_;
-    vector< unsigned int > charBCount_;
-    vector< unsigned int > charACount_;
-    vector<unsigned short> fileNumbers_;
-    vector<int> readIds;
-};
-
-struct TaxInformation
-{
-    unsigned short taxLevel_;
-    vector<int> files_;
-    double *wordCountPerSize_;
-    string name_;
-    vector <uint64_t> bwtPositions_;
-    vector <double>  wordCounts_;
-    vector <unsigned short> wordLengths_;
-    vector <unsigned short> pileNumbers_;
-    unsigned int parentId_;
-    double normalisedCount_;
-    uint64_t seqLengthSum_;
-};
-
-struct FileInformation
-{
-    vector<unsigned> suffixPos_;
-    vector< int > suffixCounts_;
-    vector<unsigned short > suffixLengths_;
-    vector<uint64_t > bwtPositions_;
-    int sequenceLength_;
-    vector<char> suffixChar_;
-};
-
-int countForTaxLevel[7];
-
-
-typedef map<int, TaxInformation> TAXMAP;
-typedef map<int, FileInformation> FILEMAP;
-
-typedef map <uint64_t, BWTInformation > BWTMAP;
-
-typedef map <unsigned int, string> READMAP;
 long getFileSize( FILE *file )
 {
     long lCurPos, lEndPos;
@@ -102,22 +59,6 @@ int whichPile( char c );
 int getTaxonomicLevel( string s );
 double readCount( 0.0 );
 
-string levelNames[] = {"superkingdom", "phylum" , "class", "order", "family", "genus", "species", "strain"};
-
-vector<string>  split ( string s, string token )
-{
-    vector<string> vs;
-    while ( s.find( token ) != string::npos )
-    {
-        vs.push_back( s.substr( 0, s.find( token ) ) );
-        s = s.substr( s.find( token ) + ( token.length() ) );
-    }
-    vs.push_back( s );
-    return vs;
-}
-
-unsigned int alphabetSize( 7 );
-unsigned int taxLevelSize( 8 );
 
 TAXMAP loadTaxInformationForDatabase( string taxFile, int cycleSize, string ncbiNames );
 
@@ -148,6 +89,9 @@ vector<bool> intervalInSameTaxa( vector<unsigned int> &sharedTaxIds, vector<unsi
 void getSecondaryInformation( string parsedWordCountOutput );
 
 
+#include "Krona.hh"
+
+
 int main( const int argc, const char **argv )
 {
     if ( argc < 2 )
@@ -160,19 +104,19 @@ int main( const int argc, const char **argv )
     bool getCoverageInformation( false );
 
     string taxInfo;
-    string parseCount;
-    vector<FILE *> mergeCOutput;
+    //    string parseCount;
+    //    vector<FILE *> mergeCOutput;
     vector<FILE *> mergeAOutput;
     string countWordOutput;
-    string ncbiTaxonomyNames;
-    string outputFile;
+    //    string ncbiTaxonomyNames;
+    //    string outputFile;
     string mergedZeroFile;
     vector<int> taxIds;
     vector<double> expections;
     string ncbiNames;
     vector<int> wordSize;
     string sequenceFile;
-    for ( int i( 1 ); i < argc; i++ )
+    for ( int i( 1 ); i < argc; ++i )
     {
         if ( strcmp( argv[i], "-f" ) == 0 )
             fastAnalysis = true;
@@ -186,7 +130,7 @@ int main( const int argc, const char **argv )
             countWordOutput = argv[i + 1];
         if ( strcmp( argv[i], "-ids" ) == 0 )
         {
-            for ( int j( i + 1 ); j < argc; j++ )
+            for ( int j( i + 1 ); j < argc; ++j )
             {
                 if ( argv[j][0] == '-' )
                     break;
@@ -195,7 +139,7 @@ int main( const int argc, const char **argv )
         }
         if ( strcmp( argv[i], "-exp" ) == 0 )
         {
-            for ( int j( i + 1 ); j < argc; j++ )
+            for ( int j( i + 1 ); j < argc; ++j )
             {
                 if ( argv[j][0] == '-' )
                     break;
@@ -204,7 +148,7 @@ int main( const int argc, const char **argv )
         }
         if ( strcmp( argv[i], "-w" ) == 0 )
         {
-            for ( int j( i + 1 ); j < argc ; j++ )
+            for ( int j( i + 1 ); j < argc ; ++j )
             {
                 if ( argv[j][0] == '-' )
                     break;
@@ -213,7 +157,7 @@ int main( const int argc, const char **argv )
         }
         if ( strcmp( argv[i], "-m" ) == 0 )
         {
-            for ( int j( i + 1 ); j < argc; j++ )
+            for ( int j( i + 1 ); j < argc; ++j )
             {
                 if ( argv[j][0] == '-' )
                     break;
@@ -264,7 +208,7 @@ int main( const int argc, const char **argv )
         //cout << (*it).first << "\t" <<(*it).second.files_.size() << endl;
         //}
         int minWordLength = 300;
-        for ( unsigned int i ( 0 ); i < wordSize.size(); i++ )
+        for ( unsigned int i ( 0 ); i < wordSize.size(); ++i )
         {
             cerr << "Searching for length " << wordSize[i] << endl;
             minWordLength = ( minWordLength > wordSize[i] ) ? wordSize[i] : minWordLength;
@@ -304,7 +248,7 @@ int main( const int argc, const char **argv )
         TAXMAP taxInformation = loadTaxInformationForDatabase( taxInfo, wordSize.size(), ncbiNames );
         cerr << "TaxSize " << taxInformation.size() << endl;
         int minWordLength = 300;
-        for ( unsigned int i ( 0 ); i < wordSize.size(); i++ )
+        for ( unsigned int i ( 0 ); i < wordSize.size(); ++i )
             minWordLength = ( minWordLength > wordSize[i] ) ? wordSize[i] : minWordLength;
         READMAP readMap = loadReadInformation( sequenceFile );
         vector<BWTMAP> bwtInfo = getBWTInformation( countWordOutput, minWordLength, wordSize, mergedZeroFile, readMap );
@@ -319,16 +263,16 @@ void printTaxTree( TAXMAP &taxInfo, FILEMAP &fileInfo, vector<int> wordMinSize )
 {
     cerr << "print taxa Tree" << endl;
     cerr << "file info " << fileInfo.size() << endl;
-    for ( unsigned int s ( 0 ); s < wordMinSize.size(); s++ )
+    for ( unsigned int s ( 0 ); s < wordMinSize.size(); ++s )
     {
         cout  << wordMinSize[s] << endl;
         stringstream ss;
         ss << wordMinSize[s];
         ofstream output( ss.str().c_str(), ios::out );
-        for ( unsigned int level = 0 ; level <= taxLevelSize ; level++ )
+        for ( unsigned int level = 0 ; level <= taxLevelSize ; ++level )
         {
-            cerr << "l" << level << endl;
-            for ( TAXMAP::iterator iter = taxInfo.begin() ; iter != taxInfo.end(); iter++ )
+            //            cerr << "l" << level << endl;
+            for ( TAXMAP::iterator iter = taxInfo.begin() ; iter != taxInfo.end(); ++iter )
             {
 
                 if ( ( *iter ).second.taxLevel_ == level )
@@ -359,6 +303,51 @@ void printTaxTree( TAXMAP &taxInfo, FILEMAP &fileInfo, vector<int> wordMinSize )
         }
         output.close();
     }
+
+
+    // Resetting total counts including children
+    cerr << "Resetting total counts including children" << endl;
+    for ( TAXMAP::iterator iter = taxInfo.begin() ; iter != taxInfo.end(); ++iter )
+        for ( unsigned int s ( 0 ); s < wordMinSize.size(); ++s )
+            iter->second.wordCountPerSizeOfChildren_[s] = 0;
+
+    // Calculating total counts including children
+    cerr << "Calculating total counts including children" << endl;
+    for ( int level = taxLevelSize ; level >= 0 ; --level )
+    {
+        for ( TAXMAP::iterator iter = taxInfo.begin() ; iter != taxInfo.end(); ++iter )
+        {
+            if ( ( *iter ).second.taxLevel_ == level )
+            {
+                //                    cerr << iter->first << " " << iter->second.parentId_ << endl;
+                TAXMAP::iterator parent = taxInfo.find( iter->second.parentId_ );
+                assert( parent != taxInfo.end() );
+                for ( unsigned int s ( 0 ); s < wordMinSize.size(); ++s )
+                    parent->second.wordCountPerSizeOfChildren_[s] += iter->second.wordCountPerSize_[s] + iter->second.wordCountPerSizeOfChildren_[s];
+            }
+        }
+    }
+
+    // LJ version for Krona
+    cerr << "Krona output" << endl;
+    /*
+        for ( unsigned int s ( 0 ); s < wordMinSize.size(); ++s )
+        {
+            cout  << wordMinSize[s] << endl;
+        }
+    */
+    {
+        ofstream output( "metaBeetl_krona.html", ios::out );
+        printKronaHeader( output );
+        printKronaDatasets( output, wordMinSize );
+
+        TAXMAP::iterator topLevel = taxInfo.find( 1 ); // top level has taxonomy Id 1
+        assert( topLevel != taxInfo.end() );
+        printKronaChildren( topLevel, output, 0, taxInfo, wordMinSize.size() );
+
+        printKronaFooter( output );
+        output.close();
+    }
 }
 
 
@@ -371,7 +360,7 @@ void getSecondaryInformation( string countWordOutput )
 {
     ifstream parsedIn( countWordOutput.c_str(), ios::in );
     vector<uint64_t> taxLevelCount;
-    for ( unsigned int level ( 0 ); level < taxLevelSize; level++ )
+    for ( unsigned int level ( 0 ); level < taxLevelSize; ++level )
         taxLevelCount.push_back( 0 );
     string line;
     while ( parsedIn.good() )
@@ -381,13 +370,13 @@ void getSecondaryInformation( string countWordOutput )
         cout << line << endl;
         if ( line.length() > 8 )
         {
-            vector<string> splitLine = split( line, " " );
+            vector<string> splitLine = splitString( line, " " );
             taxLevelCount[atoi( splitLine[1].c_str() )] += atol( splitLine[3].c_str() );
         }
     }
 
-    for ( unsigned int lev( 0 ); lev < taxLevelSize; lev++ )
-        cout << levelNames[lev] <<  " " << taxLevelCount[lev] << endl;
+    for ( unsigned int lev( 0 ); lev < taxLevelSize; ++lev )
+        cout << taxLevelNames[lev] <<  " " << taxLevelCount[lev] << endl;
 }
 
 void getRefInfoOfCount( TAXMAP &taxInfo, string parseWordOut, vector<int> wordSizes )
@@ -405,7 +394,7 @@ void getRefInfoOfCount( TAXMAP &taxInfo, string parseWordOut, vector<int> wordSi
         getline( wordIn, line );
         //    cout << line << endl;
         //    int taxId;
-        vector<string> countBHit = split( line, " " );
+        vector<string> countBHit = splitString( line, " " );
         //database information found
         if ( line[0] == 'B' )
         {
@@ -413,7 +402,7 @@ void getRefInfoOfCount( TAXMAP &taxInfo, string parseWordOut, vector<int> wordSi
             if ( wordSize != ( int )countBHit[4].length() )
             {
                 wordSize = countBHit[4].length();
-                for ( unsigned int i( 0 ); i  < wordSizes.size(); i++ )
+                for ( unsigned int i( 0 ); i  < wordSizes.size(); ++i )
                     if ( ( wordSize = ( wordSizes[i] ) ) != 0 )
                     {
                         //	    wordIndex = i;
@@ -421,9 +410,9 @@ void getRefInfoOfCount( TAXMAP &taxInfo, string parseWordOut, vector<int> wordSi
                     }
             }
             vector<unsigned short > fileNumbers ;
-            vector<string> fileNumberString = split( countBHit[5], ":" );
+            vector<string> fileNumberString = splitString( countBHit[5], ":" );
             //      cout << countBHit[4] <<endl;
-            for ( unsigned int i( 0 ); i < fileNumberString.size(); i++ )
+            for ( unsigned int i( 0 ); i < fileNumberString.size(); ++i )
             {
                 fileNumbers.push_back( atoi( fileNumberString[i].c_str() ) );
                 //cout << fileNumbers[i]<<endl;
@@ -434,7 +423,7 @@ void getRefInfoOfCount( TAXMAP &taxInfo, string parseWordOut, vector<int> wordSi
             vector<bool> intervalSameTaxa = intervalInSameTaxa( sharedTaxIds, fileNumbers );
             taxInfo[sharedTaxIds[taxLevel]].wordCountPerSize_[wordSize]++;
             //      cerr <<"level " << taxLevel <<endl;
-            for ( int i( taxLevelSize - 1 ) ; i >= 0 ; i-- )
+            for ( int i( taxLevelSize - 1 ) ; i >= 0 ; --i )
             {
 
                 //	cerr << i <<" "<< sharedTaxIds[i] <<endl;
@@ -450,16 +439,16 @@ void getRefInfoOfCount( TAXMAP &taxInfo, string parseWordOut, vector<int> wordSi
     }
     //add the counts for the single taxLevel up
     //  double classWordSum = 0;
-    map<int, int> taxIdToLength;
-    for ( unsigned int s( 0 ); s < wordSizes.size() ; s++ )
+    //    map<int, int> taxIdToLength;
+    for ( unsigned int s( 0 ); s < wordSizes.size() ; ++s )
     {
-        for ( int level ( taxLevelSize - 1 ) ; level >= -1; level-- )
+        for ( int level ( taxLevelSize - 1 ) ; level >= -1; --level )
         {
-            for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); it++ )
+            for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); ++it )
             {
                 //add the count of the children from the taxonomic node to the count of the taxonomic node
                 double childrenCount = 0;
-                for ( TAXMAP::iterator ch = taxInfo.begin(); ch != taxInfo.end(); ch ++ )
+                for ( TAXMAP::iterator ch = taxInfo.begin(); ch != taxInfo.end(); ++ch )
                 {
                     if ( ( int )( *ch ).second.parentId_ == it->first )
                         childrenCount += ( *ch ).second.wordCountPerSize_[s];
@@ -470,14 +459,14 @@ void getRefInfoOfCount( TAXMAP &taxInfo, string parseWordOut, vector<int> wordSi
         }
     }
     // print information
-    for ( unsigned int s( 0 ); s < wordSizes.size() ; s++ )
+    for ( unsigned int s( 0 ); s < wordSizes.size() ; ++s )
     {
         stringstream ss;
         ss << wordSizes[s] << "refInfo";
         ofstream output( ss.str().c_str(), ios::out );
-        for ( int level ( taxLevelSize - 1 ) ; level >= -1; level-- )
+        for ( int level ( taxLevelSize - 1 ) ; level >= -1; --level )
         {
-            for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); it++ )
+            for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); ++it )
             {
                 if ( it->second.taxLevel_ == level )
                 {
@@ -504,7 +493,7 @@ vector<BWTMAP> getBWTInformationThroughOnceParsed( string parsedBWTOutput, vecto
         getline( largestBWTOutput, line );
         if ( line.length() > 10 )
         {
-            vector<string> splitLine = split( line, " " );
+            vector<string> splitLine = splitString( line, " " );
             //      146065189 287 58 1 4 0:0:0:2:2:0: 0:0:0:4:0:0: 2544:2208:2974:4163:
             // bwt = 146065189, taxId = 287, wordLengt = 58, pileNum = 1, 4 = readCount, 0:0:0:2:2:0: = countA (reads), 0:0:0:4:0:0: = countB (reference), 2544:2208:2974:4163: = fileNumbers
             uint64_t bwtPosition = atol( splitLine[0].c_str() );
@@ -512,7 +501,7 @@ vector<BWTMAP> getBWTInformationThroughOnceParsed( string parsedBWTOutput, vecto
             bool firstBWT = true;
             BWTInformation bwt;
             //save all BWT Positions which are
-            for ( unsigned int s( 0 ); s < wordSizes.size(); s ++ )
+            for ( unsigned int s( 0 ); s < wordSizes.size(); ++s )
             {
                 //take the smalles possible bwt information for a bwt
                 if ( ( int )wordLength >= wordSizes[s]
@@ -523,23 +512,23 @@ vector<BWTMAP> getBWTInformationThroughOnceParsed( string parsedBWTOutput, vecto
                     {
                         unsigned int taxId = atoi( splitLine[1].c_str() );
                         unsigned short pileNum = atoi( splitLine[3].c_str() );
-                        vector<string> countAstring = split( splitLine[5], ":" );
+                        vector<string> countAstring = splitString( splitLine[5], ":" );
                         vector<unsigned int> countA;
                         int readCount = 0;
                         //      cout <<line <<endl;
-                        for ( unsigned int i( 0 ); i < countAstring.size(); i++ )
+                        for ( unsigned int i( 0 ); i < countAstring.size(); ++i )
                         {
                             countA.push_back( atoi( countAstring[i].c_str() ) );
                             readCount += countA[i];
                         }
                         //cout << readCount <<endl;
-                        vector<string> countsBString = split( splitLine[5], ":" );
+                        vector<string> countsBString = splitString( splitLine[5], ":" );
                         vector<unsigned int> countB;
-                        for ( unsigned int i( 0 ); i < countsBString.size(); i++ )
+                        for ( unsigned int i( 0 ); i < countsBString.size(); ++i )
                             countB.push_back( atoi( countsBString[i].c_str() ) );
-                        vector<string> fileNumbersString = split( splitLine[6], ":" );
+                        vector<string> fileNumbersString = splitString( splitLine[6], ":" );
                         vector<unsigned short > fileNumbers;
-                        for ( unsigned int i( 0 ); i < fileNumbersString.size(); i++ )
+                        for ( unsigned int i( 0 ); i < fileNumbersString.size(); ++i )
                             fileNumbers.push_back( atoi( fileNumbersString[i].c_str() ) );
 
                         bwt.pileNum_ = pileNum;
@@ -587,7 +576,6 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
     int wordSizeReached = wordSizes[0];
     int indexWordSize( 0 );
     FILE *mergeZero = fopen( mergedZeroFile.c_str(), "r" );
-    unsigned short fileNum( 0 );
     unsigned genomeLength;
     vector<unsigned> genomeLengths;
     if ( mergeZero == NULL )
@@ -598,12 +586,12 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
         while ( fread( &genomeLength, sizeof( unsigned ), 1, mergeZero ) == 1 )
         {
             genomeLengths.push_back( genomeLength );
-            fileNum++;
         }
+        fclose( mergeZero );
     }
     else
     {
-        for ( unsigned int i ( 0 ); i < 100000; i++ )
+        for ( unsigned int i ( 0 ); i < 100000; ++i )
             genomeLengths.push_back( 1 );
     }
 
@@ -617,7 +605,7 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
         getline( wordCount, line );
         if ( line.substr( 0, 5 ).compare( "MTAXA" ) == 0 )
         {
-            vector<string> splitLine = split( line, " " );
+            vector<string> splitLine = splitString( line, " " );
             if ( firstHit || ( int )splitLine[3].length() > minWordLength )
             {
                 if ( !firstHit )
@@ -632,7 +620,7 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
                 bool firstBWT = true;
                 BWTInformation bwt;
                 //save all BWT Positions which are
-                for ( unsigned int s( 0 ); s < wordSizes.size(); s ++ )
+                for ( unsigned int s( 0 ); s < wordSizes.size(); ++s )
                 {
                     //take the smallest possible BWT positions for each interested word length.
                     //this also means the  highest possible count for these lengths
@@ -645,21 +633,21 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
                         if ( firstBWT )
                         {
                             int taxId = atoi( splitLine[2].c_str() );
-                            vector<string> readCounts = split( splitLine[5], ":" );
+                            vector<string> readCounts = splitString( splitLine[5], ":" );
                             vector<unsigned int> charACount;
-                            for ( unsigned int i( 0 ); i < readCounts.size(); i++ )
+                            for ( unsigned int i( 0 ); i < readCounts.size(); ++i )
                             {
                                 readCount += atoi( readCounts[i].c_str() );
                                 charACount.push_back( atoi( readCounts[i].c_str() ) );
                             }
-                            vector<string> fileCounts = split( splitLine[6], ":" );
+                            vector<string> fileCounts = splitString( splitLine[6], ":" );
                             vector<unsigned int> charBCount;
-                            for ( unsigned int i( 0 ); i < fileCounts.size(); i++ )
+                            for ( unsigned int i( 0 ); i < fileCounts.size(); ++i )
                                 charBCount.push_back( atoi( fileCounts[i].c_str() ) );
-                            vector<string> fileNumbers = split ( splitLine[7], ":" );
+                            vector<string> fileNumbers = splitString( splitLine[7], ":" );
                             vector<unsigned short> fileNums;
                             uint64_t genomeLengthsSum( 0 ) ;
-                            for ( unsigned int i( 0 ); i < fileNumbers.size() - 1; i++ )
+                            for ( unsigned int i( 0 ); i < fileNumbers.size() - 1; ++i )
                             {
                                 unsigned short fileNum = ( unsigned short ) atoi( fileNumbers[i].c_str() );
                                 fileNums.push_back( fileNum );
@@ -667,7 +655,7 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
                             }
                             double averageLengths = ( double ) genomeLengthsSum / ( double ) fileNums.size();
                             int pileNum = whichPile( splitLine[3][0] );
-                            for ( READMAP::iterator it = readMap.begin(); it != readMap.end(); it++ )
+                            for ( READMAP::iterator it = readMap.begin(); it != readMap.end(); ++it )
                             {
                                 //find the sequence for the suffix
                                 if ( it->second.find( splitLine[3] ) != string::npos )
@@ -696,21 +684,21 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
     ofstream bwtOut( ss.str().c_str(), ios::out );
     cerr << "print BWT information in " << countWordOutput << "_largestBWT" << endl;
 
-    for ( unsigned int b( 0 ) ; b < bwtInfo.size(); b++ )
+    for ( unsigned int b( 0 ) ; b < bwtInfo.size(); ++b )
     {
         cerr << b << " " << bwtInfo[b].size() << endl;
-        for ( BWTMAP::iterator it = bwtInfo[b].begin(); it != bwtInfo[b].end(); it ++ )
+        for ( BWTMAP::iterator it = bwtInfo[b].begin(); it != bwtInfo[b].end(); ++it )
         {
             BWTInformation bwt = it->second;
             bwtOut << it->first << " " << bwt.taxId_ << " " << bwt.wordLength_
                    << " " << bwt.pileNum_ << " " << bwt.readCount_ << " " ;
-            for ( unsigned int i( 0 ) ; i < bwt.charACount_.size(); i++ )
+            for ( unsigned int i( 0 ) ; i < bwt.charACount_.size(); ++i )
                 bwtOut << bwt.charACount_[i] << ":" ;
             bwtOut << " ";
-            for ( unsigned int i( 0 ); i < bwt.charBCount_.size(); i++ )
+            for ( unsigned int i( 0 ); i < bwt.charBCount_.size(); ++i )
                 bwtOut << bwt.charBCount_[i] << ":" ;
             bwtOut << " ";
-            for ( unsigned int i( 0 ); i < bwt.fileNumbers_.size(); i++ )
+            for ( unsigned int i( 0 ); i < bwt.fileNumbers_.size(); ++i )
                 bwtOut << bwt.fileNumbers_[i] << ":";
             bwtOut << endl;
         }
@@ -725,14 +713,14 @@ vector<BWTMAP> getBWTInformation( string countWordOutput, int minWordLength, vec
  */
 void getTaxCountThroughBWTInfo( vector<BWTMAP> &bwtInfo, TAXMAP &taxInfo, vector<int> wordSize )
 {
-    vector<double> classWordCount;
+    //    vector<double> classWordCount;
     //  int words(0);
-    for ( unsigned int s ( 0 ) ; s < wordSize.size(); s++ )
+    for ( unsigned int s ( 0 ) ; s < wordSize.size(); ++s )
     {
         cerr << "getting tax count for " << wordSize[s] << " " << bwtInfo[s].size() << endl;
         int minWord = wordSize[s];
         double wordCLevel( 0 );
-        for ( BWTMAP::iterator bwtIt = bwtInfo[s].begin(); bwtIt != bwtInfo[s].end(); bwtIt++ )
+        for ( BWTMAP::iterator bwtIt = bwtInfo[s].begin(); bwtIt != bwtInfo[s].end(); ++bwtIt )
         {
             auto searchedItem = taxInfo.find( ( int )( *bwtIt ).second.taxId_ );
             if ( searchedItem != taxInfo.end() )
@@ -804,13 +792,13 @@ void getTaxCountThroughBWTInfo( vector<BWTMAP> &bwtInfo, TAXMAP &taxInfo, vector
 void countWordTest( TAXMAP &taxInfo, vector<int> taxIDsInTest, vector<double> testExpections )
 {
     map<int, double> expectedCountsPerId;
-    for ( unsigned int  i ( 0 ); i < taxIDsInTest.size(); i++ )
+    for ( unsigned int  i ( 0 ); i < taxIDsInTest.size(); ++i )
         expectedCountsPerId[taxIDsInTest[i]] = testExpections[i];
 
     //get all possible taxIds and their expected Counts
-    for ( int level( taxLevelSize - 1 ); level >= 0; level-- )
+    for ( int level( taxLevelSize - 1 ); level >= 0; --level )
     {
-        for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); it++ )
+        for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); ++it )
         {
             if ( it->second.taxLevel_ == level )
             {
@@ -818,7 +806,7 @@ void countWordTest( TAXMAP &taxInfo, vector<int> taxIDsInTest, vector<double> te
                                   ? expectedCountsPerId[it->first]
                                   : 0 ;
                 bool inTest ( false );
-                for ( TAXMAP::iterator child = taxInfo.begin(); child != taxInfo.end(); child++ )
+                for ( TAXMAP::iterator child = taxInfo.begin(); child != taxInfo.end(); ++child )
                 {
                     if ( ( ( int )( *child ).second.parentId_ == it->first )
                          && ( expectedCountsPerId.find( ( *child ).first ) != expectedCountsPerId.end() ) )
@@ -835,11 +823,11 @@ void countWordTest( TAXMAP &taxInfo, vector<int> taxIDsInTest, vector<double> te
         }
     }
     cout << "expectedCounts " << expectedCountsPerId.size() << endl;
-    map<int, double>::iterator its;
+    //    map<int, double>::iterator its;
     //  for(its = expectedCountsPerId.begin(); its != expectedCountsPerId.end(); its++)
     //  cout << (*its).first <<"\t" << (*its).second <<endl;
 
-    for ( int level ( taxLevelSize - 1 ); level >= 0; level-- )
+    for ( int level ( taxLevelSize - 1 ); level >= 0; --level )
     {
         double wronglyClassified( 0 );
         double rightlyClassified( 0 );
@@ -847,7 +835,7 @@ void countWordTest( TAXMAP &taxInfo, vector<int> taxIDsInTest, vector<double> te
         double overestimated( 0 );
         double underestimated( 0 );
         double plainWrong( 0 );
-        for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); it++ )
+        for ( TAXMAP::iterator it = taxInfo.begin(); it != taxInfo.end(); ++it )
         {
             if ( it->second.taxLevel_ == level )
             {
@@ -925,7 +913,7 @@ map<int, TaxInformation> loadTaxInformationForDatabase( string taxInfo, int cycl
     while ( ncbiNames.good() )
     {
         getline( ncbiNames, line );
-        vector<string> lineVector = split( line , "\t|\t" );
+        vector<string> lineVector = splitString( line , "\t|\t" );
         string name = lineVector[1];
         //    cout << "ncbiName >"<< name <<"<" <<endl;
         int id = atoi( lineVector[0].c_str() );
@@ -938,14 +926,14 @@ map<int, TaxInformation> loadTaxInformationForDatabase( string taxInfo, int cycl
     while ( dbTax.good() )
     {
         getline( dbTax, line );
-        vector<string> splitTax = split( line, " " );
+        vector<string> splitTax = splitString( line, " " );
         int fileNum = atoi( splitTax[0].c_str() );
-        for ( unsigned int i( 1 ) ; i < splitTax.size(); i++ )
+        for ( unsigned int i( 1 ) ; i < splitTax.size(); ++i )
         {
             int taxId = atoi( splitTax[i].c_str() );
             //cout <<" taxId "  <<taxId <<endl;
             bool taxFound( false );
-            for ( TAXMAP::iterator it( taxInformation.begin() ) ; it != taxInformation.end(); it++ )
+            for ( TAXMAP::iterator it( taxInformation.begin() ) ; it != taxInformation.end(); ++it )
             {
                 if ( it->first == taxId )
                 {
@@ -979,8 +967,9 @@ map<int, TaxInformation> loadTaxInformationForDatabase( string taxInfo, int cycl
                 //cycle 0 starts with two chars
                 tax.normalisedCount_ = 0;
                 tax.wordCountPerSize_ = new double[cycleSize + 2];
+                tax.wordCountPerSizeOfChildren_ = new double[cycleSize + 2];
 
-                for ( int i( 0 ) ; i < cycleSize + 1; i++ )
+                for ( int i( 0 ) ; i < cycleSize + 1; ++i )
                     tax.wordCountPerSize_[i] = 0;
                 taxInformation[taxId] = tax;
             }
@@ -989,8 +978,9 @@ map<int, TaxInformation> loadTaxInformationForDatabase( string taxInfo, int cycl
     //set the root
     taxInformation[1].taxLevel_ = -1;
     taxInformation[1].wordCountPerSize_ = new double[cycleSize + 2];
+    taxInformation[1].wordCountPerSizeOfChildren_ = new double[cycleSize + 2];
     taxInformation[1].name_ = "root";
-    for ( int i( 0 ) ; i < cycleSize + 1; i++ )
+    for ( int i( 0 ) ; i < cycleSize + 1; ++i )
         taxInformation[1].wordCountPerSize_[i] = 0;
     dbTax.close();
     return taxInformation;
@@ -998,7 +988,7 @@ map<int, TaxInformation> loadTaxInformationForDatabase( string taxInfo, int cycl
 
 int getTaxonomicLevel( string s )
 {
-    //string levelNames[] = {"superkingdom","phylum" ,"class", "order", "family", "genus", "species"};
+    //string taxLevelNames[] = {"superkingdom","phylum" ,"class", "order", "family", "genus", "species"};
     int level;
     if ( s.compare( "superkingdom" ) == 0 )
         level = 0;
@@ -1029,9 +1019,9 @@ vector<bool> intervalInSameTaxa( vector<unsigned int> &sharedTaxIds, vector<unsi
     bool sameTaxa( false );
     cout << "intervalInSame " << fileNumbers.size() << endl;
     cout << fileNumToTaxIds.size() << endl;
-    for ( unsigned int i( 0 ) ; i < taxLevelSize; i++ )
+    for ( unsigned int i( 0 ) ; i < taxLevelSize; ++i )
     {
-        for ( unsigned int j( 0 ); j < fileNumbers.size() - 1; j++ )
+        for ( unsigned int j( 0 ); j < fileNumbers.size() - 1; ++j )
         {
 
             cout << "Number " << fileNumbers[j] << endl;
@@ -1081,7 +1071,7 @@ void loadFileNumToTaxIds( string taxIdNames )
             {
                 cerr << "Tax Ids have not enough taxonomic Information. Only  " << taxIDs.size() << " could be found " << endl
                      << "Will add unknown taxa until size is right" << endl;
-                for ( unsigned int i( taxIDs.size() - 1 ) ; i < taxLevelSize; i++ )
+                for ( unsigned int i( taxIDs.size() - 1 ) ; i < taxLevelSize; ++i )
                     taxIDs.push_back( 0 );
             }
             if ( taxIDs.size() > taxLevelSize )
@@ -1110,18 +1100,18 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
             cerr << count  << " " << fileInfo.size() << endl;
         }
         //    int fileNumber;
-        FileInformation info;
+        //        FileInformation info;
         getline( wordCount, line );
         //    cout << line<<endl;
-        vector<string> splitLine = split( line, " " );
+        vector<string> splitLine = splitString( line, " " );
         if ( splitLine[0].compare( "MTAXA" ) == 0 )
         {
             //MTAXA 2 91061 GGCTGCCAACTAA 1197996044 0:0:2:3:0:5 0:0:0:0:0:7  1121:1123:816:77:75:1460:1462:
             uint64_t BWTPosition = atol( splitLine[4].c_str() );
 
-            vector<string> fileNumbersStrings = ( splitLine[7].compare( "" ) == 0 ) ? split( splitLine[8], ":" ) : split( splitLine[7], ":" );
+            vector<string> fileNumbersStrings = ( splitLine[7].compare( "" ) == 0 ) ? splitString( splitLine[8], ":" ) : splitString( splitLine[7], ":" );
             vector<int> fileNumbers;
-            for ( unsigned int i( 0 ); i < fileNumbersStrings.size() - 1 ; i++ )
+            for ( unsigned int i( 0 ); i < fileNumbersStrings.size() - 1 ; ++i )
             {
                 fileNumbers.push_back( atoi( fileNumbersStrings[i].c_str() ) );
                 //cerr << "string " << fileNumbersStrings[i] << " int " << atoi(fileNumbersStrings[i].c_str()) <<endl;
@@ -1137,10 +1127,10 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
 
             // cout << "Read suff worked " <<endl;
             int readsSuffCount( 0 );
-            vector<string> countsA = split( splitLine[5], ":" );
-            for ( unsigned int i( 0 ); i < countsA.size(); i++ )
+            vector<string> countsA = splitString( splitLine[5], ":" );
+            for ( unsigned int i( 0 ); i < countsA.size(); ++i )
                 readsSuffCount += atoi( countsA[i].c_str() );
-            for ( unsigned int i( 0 ); i < fileCounts; i++ )
+            for ( unsigned int i( 0 ); i < fileCounts; ++i )
             {
                 //if(fileNumbers[i] != fileNum[i] )
                 int fileNumber = fileNumbers[i];
@@ -1160,7 +1150,7 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
         }
     }
     //get only the single suffix information
-    for ( FILEMAP::iterator it = fileInfo.begin(); it != fileInfo.end() ; it ++ )
+    for ( FILEMAP::iterator it = fileInfo.begin(); it != fileInfo.end() ; ++it )
     {
         vector<unsigned> uniqueSuffixPos;
         vector< int > uniqueSuffixCounts;
@@ -1168,11 +1158,11 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
         vector<char> uniqueSuffixChar;
         vector<uint64_t > uniqueBWTs;
         if ( it->second.suffixPos_.size() > 1 )
-            for ( unsigned int i( 0 ); i < it->second.suffixPos_.size() ; i++ )
+            for ( unsigned int i( 0 ); i < it->second.suffixPos_.size() ; ++i )
             {
                 bool foundSuff ( false );
                 int suffPosition( 0 );
-                for ( unsigned int j( 0 ); j < uniqueSuffixPos.size() ; j++ )
+                for ( unsigned int j( 0 ); j < uniqueSuffixPos.size() ; ++j )
                 {
                     if ( uniqueSuffixPos[j] == it->second.suffixPos_[i] )
                     {
@@ -1211,7 +1201,7 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
     //  short fileNumberRead;
     //  unsigned sequenceLength;
     //set the sequence lengths of each file
-    for ( FILEMAP::iterator it = fileInfo.begin(); it != fileInfo.end() ; it++ )
+    for ( FILEMAP::iterator it = fileInfo.begin(); it != fileInfo.end() ; ++it )
     {
         if ( it->second.suffixPos_.size() > 1 )
         {
@@ -1220,7 +1210,7 @@ void parseForCoverage( string countWordOutput, vector<FILE *> mergeAOutput, FILE
             ss << "F_" << it->first;
             ofstream output( ss.str().c_str(), ios::out );
             cerr << "suffixCount " << it->second.suffixPos_.size() << endl;
-            for ( unsigned int i( 0 ); i < it->second.suffixPos_.size(); i++ )
+            for ( unsigned int i( 0 ); i < it->second.suffixPos_.size(); ++i )
             {
                 output << it->second.suffixPos_[i] << " ";
                 output << it->second.suffixLengths_[i] << " " ;

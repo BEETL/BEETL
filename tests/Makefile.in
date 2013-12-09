@@ -78,7 +78,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/test-driver
+	$(dist_libexec_SCRIPTS) $(top_srcdir)/test-driver
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
 	$(top_srcdir)/m4/openmp.m4 $(top_srcdir)/m4/ax_check_zlib.m4 \
@@ -117,7 +117,7 @@ am__uninstall_files_from_dir = { \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
 am__installdirs = "$(DESTDIR)$(libexecdir)"
-SCRIPTS = $(libexec_SCRIPTS)
+SCRIPTS = $(dist_libexec_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -419,7 +419,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 TESTS = test-beetl-correct test-beetl-compare test-beetl-search test-beetl-bwt
-libexec_SCRIPTS = large-test-beetl-compare-tumour-normal-phix large-test-beetl-compare-tumour-normal-chr21
+EXTRA_DIST = data $(TESTS)
+dist_libexec_SCRIPTS = large-test-beetl-compare-tumour-normal-phix large-test-beetl-compare-tumour-normal-chr21
 all: all-am
 
 .SUFFIXES:
@@ -454,9 +455,9 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-libexecSCRIPTS: $(libexec_SCRIPTS)
+install-dist_libexecSCRIPTS: $(dist_libexec_SCRIPTS)
 	@$(NORMAL_INSTALL)
-	@list='$(libexec_SCRIPTS)'; test -n "$(libexecdir)" || list=; \
+	@list='$(dist_libexec_SCRIPTS)'; test -n "$(libexecdir)" || list=; \
 	if test -n "$$list"; then \
 	  echo " $(MKDIR_P) '$(DESTDIR)$(libexecdir)'"; \
 	  $(MKDIR_P) "$(DESTDIR)$(libexecdir)" || exit 1; \
@@ -483,9 +484,9 @@ install-libexecSCRIPTS: $(libexec_SCRIPTS)
 	     } \
 	; done
 
-uninstall-libexecSCRIPTS:
+uninstall-dist_libexecSCRIPTS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(libexec_SCRIPTS)'; test -n "$(libexecdir)" || exit 0; \
+	@list='$(dist_libexec_SCRIPTS)'; test -n "$(libexecdir)" || exit 0; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	       sed -e 's,.*/,,;$(transform)'`; \
 	dir='$(DESTDIR)$(libexecdir)'; $(am__uninstall_files_from_dir)
@@ -777,7 +778,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-libexecSCRIPTS
+install-exec-am: install-dist_libexecSCRIPTS
 
 install-html: install-html-am
 
@@ -815,21 +816,21 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-libexecSCRIPTS
+uninstall-am: uninstall-dist_libexecSCRIPTS
 
 .MAKE: check-am install-am install-strip
 
 .PHONY: all all-am check check-TESTS check-am clean clean-generic \
 	cscopelist-am ctags-am distclean distclean-generic distdir dvi \
 	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-libexecSCRIPTS \
+	install-data install-data-am install-dist_libexecSCRIPTS \
+	install-dvi install-dvi-am install-exec install-exec-am \
+	install-html install-html-am install-info install-info-am \
 	install-man install-pdf install-pdf-am install-ps \
 	install-ps-am install-strip installcheck installcheck-am \
 	installdirs maintainer-clean maintainer-clean-generic \
 	mostlyclean mostlyclean-generic pdf pdf-am ps ps-am recheck \
-	tags-am uninstall uninstall-am uninstall-libexecSCRIPTS
+	tags-am uninstall uninstall-am uninstall-dist_libexecSCRIPTS
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

@@ -33,13 +33,13 @@ class SequenceExtractor
 {
 public:
     SequenceExtractor();
-    void init( const string seqNumFilename );
+    void init( const string &seqNumFilename );
     bool doWeExtractNextSequence();
 
 private:
     bool isActive_;
     vector<SequenceNumber> seqNums_;
-    int index_;
+    SequenceNumber index_;
     SequenceNumber currentSeqNum_;
 };
 

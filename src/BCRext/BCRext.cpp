@@ -506,15 +506,15 @@ void BCRext::run( void )
         dollars.print();
 #endif
 
-        int fdSeq, fdNum, fdPtr;
-
-#ifndef TRACK_SEQUENCE_NUMBER
-        fdNum = 0;
-#endif
-
         // don't do j=0; $ sign done already
         for ( int j( 1 ); j < alphabetSize; j++ )
         {
+            int fdSeq, fdNum, fdPtr;
+
+#ifndef TRACK_SEQUENCE_NUMBER
+            fdNum = 0;
+#endif
+
             // read each input file in turn
 
             fileName = TmpFilename( tmpIn, "-S0", j ).str();
@@ -698,7 +698,7 @@ void BCRext::run( void )
                     }
                 }
 
-                ( *outBwt[thisPile] )( &bwtBuf[0], 1 );
+                ( *outBwt[thisPile] )( bwtBuf.data(), 1 );
 
                 if ( fwrite( &seqPtr, sizeof ( LetterNumber ),
                              1, outPtr[thisPile] ) != 1 )

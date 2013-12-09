@@ -114,7 +114,7 @@ struct BwtCorrectorIntervalHandler : public IntervalHandlerBase
     int minWitnessLength_;
 
     //the minimum number of times a letter has to occur in an interval for it to be considered the 'correct' letter
-    int minOccurrences_;
+    unsigned int minOccurrences_;
 
     // which cycle we are at
     //    const bool needSubstring_;

@@ -15,6 +15,7 @@
 @SET_MAKE@
 
 
+
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -84,7 +85,7 @@ bin_PROGRAMS = beetl-bwt$(EXEEXT) beetl-unbwt$(EXEEXT) \
 	beetl-extend$(EXEEXT)
 subdir = src/frontends
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(srcdir)/beetl.in $(top_srcdir)/depcomp
+	$(srcdir)/beetl.in $(top_srcdir)/depcomp $(noinst_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
 	$(top_srcdir)/m4/openmp.m4 $(top_srcdir)/m4/ax_check_zlib.m4 \
@@ -217,6 +218,18 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_@AM_V@)
+am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
+am__v_CC_0 = @echo "  CC      " $@;
+am__v_CC_1 = 
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_@AM_V@)
+am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
+am__v_CCLD_0 = @echo "  CCLD    " $@;
+am__v_CCLD_1 = 
 SOURCES = $(align_corrector_strings_SOURCES) $(beetl_bwt_SOURCES) \
 	$(beetl_compare_SOURCES) $(beetl_convert_SOURCES) \
 	$(beetl_correct_SOURCES) $(beetl_extend_SOURCES) \
@@ -232,6 +245,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+HEADERS = $(noinst_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -357,33 +371,34 @@ top_srcdir = @top_srcdir@
 AM_CXXFLAGS = ${OPENMP_CXXFLAGS}
 AM_LDFLAGS = -L${BOOST_ROOT}/lib
 bin_SCRIPTS = beetl
-beetl_bwt_SOURCES = BeetlBwt.cpp Common.cpp DatasetMetadata.cpp
+beetl_bwt_SOURCES = BeetlBwt.cpp BeetlBwt.hh Common.cpp DatasetMetadata.cpp
 beetl_bwt_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_bwt_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
-beetl_unbwt_SOURCES = BeetlUnbwt.cpp
+beetl_unbwt_SOURCES = BeetlUnbwt.cpp BeetlUnbwt.hh
 beetl_unbwt_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_unbwt_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
-beetl_convert_SOURCES = BeetlConvert.cpp
+beetl_convert_SOURCES = BeetlConvert.cpp BeetlConvert.hh
 beetl_convert_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD} -lz
 beetl_convert_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
-beetl_search_SOURCES = BeetlSearch.cpp
+beetl_search_SOURCES = BeetlSearch.cpp BeetlSearch.hh
 beetl_search_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_search_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
-beetl_compare_SOURCES = BeetlCompare.cpp Common.cpp
+beetl_compare_SOURCES = BeetlCompare.cpp BeetlCompare.hh Common.cpp
 beetl_compare_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_compare_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext -I$(srcdir)/../backtracker ${OPENMP_CXXFLAGS}
-beetl_correct_SOURCES = BeetlCorrect.cpp
+beetl_correct_SOURCES = BeetlCorrect.cpp BeetlCorrect.hh
 beetl_correct_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_correct_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext -I$(srcdir)/../backtracker ${OPENMP_CXXFLAGS}
-align_corrector_strings_SOURCES = AlignCorrectorStrings.cpp
+align_corrector_strings_SOURCES = AlignCorrectorStrings.cpp AlignCorrectorStrings.hh
 align_corrector_strings_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 align_corrector_strings_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext -I$(srcdir)/../backtracker ${OPENMP_CXXFLAGS}
-beetl_index_SOURCES = BeetlIndex.cpp
+beetl_index_SOURCES = BeetlIndex.cpp BeetlIndex.hh
 beetl_index_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_index_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
-beetl_extend_SOURCES = BeetlExtend.cpp
+beetl_extend_SOURCES = BeetlExtend.cpp BeetlExtend.hh
 beetl_extend_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_extend_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext -I$(srcdir)/../backtracker ${OPENMP_CXXFLAGS}
+noinst_HEADERS = Common.hh DatasetMetadata.hh
 all: all-am
 
 .SUFFIXES:
@@ -821,7 +836,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS) $(SCRIPTS)
+all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(HEADERS)
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
@@ -941,8 +956,6 @@ uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS
 	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
 	uninstall-am uninstall-binPROGRAMS uninstall-binSCRIPTS
 
-
->>>>>>> d4c8112f68c620a388a9f79c3d638b7f193a783a:src/frontends/Makefile.am
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -1,1 +1,1 @@
-bin_SCRIPTS = beetlflow-tumour-normal-filter.sh
+dist_bin_SCRIPTS = beetlflow-tumour-normal-filter.sh

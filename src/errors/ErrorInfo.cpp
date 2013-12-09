@@ -39,9 +39,8 @@ void ErrorInfo::print()
 void ErrorInfo::SetReadNumbersToOriginal( char *endPosFileName, vector<ErrorInfo> &errorsInSortedReads )
 {
     //loop through all the errors and for each one look up which read it comes from
-    LetterNumber numchar = 0;
-    FILE *InFileEndPos;                  // input file of the end positions;
-    InFileEndPos = fopen( endPosFileName, "rb" );
+    LetterNumber numchar;
+    FILE *InFileEndPos = fopen( endPosFileName, "rb" );
     if ( InFileEndPos == NULL )
     {
         std::cerr << "could not open file!" << endl;
@@ -50,15 +49,16 @@ void ErrorInfo::SetReadNumbersToOriginal( char *endPosFileName, vector<ErrorInfo
 
     SequenceNumber numText = 0;
     numchar = fread ( &numText, sizeof( SequenceNumber ), 1 , InFileEndPos );
+    checkIfEqual( numchar, 1 );
     uint8_t subSequenceCount = 0;
     numchar = fread ( &subSequenceCount, sizeof( uint8_t ), 1 , InFileEndPos );
+    checkIfEqual( numchar, 1 );
     uint8_t hasRevComp = 0;
     numchar = fread ( &hasRevComp, sizeof( uint8_t ), 1 , InFileEndPos );
+    checkIfEqual( numchar, 1 );
 
-    numchar = 0;
     sortElement triple;
-
-    int currentSortedReadIndex = 0;
+    uint currentSortedReadIndex = 0;
     SequenceNumber i = 0;
 
     while ( currentSortedReadIndex < errorsInSortedReads.size() )
@@ -74,7 +74,7 @@ void ErrorInfo::SetReadNumbersToOriginal( char *endPosFileName, vector<ErrorInfo
         checkIfEqual( numchar, 1 );
 
         while (
-            i == errorsInSortedReads[currentSortedReadIndex].seqNum
+            i == ( SequenceNumber )( errorsInSortedReads[currentSortedReadIndex].seqNum )
             &&
             currentSortedReadIndex < errorsInSortedReads.size()
         )
@@ -97,12 +97,12 @@ string strreverse( const string &inStr )
 
 void ErrorInfo::ConvertRCCorrectionsToOriginal( vector<ErrorInfo> &corrections, int numberOfReads, int readLength )
 {
-    for ( int errNo = 0; errNo < corrections.size(); errNo++ )
+    for ( uint errNo = 0; errNo < corrections.size(); errNo++ )
         if ( corrections[errNo].seqNum >= numberOfReads )
         {
             corrections[errNo].seqNum -= numberOfReads;
             corrections[errNo].positionInRead = readLength - 1 - corrections[errNo].positionInRead;
-            for ( int i = 0; i < corrections[errNo].corrector.size(); i++ )
+            for ( uint i = 0; i < corrections[errNo].corrector.size(); i++ )
                 corrections[errNo].corrector[i] = complementaryAlphabet[whichPile[( int )corrections[errNo].corrector[i]]];
             corrections[errNo].correctorStart = corrections[errNo].positionInRead;
             corrections[errNo].reverseStrand = true;
@@ -121,7 +121,7 @@ void ErrorInfo::CorrectionsToCsv( const string &fileName, vector<ErrorInfo> &cor
     correctionsFile.open( fileName.c_str() );
     correctionsFile << "read position reverse_strand correction corrector_start shortest_witness longest_witness" << endl; //the columns of the output csv file.
 
-    for ( int errNo = 0; errNo < corrections.size(); errNo++ )
+    for ( uint errNo = 0; errNo < corrections.size(); errNo++ )
         correctionsFile
                 << corrections[errNo].seqNum << " "
                 << corrections[errNo].positionInRead << " "

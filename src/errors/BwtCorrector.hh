@@ -52,14 +52,14 @@ public:
         int minSupport = 0
     )
         : genomeLength_( genomeLength )
-        , indexPrefix_( inputFile )
         , errorRate_( errorRate )
-        , subset_( subset )
         , numberOfReads_( numberOfReads )
         , readLength_( readLength )
         , minWitnessLength_( minWitnessLength )
-        , outputFile_( outputFile )
         , minSupport_ ( minSupport )
+        , subset_( subset )
+        , indexPrefix_( inputFile )
+        , outputFile_( outputFile )
     {}
 
     virtual ~BwtCorrector() {}

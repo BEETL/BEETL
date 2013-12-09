@@ -109,12 +109,12 @@ void SearchUsingBacktracker::run()
         {
             if ( searchParams_["use indexing"].isSet() )
             {
-                cout << "Using indexed BWT file" << endl;
+                Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Using indexed BWT file" << endl;
                 inBwt[i] = new BwtReaderRunLengthIndex( fileName );
             }
             else
             {
-                cout << "Using non-indexed BWT file" << endl;
+                Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Using non-indexed BWT file" << endl;
                 inBwt[i] = new BwtReaderRunLength( fileName );
             }
         }
@@ -129,10 +129,13 @@ void SearchUsingBacktracker::run()
     for ( int i( 1 ); i < alphabetSize; i++ )
         countsCumulative[i] += countsCumulative[i - 1];
 
-    cout << "countsPerPile:" << endl;
-    countsPerPile.print();
-    cout << "countsCumulative:" << endl;
-    countsCumulative.print();
+    Logger_if( LOG_SHOW_IF_VERBOSE )
+    {
+        cout << "countsPerPile:" << endl;
+        countsPerPile.print();
+        cout << "countsCumulative:" << endl;
+        countsCumulative.print();
+    }
 
     string currentWord_notUsed;
     int startPosInKmerList2 = 0;
@@ -143,7 +146,7 @@ void SearchUsingBacktracker::run()
         for ( int j( 1 ); j < alphabetSize; ++j )
         {
             startPosInKmerList2 = endPosInKmerList2;
-            while ( endPosInKmerList2 < kmerList2.size() &&
+            while ( endPosInKmerList2 < ( int )kmerList2.size() &&
                     kmerList2[endPosInKmerList2].kmer[0] == alphabet[i] &&
                     kmerList2[endPosInKmerList2].kmer[1] == alphabet[j] )
                 ++endPosInKmerList2;
@@ -189,7 +192,8 @@ void SearchUsingBacktracker::run()
     r.clear();
     for ( int cycle( 1 ); ; ++cycle )
     {
-        cout << "cycle: " << cycle << endl;
+        Logger_if( LOG_LEVEL_NORMAL )
+        Logger::out() << "cycle: " << cycle << endl;
 
         Logger_if( LOG_SHOW_IF_VERBOSE )
         {
@@ -249,9 +253,19 @@ void SearchUsingBacktracker::run()
 
     // Output
     {
+        ostream *outputStreamPtr = &std::cout;
         string outputFilename = searchParams_["output"];
-        ofstream ofs( outputFilename.c_str() );
-        IntervalWriter writer( ofs );
+        ofstream ofs;
+        if ( outputFilename != "-" )
+        {
+            ofs.open( outputFilename );
+            if ( ofs.good() )
+                outputStreamPtr = &ofs;
+            else
+                cerr << "Warning: Couldn't open output file " << outputFilename << ". Sending output to stdout." << endl;
+        }
+
+        IntervalWriter writer( *outputStreamPtr );
         for ( auto kmerItem : kmerList2 )
         {
             IntervalRecord rec( kmerList[kmerItem.originalIndex], kmerItem.position, kmerItem.count );

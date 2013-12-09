@@ -1,3 +1,0 @@
-Example:
-grep "READNUM(1)" /illumina/scratch/optimusprime/CNV/bin/BWT/EAGLE/EAGLE_subset_25.06/TTA/script.o7099557 | sort -gk3,3 | sort -sgk2,2 > READNUM1_sorted.txt
-readEndPosFile.pl -i /illumina/scratch/TUNE/WES/EAGLE-16.06_70x/cancer-end-pos -j READNUM1_sorted.txt -o seqNums.txt

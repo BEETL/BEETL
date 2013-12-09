@@ -59,6 +59,7 @@ int main ( int numArgs, const char *args[] )
     fstrm.close();
     for ( uint i( 0 ); i < length( fasta_seq ); i++ )
     {
+        fasta_seq[i] = toupper( fasta_seq[i] );
         if ( strchr( "ACGNT", fasta_seq[i] ) == NULL )
         {
             cerr << "Found invalid character " << fasta_seq[i]
@@ -74,7 +75,7 @@ int main ( int numArgs, const char *args[] )
     ///Build a suffix array using the Skew7 algorithm.
     resize( sa, length( fasta_seq ) );
     createSuffixArray( sa, fasta_seq, Skew7() );
-    char lastChar( notInAlphabet ), thisChar;
+    char lastChar( notInAlphabet );
     int fileNum;
     string fileName;
     FILE *pFile( NULL ), *pArrayFile( NULL );
@@ -85,7 +86,7 @@ int main ( int numArgs, const char *args[] )
         {
             cerr << "sa bigger " << endl;
         }
-        thisChar = fasta_seq[sa[i]];
+        char thisChar = fasta_seq[sa[i]];
         if ( thisChar != lastChar )
         {
             fileNum = whichPile[( int )thisChar];

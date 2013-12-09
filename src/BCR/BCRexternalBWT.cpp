@@ -88,7 +88,6 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
         }
 
         std::cerr << "Start BCR encode\n";
-        int result = -1;
 
         outputCompression_ = ( CompressionFormatType )( -1 ); // todo: remove this variable altogether
         cerr << "Compression format for intermediate BWT files: " << bwtParams_->getStringValue( PARAMETER_INTERMEDIATE_FORMAT ) << endl;
@@ -107,7 +106,7 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
             remove( fileEndPos );
         }
 
-        result = buildBCR( file1, intermediateCycFiles, bwtParams_ );
+        int result = buildBCR( file1, intermediateCycFiles, bwtParams_ );
         checkIfNotEqual( result, 0 );
         bool hasProcessedQualities = ( result == 2 );
 
@@ -356,9 +355,8 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
 
 
 
-        int result = -1;
         vector <int> seqID;
-        result = SearchAndLocateKmer( file1, fileOutBwt, intermediateCycFiles, kmers, lenKmer, seqID );
+        int result = SearchAndLocateKmer( file1, fileOutBwt, intermediateCycFiles, kmers, lenKmer, seqID );
         checkIfEqual( result, 1 );
         std::cerr << "\nBCRexternalBWT: We have located all kmers, Now we store the positions of the found kmers" << endl;
         if ( seqID.empty() )
@@ -366,8 +364,7 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
         else
         {
             Filename newfilename( fileOutput );
-            static FILE *FilePosKmers;
-            FilePosKmers = fopen( newfilename, "wb" );
+            FILE *FilePosKmers = fopen( newfilename, "wb" );
             if ( FilePosKmers == NULL )
             {
                 std::cerr << "BCRexternalBWT: could not open file " << newfilename << "!" << std::endl;
@@ -482,7 +479,6 @@ int BCRexternalBWT::SearchAndLocateKmer ( char const *file1, char const *fileOut
 //posN[h] is the number of occurrences of the symbol toFindSymbol[h] that I have to find in BWT corresponding to the i-th occurrence of the symbol in F.
 int BCRexternalBWT::rankInverseManyByVector ( char const *file1, char const *fileOutBwt, SequenceNumber numKmersInput, uchar *toFindSymbols )
 {
-    static FILE *InFileBWT;
     uchar *buf = new uchar[SIZEBUFFER];
 
     //Timer timer;
@@ -497,7 +493,7 @@ int BCRexternalBWT::rankInverseManyByVector ( char const *file1, char const *fil
         // std::cerr << "===Current BWT-partial= " << (int)currentPile << "\n";
         //#endif
         Filename newfilename( file1, "-B0", currentPile, "" );
-        InFileBWT = fopen( newfilename, "rb" );
+        FILE *InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
             std::cerr << "rankInverseManyByVector: BWT file " << ( int )j << ": Error opening " << newfilename << std::endl;
@@ -572,11 +568,10 @@ LetterNumber BCRexternalBWT::findRankInBWT ( char const *file1, char const *file
     assert( string( fileOutBwt ) == "" && "todo: remove this parameter if it is always null" );
 
     Filename newfilename( file1, "-B0", currentPile, "" );
-    static FILE *InFileBWT;
 
     uchar *buf = new uchar[SIZEBUFFER];
 
-    InFileBWT = fopen( newfilename, "rb" );
+    FILE *InFileBWT = fopen( newfilename, "rb" );
     if ( InFileBWT == NULL )
     {
         std::cerr << "findRankInBWT: could not open file " << newfilename << " !" << std::endl;
@@ -622,10 +617,9 @@ LetterNumber BCRexternalBWT::findRankInBWTbyVector ( char const *file1, char con
 
     Filename newfilename( file1, "-B0", currentPile, "" );
 
-    static FILE *InFileBWT;
     uchar *buf = new uchar[SIZEBUFFER];
 
-    InFileBWT = fopen( newfilename, "rb" );
+    FILE *InFileBWT = fopen( newfilename, "rb" );
     if ( InFileBWT == NULL )
     {
         std::cerr << "findRankInBWTbyVector: could not open file " << newfilename << " !" << std::endl;
@@ -773,8 +767,6 @@ LetterNumber BCRexternalBWT::rankManySymbolsByVector( FILE &InFileBWT, LetterNum
 
 int BCRexternalBWT::computeNewPositionForBackSearch( char const *file1, char const *fileOutBwt, uchar symbol )
 {
-    FILE *InFileBWT;
-
     //Last = C[c] + rank (c, Last)    --> (vectTriple[1].pileN, vectTriple[1].posN)
 
     //First = C[c] + rank (c, First - 1) + 1    --> (vectTriple[0].pileN, vectTriple[0].posN)
@@ -795,7 +787,7 @@ int BCRexternalBWT::computeNewPositionForBackSearch( char const *file1, char con
         // std::cerr << "\n===Current BWT-partial= " << (int)currentPile << "\n";
         Filename newfilename( file1, "-B0", currentPile, "" );
 
-        InFileBWT = fopen( newfilename, "rb" );
+        FILE *InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
             std::cerr << "computeNewPositionForBackSearch: BWT file " << ( int )j << ": Error opening " << std::endl;
@@ -849,8 +841,6 @@ int BCRexternalBWT::computeNewPositionForBackSearch( char const *file1, char con
 
 int BCRexternalBWT::computeNewPositionForBackSearchByVector( char const *file1, char const *fileOutBwt, uchar symbol )
 {
-    FILE *InFileBWT;
-
     //Last = C[c] + rank (c, Last)    --> (vectTriple[1].pileN, vectTriple[1].posN)
 
     //First = C[c] + rank (c, First - 1) + 1    --> (vectTriple[0].pileN, vectTriple[0].posN)
@@ -874,7 +864,7 @@ int BCRexternalBWT::computeNewPositionForBackSearchByVector( char const *file1, 
         // std::cerr << "\n===Current BWT-partial= " << (int)currentPile << "(computeNewPositionForBackSearchByVector)\n";
 
         Filename newfilename( file1, "-B0", currentPile, "" );
-        InFileBWT = fopen( newfilename, "rb" );
+        FILE *InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
             std::cerr << "computeNewPositionForBackSearchByVector: BWT file " << ( int )j << ": Error opening " << std::endl;
@@ -966,8 +956,6 @@ int BCRexternalBWT::findBlockToRead( LetterNumber *counters, AlphabetSymbol curr
 
 int BCRexternalBWT::computeManyNewPositionForBackSearchByVector( char const *file1, char const *fileOutBwt, uchar *symbols, SequenceNumber nKmers )
 {
-    FILE *InFileBWT;
-
     //Last = C[c] + rank (c, Last)    --> (vectTriple[1].pileN, vectTriple[1].posN)
 
     //First = C[c] + rank (c, First - 1) + 1    --> (vectTriple[0].pileN, vectTriple[0].posN)
@@ -993,7 +981,7 @@ int BCRexternalBWT::computeManyNewPositionForBackSearchByVector( char const *fil
         // std::cerr << "===Current BWT-partial= " << (int)currentPile << " (computeManyNewPositionForBackSearchByVector)\n";
 
         Filename newfilename( file1, "-B0", currentPile, "" );
-        InFileBWT = fopen( newfilename, "rb" );
+        FILE *InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
             std::cerr << "computeManyNewPositionForBackSearchByVector: BWT file " << ( int )j << ": Error opening " << newfilename << std::endl;
@@ -1348,7 +1336,6 @@ int BCRexternalBWT::computeVectorUnbuildBCR( char const *file1, char const *file
             vectorOcc[x][y].resize( numBlocksInPartialBWT[x], 0 );
     }
 
-    static FILE *InFileBWT;
     uchar *bufBlock = new uchar[DIMBLOCK];
 
 
@@ -1356,7 +1343,7 @@ int BCRexternalBWT::computeVectorUnbuildBCR( char const *file1, char const *file
     {
         Filename newfilename( file1, "-B0", x, "" );
 
-        InFileBWT = fopen( newfilename, "rb" );
+        FILE *InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
             std::cerr << "computeVectorUnbuildBCR: could not open file " << newfilename << " !" << std::endl;
@@ -1374,11 +1361,6 @@ int BCRexternalBWT::computeVectorUnbuildBCR( char const *file1, char const *file
             numBlock++;
         }
         fclose( InFileBWT );
-        if ( !feof( InFileBWT ) && ( numBlock > numBlocksInPartialBWT[x] ) )
-        {
-            std::cerr << "computeVectorUnbuildBCR: Error - The file contains more blocks than allocates.\n" ;
-            exit( EXIT_FAILURE );
-        }
         //Compute the sum cumulative for each BWT-partial
         for ( AlphabetSymbol z = 0 ; z < sizeAlpha; z++ )      //For each symbol z
             for ( LetterNumber y = 1; y < numBlocksInPartialBWT[x] ; y++ )      //For each block y>1 of partial-BWT x
@@ -1459,14 +1441,13 @@ int BCRexternalBWT::initializeUnbuildBCR( char const *file1, char const *fileOut
         for ( AlphabetSymbol h = 0 ; h < sizeAlpha; h++ )
             tableOcc[j][h] = 0;
 
-    static FILE *InFileBWT;
     uchar *buf = new uchar[SIZEBUFFER];
 
     for ( AlphabetSymbol g = 0 ; g < sizeAlpha; g++ )
     {
         Filename newfilename( file1, "-B0", g, "" );
 
-        InFileBWT = fopen( newfilename, "rb" );
+        FILE *InFileBWT = fopen( newfilename, "rb" );
         if ( InFileBWT == NULL )
         {
             std::cerr << "initializeUnbuildBCR: could not open file " << newfilename << " !" << std::endl;
@@ -1840,7 +1821,7 @@ SequenceNumber BCRexternalBWT::recover1SequenceForward( char const *file1, char 
 //fileOutDecode is the output, that is the texts
 int BCRexternalBWT::decodeBCRnaiveForward( char const *file1, char const *fileOutBwt, char const *fileOutDecode )
 {
-    LetterNumber numchar = 0;
+    LetterNumber numchar;
 
     Filename fileEndPos( file1, "-end-pos" );
     FILE *InFileEndPos;                  // input file of the end positions;
@@ -1851,8 +1832,7 @@ int BCRexternalBWT::decodeBCRnaiveForward( char const *file1, char const *fileOu
         exit ( EXIT_FAILURE );
     }
 
-    static FILE *InfileOutDecode;                  // output Decode file;
-    InfileOutDecode = fopen( fileOutDecode, "wb" );
+    FILE *InfileOutDecode = fopen( fileOutDecode, "wb" );
     if ( InfileOutDecode == NULL )
     {
         std::cerr << "decodeBCRnaiveForward: could not open file " << fileOutDecode << " !" << std::endl;
@@ -1864,10 +1844,11 @@ int BCRexternalBWT::decodeBCRnaiveForward( char const *file1, char const *fileOu
     checkIfEqual ( nText, numText ); // we should always read the same number of Texts of the bwt
     uint8_t subSequenceCount = 0;
     numchar = fread ( &subSequenceCount, sizeof( uint8_t ), 1 , InFileEndPos );
+    checkIfEqual ( numchar, 1 );
     uint8_t hasRevComp = 0;
     numchar = fread ( &hasRevComp, sizeof( uint8_t ), 1 , InFileEndPos );
+    checkIfEqual ( numchar, 1 );
 
-    numchar = 0;
     sortElement triple;
     std::cerr << "Recover the sequences of the collection in lexicographic order. A sequence at a time!" << std::endl;
     assert( unbwtParams_ || searchParams_ );
@@ -2374,8 +2355,6 @@ int BCRexternalBWT::Recover1symbolReverse( char const *file1, char const *fileOu
 {
     assert( string( fileOutBwt ) == "" && "todo: remove this parameter if it is always null" );
 
-    static FILE *InFileBWT;
-
     LetterNumber toRead = 0;
     LetterNumber *counters = new LetterNumber[sizeAlpha];  //it counts the number of each symbol into the i-Pile-BWT
     for ( AlphabetSymbol i = 0 ; i < sizeAlpha; i++ )
@@ -2386,7 +2365,7 @@ int BCRexternalBWT::Recover1symbolReverse( char const *file1, char const *fileOu
     // std::cerr << "===Current BWT-partial= " << (int)currentPile << "\n";
 
     Filename newfilename( file1, "-B0", currentPile, "" );
-    InFileBWT = fopen( newfilename, "rb" );
+    FILE *InFileBWT = fopen( newfilename, "rb" );
     if ( InFileBWT == NULL )
     {
         std::cerr << "Recover1symbolReverse: BWT file " << ( int )currentPile << ": Error opening " << std::endl;

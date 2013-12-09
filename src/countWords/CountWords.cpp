@@ -60,6 +60,7 @@ CountWords::CountWords( bool inputACompressed,
     , bwtInRam_( compareParams_ ? ( *compareParams_ )["BWT in RAM"] : false )
     , inBwtA_( alphabetSize )
     , inBwtB_( alphabetSize )
+    , fsizeRatio_( 0 )
 {
 
     if ( compareParams_ == NULL )
@@ -161,6 +162,11 @@ void CountWords::run( void )
     // We reproduce the same nested parallel distribution here than during the real processing loops, in order to load the BWT data in the most appropriate NUMA nodes
     const int subsetThreadCount = rangeStoresA.size();
     omp_set_num_threads( subsetThreadCount * alphabetSize );
+#if defined(PROPAGATE_SEQUENCE) and defined(_OPENMP)
+    // We need to disable parallelisation when PROPAGATE_SEQUENCE is activated, because of the shared 'currentWord_' variable
+    omp_set_num_threads( 1 );
+#endif
+
     #pragma omp parallel for
     for ( int threadNum = 0; threadNum < subsetThreadCount * alphabetSize; ++threadNum )
     {
@@ -483,11 +489,6 @@ void CountWords::run( void )
     if ( doPauseBetweenCycles_ )
         pauseBetweenCycles();
 
-#if defined(PROPAGATE_SEQUENCE) and defined(_OPENMP)
-    // We need to disable parallelisation when PROPAGATE_SEQUENCE is activated, because of the shared 'currentWord_' variable
-    omp_set_num_threads( 1 );
-#endif
-
 #ifdef DEBUG__SKIP_ITERATION0
     //    omp_set_num_threads( 1 ); // for debugging
 #endif
@@ -760,6 +761,7 @@ void CountWords::CountWords_parallelSubsetThread(
                 case BeetlCompareParameters::MODE_METAGENOMICS:
                 {
                     IntervalHandlerMetagenome intervalHandler( minOcc_, setC_, mmappedCFiles_, fileNumToTaxIds_, testDB_, minWordLen_, numCycles_ );
+                    intervalHandler.createOutputFile( subsetThreadNum, i, j, cycle + 1 );
                     backTracker.process( i, currentWord_, intervalHandler );
                 }
                 break;
@@ -820,6 +822,10 @@ void CountWords::loadFileNumToTaxIds( const string &taxIdNames )
     //each line should contain the fileNumber followed by the taxIds split up with one space character
     while ( getline( taxas, line ) )
     {
+        if ( line.empty() || line[0] == '#' )
+            continue;
+
+        string originalLine( line );
         if ( !line.empty() )
         {
             vector<int> taxIDs;
@@ -834,10 +840,10 @@ void CountWords::loadFileNumToTaxIds( const string &taxIdNames )
             taxIDs.push_back( atoi( line.c_str() ) );
             //test if all TaxIds were found
             if ( taxIDs.size() < taxLevelSize )
-                cerr << "Tax Ids have not enough taxonomic Information. Only  " << taxIDs.size() << " could be found " << endl
+                cerr << "Tax Ids don't have enough taxonomic Information. Only " << taxIDs.size() << " could be found (" << originalLine << ")" << endl
                      << "Will add unknown taxa until size is right" << endl;
             else if ( taxIDs.size() > taxLevelSize )
-                cerr << "Tax Ids have to much taxonomic information. "
+                cerr << "Tax Ids have too much taxonomic information (" << originalLine << ")" << endl
                      << "Please note, that the taxonomic information about one file should be shown as: " << endl
                      << "FileNumber Superkingdom Phylum Order Family Genus Species Strain " << endl;
             taxIDs.resize( taxLevelSize );
@@ -881,7 +887,7 @@ void CountWords::initialiseMetagomeMode()
 
 void CountWords::releaseMetagomeMode()
 {
-    for ( int i = 0; i < alphabetSize; i++ )
+    for ( unsigned int i = 0; i < alphabetSize; i++ )
     {
         if ( mmappedCFiles_.size() > i && mmappedCFiles_[i] != NULL )
         {

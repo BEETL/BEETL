@@ -52,4 +52,10 @@ void ExtenderIntervalHandler::foundInAOnly
     //    for ( int i = 1; i < alphabetSize; i++ )
     //        propagateIntervalA[i] = true;
 
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
+    {
+        IntervalRecord *rec = reinterpret_cast< IntervalRecord * >( thisRangeBaseA.userData_ );
+        Logger::out() << "Propagating " << *rec << " to " << countsThisRangeA << endl;
+    }
+
 }

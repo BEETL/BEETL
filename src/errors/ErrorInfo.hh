@@ -47,11 +47,14 @@ using namespace std;
 struct ErrorInfo
 {
     ErrorInfo( void ):
-        corrector( "" ),
         firstCycle( 0 ),
         lastCycle( 0 ),
         readEnd( 0 ),
-        seqNum( -1 )
+        corrector( "" ),
+        seqNum( -1 ),
+        positionInRead( 0 ),
+        correctorStart( 0 ),
+        reverseStrand( false )
     {}
 
     ErrorInfo(
@@ -61,12 +64,14 @@ struct ErrorInfo
         int inFirstCycle,
         string inCorrector
     ):
-        seqNum( inSeqNum ),
-        readEnd( inReadEnd ),
-        positionInRead( inReadEnd - inFirstCycle - 1 ),
-        lastCycle( inLastCycle ),
         firstCycle( inFirstCycle ),
-        corrector( inCorrector )
+        lastCycle( inLastCycle ),
+        readEnd( inReadEnd ),
+        corrector( inCorrector ),
+        seqNum( inSeqNum ),
+        positionInRead( inReadEnd - inFirstCycle - 1 ),
+        correctorStart( 0 ),
+        reverseStrand( false )
     {}
 
     void print();

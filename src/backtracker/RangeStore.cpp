@@ -276,9 +276,6 @@ void RangeStoreExternal::addRange( const Range &r, const int pileNum, const int 
 
 void RangeStoreExternal::clear( bool doDeleteFiles )
 {
-
-    string fileName;
-
     for ( int i( 1 ); i < alphabetSize; ++i )
     {
         for ( int j( 1 ); j < alphabetSize; ++j )
@@ -289,6 +286,7 @@ void RangeStoreExternal::clear( bool doDeleteFiles )
             if ( doDeleteFiles )
             {
 #ifndef DONT_DELETE_PREVIOUS_CYCLE_FILES
+                string fileName;
                 getFileName( fileStemIn_, i, j, fileName );
                 if ( LOCAL_DEF__TEMPORARY_FILE__READ_MODE::remove( fileName.c_str() ) != 0 )
                 {

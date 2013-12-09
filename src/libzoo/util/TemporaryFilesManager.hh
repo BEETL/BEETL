@@ -35,7 +35,7 @@ using std::shared_ptr;
 class TemporaryFilesManager
 {
 private:
-    TemporaryFilesManager() : tempPathWasCreated_( false ), ramLimitMB_( 0 ) {}
+    TemporaryFilesManager() : ramLimitMB_( 0 ), tempPathWasCreated_( false ) {}
     TemporaryFilesManager( TemporaryFilesManager const & ); // no impl to avoid copies of singleton
     void operator=( TemporaryFilesManager const & ); // no impl to avoid copies of singleton
 
@@ -262,7 +262,7 @@ private:
 class TemporaryRamFile : public TemporaryFile
 {
 public:
-    TemporaryRamFile( ) : TemporaryFile() {}
+    TemporaryRamFile( ) : TemporaryFile(), currentPos_( 0 ) {}
     TemporaryRamFile( const char *filename, const char *mode, const uint64_t maxRAM = 0 );
     virtual ~TemporaryRamFile();
 
