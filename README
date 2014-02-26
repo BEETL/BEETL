@@ -41,7 +41,7 @@ Version 0.7.0 (18th September 2013)
 Version 0.6.0 (27th August 2013)
 
 - Important: Harmonised file encodings: you may need to rebuild your BWT files or just convert bwt-B00 from BWT_ASCII to BWT_RLE with beetl-convert (bwt-B00 was always ASCII-encoded. It now follows the same encoding as the other piles)
-- Now requires GCC with C++11 support (gcc 4.3 or above)
+- Now requires GCC with C++11 support (gcc 4.6 or above)
 - New Markdown documentation style
 - Faster beetl-compare and metaBEETL
 - Lossless quality compression scripts added, even though they are not using BWT
