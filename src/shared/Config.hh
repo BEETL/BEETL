@@ -47,9 +47,6 @@
 // is complete
 #define REMOVE_TEMPORARY_FILES 1
 
-// For CountWords: keep the actual string associated with each interval
-//#define PROPAGATE_SEQUENCE
-
 /* Control parameters - modify and recompile to change program behaviour */
 
 const int maxSeqSize( 32 * 1024 ); // 32k to fit Moleculo reads

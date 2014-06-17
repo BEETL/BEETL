@@ -20,6 +20,7 @@
 
 #include "Algorithm.hh"
 #include "BwtCorrectorIntervalHandler.hh"
+#include "BwtCorrectorParameters.hh"
 #include "Config.hh"
 #include "ErrorInfo.hh"
 #include "HiTECStats.hh"
@@ -49,7 +50,8 @@ public:
         double genomeLength,
         int minWitnessLength,
         const string &subset,
-        int minSupport = 0
+        const BwtCorrectorParameters *correctorParams,
+        int minSupport //= 0
     )
         : genomeLength_( genomeLength )
         , errorRate_( errorRate )
@@ -60,6 +62,8 @@ public:
         , subset_( subset )
         , indexPrefix_( inputFile )
         , outputFile_( outputFile )
+        , endPosFile_( indexPrefix_ )
+        , correctorParams_( correctorParams )
     {}
 
     virtual ~BwtCorrector() {}
@@ -83,6 +87,8 @@ private:
     string readsFile_;
     string indexPrefix_;
     string outputFile_;
+    EndPosFile endPosFile_;
+    const BwtCorrectorParameters *correctorParams_;
 };
 
 #endif

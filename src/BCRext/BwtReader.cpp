@@ -21,6 +21,7 @@
 #include "CountWords.hh"
 #include "LetterCount.hh"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -36,6 +37,7 @@ using namespace std;
 
 
 //#define DEBUG_RAC 1
+//#define DEBUG_RAC_VERBOSE 1
 
 //
 // BwtReaderBase member function definitions
@@ -420,14 +422,14 @@ bool BwtReaderRunLength::getRun( void )
 // BwtReaderRunLengthIndex member function definitions
 //
 
-BwtReaderRunLengthIndex::BwtReaderRunLengthIndex( const string &fileName ):
+BwtReaderRunLengthIndex::BwtReaderRunLengthIndex( const string &fileName, const string &optionalSharedMemoryPath ):
     BwtReaderRunLength( fileName ),
     indexFileName_( fileName + ".idx" ),
     //    isNextIndex_( false ),
     pIndexFile_( NULL )
 {
     //    current_.clear();
-    initIndex();
+    initIndex( optionalSharedMemoryPath );
 }
 
 #ifdef DUPLICATED_VERSION_OF_COPY_CONSTRUCTOR
@@ -468,47 +470,66 @@ LetterNumber BwtReaderRunLengthIndex::readAndCount( LetterCount &c, const Letter
     LetterNumber charsLeft( numChars );
     uint32_t indexLast;
 
+#ifdef DEBUG_RAC
+    if ( indexNext_ != indexSize_ )
+        assert( currentPos_ <= indexPosBwt_[indexNext_] );
+#endif
 
     // gotcha: numChars can be set to maxLetterNumber so no expressions should
     // add to it - wraparound issues!
 
     // if indexLast==indexPosBwtSize we know we have gone past last index point
     // or that none are present at all
-    if ( ( indexNext_ != indexPosBwt_.size() )
+    if ( ( indexNext_ != indexSize_ )
          && ( numChars > ( indexPosBwt_[indexNext_] - currentPos_ ) ) )
     {
         // count interval spans at least one index point
 
         // how many index points does the count interval span?
         indexLast = indexNext_;
-        while ( ( indexLast != indexPosBwt_.size() )
+        while ( ( indexLast != indexSize_ )
                 && ( numChars > ( indexPosBwt_[indexLast] - currentPos_ ) ) )
         {
             indexLast++;
         }
         indexLast--;
 
-        if ( indexNext_ != indexLast )
+        if ( indexNext_ <= indexLast )
         {
-            // ~more than one index point in count interval - can use index
-
-            charsLeft -= BwtReaderRunLength::readAndCount( c, indexPosBwt_[indexNext_] - currentPos_ );
-            //            assert(currentPos_==indexNext_);
-            charsLeft -= ( indexPosBwt_[indexLast] - indexPosBwt_[indexNext_] );
-
-
-            // update counts and also indexNext_
-            while ( ++indexNext_ <= indexLast )
+            // more than one index point in count interval - can use index
+            if ( ! ( currentPos_ == 0 && charsLeft >= indexPosBwt_[indexNext_] ) )
+                charsLeft -= BwtReaderRunLength::readAndCount( c, indexPosBwt_[indexNext_] - currentPos_ );
+            else
             {
-                c += indexCount_[indexNext_];
-#ifdef DEBUG_RAC
-                std::cout << indexNext_ << " " << indexPosBwt_[indexNext_] << " " << indexPosFile_[indexNext_] <<  " " << indexCount_[indexNext_] << endl;
-#endif
-            } //
+                charsLeft -= indexPosBwt_[0];
+                c += indexCount_[0];
+                currentPos_ = indexPosBwt_[0];
+                fseek( pFile_, indexPosFile_[0], SEEK_SET );
+            }
+            //            assert(currentPos_==indexNext_);
 
-            // skip to last index point and reset buffers
-            fseek( pFile_, indexPosFile_[indexLast], SEEK_SET );
-            currentPos_ = indexPosBwt_[indexLast];
+            if ( indexNext_ != indexLast )
+            {
+                charsLeft -= ( indexPosBwt_[indexLast] - indexPosBwt_[indexNext_] );
+
+                // update counts and also indexNext_
+                while ( ++indexNext_ <= indexLast )
+                {
+                    c += indexCount_[indexNext_];
+#ifdef DEBUG_RAC_VERBOSE
+                    std::cout << indexNext_ << " " << indexPosBwt_[indexNext_] << " " << indexPosFile_[indexNext_] <<  " " << indexCount_[indexNext_] << endl;
+#endif
+                } //
+
+                // skip to last index point and reset buffers
+                fseek( pFile_, indexPosFile_[indexLast], SEEK_SET );
+                currentPos_ = indexPosBwt_[indexLast];
+            }
+            else
+            {
+                assert( currentPos_ == indexPosBwt_[indexLast] );
+                ++indexNext_;
+            }
             runLength_ = 0;
             pBuf_ = buf_ + ReadBufferSize;
             pBufMax_ = buf_ + ReadBufferSize;
@@ -516,7 +537,7 @@ LetterNumber BwtReaderRunLengthIndex::readAndCount( LetterCount &c, const Letter
         } // if more than one index point
         // if we're in this clause we've gone past at least one index
         indexLast++;
-        assert( indexLast <= indexPosBwt_.size() );
+        assert( indexLast <= indexSize_ );
     }
 #ifdef DEBUG_RAC
     std::cout << "After (RLI) skip: " << currentPos_ << " " << ftell( pFile_ ) << " " << c << endl;
@@ -579,10 +600,75 @@ void BwtReaderRunLengthIndex::buildIndex
     cout << "buildIndex: generated " << chunksSoFar << " index points." << endl;
 } // ~buildIndex
 
-void BwtReaderRunLengthIndex::initIndex( void )
+void BwtReaderRunLengthIndex::initIndex( const string &optionalSharedMemoryPath )
 {
-
     indexNext_ = 0;
+
+    bool useSharedMemory = !optionalSharedMemoryPath.empty();
+    string shmFilename1, shmFilename2, shmFilename3;
+    if ( useSharedMemory )
+    {
+        string fileNameWithoutSlash = fileName_;
+        std::replace( fileNameWithoutSlash.begin(), fileNameWithoutSlash.end(), '/', '_' );
+        shmFilename1 = optionalSharedMemoryPath + "/BeetlIndexPosFile_" + fileNameWithoutSlash;
+        shmFilename2 = optionalSharedMemoryPath + "/BeetlIndexCount_" + fileNameWithoutSlash;
+        shmFilename3 = optionalSharedMemoryPath + "/BeetlIndexPosBwt_" + fileNameWithoutSlash;
+        if ( readWriteCheck( shmFilename1.c_str(), false, false ) )
+        {
+            // Load vectors from shared memory
+            {
+                cerr << "Info: Using mmap'ed index " << shmFilename1 << endl;
+                int fd = open( shmFilename1.c_str(), O_RDONLY );
+                assert( fd >= 0 );
+                off_t fileSize = lseek( fd, 0, SEEK_END );
+                lseek( fd, 0, SEEK_SET );
+
+                char *mmappedFile = ( char * )mmap( NULL, fileSize, PROT_READ, MAP_SHARED /*| MAP_LOCKED | MAP_POPULATE*/, fd, 0 );
+                if ( mmappedFile == ( void * ) - 1 )
+                {
+                    perror( "Error: Map failed" );
+                    assert( false );
+                }
+                indexSize_ = *reinterpret_cast<uint32_t *>( mmappedFile );
+                indexPosFile_ = reinterpret_cast<LetterNumber *>( mmappedFile + sizeof( indexSize_ ) );
+                close( fd );
+            }
+
+            {
+                int fd = open( shmFilename2.c_str(), O_RDONLY );
+                assert( fd >= 0 );
+                off_t fileSize = lseek( fd, 0, SEEK_END );
+                lseek( fd, 0, SEEK_SET );
+
+                char *mmappedFile = ( char * )mmap( NULL, fileSize, PROT_READ, MAP_SHARED /*| MAP_LOCKED | MAP_POPULATE*/, fd, 0 );
+                if ( mmappedFile == ( void * ) - 1 )
+                {
+                    perror( "Error: Map failed" );
+                    assert( false );
+                }
+                assert( indexSize_ == *reinterpret_cast<uint32_t *>( mmappedFile ) );
+                indexCount_ = reinterpret_cast<LetterCountCompact *>( mmappedFile + sizeof( indexSize_ ) );
+                close( fd );
+            }
+            {
+                int fd = open( shmFilename3.c_str(), O_RDONLY );
+                assert( fd >= 0 );
+                off_t fileSize = lseek( fd, 0, SEEK_END );
+                lseek( fd, 0, SEEK_SET );
+
+                char *mmappedFile = ( char * )mmap( NULL, fileSize, PROT_READ, MAP_SHARED /*| MAP_LOCKED | MAP_POPULATE*/, fd, 0 );
+                if ( mmappedFile == ( void * ) - 1 )
+                {
+                    perror( "Error: Map failed" );
+                    assert( false );
+                }
+                assert( indexSize_ == *reinterpret_cast<uint32_t *>( mmappedFile ) );
+                indexPosBwt_ = reinterpret_cast<LetterNumber *>( mmappedFile + sizeof( indexSize_ ) );
+                close( fd );
+            }
+            return;
+        }
+    }
 
     LetterNumber currentPosBwt( 0 );
 
@@ -591,26 +677,56 @@ void BwtReaderRunLengthIndex::initIndex( void )
 
     if ( pIndexFile_ != NULL )
     {
-        indexPosFile_.push_back( 0 );
-        while ( fread( &indexPosFile_.back(), sizeof( LetterNumber ), 1, pIndexFile_ ) == 1 )
+        indexPosFile0_.push_back( 0 );
+        while ( fread( &indexPosFile0_.back(), sizeof( LetterNumber ), 1, pIndexFile_ ) == 1 )
         {
-            indexCount_.push_back( LetterCountCompact() );
-            assert ( fread( &indexCount_.back(), sizeof( LetterCountCompact ), 1, pIndexFile_ ) == 1 );
+            indexCount0_.push_back( LetterCountCompact() );
+            assert ( fread( &indexCount0_.back(), sizeof( LetterCountCompact ), 1, pIndexFile_ ) == 1 );
             for ( int i( 0 ); i < alphabetSize; i++ )
-                currentPosBwt += indexCount_.back().count_[i];
-            indexPosBwt_.push_back( currentPosBwt );
-#ifdef DEBUG_RAC
-            cout << indexPosBwt_.back() << " " << indexPosFile_.back() << " " << indexCount_.back() << endl;
+                currentPosBwt += indexCount0_.back().count_[i];
+            indexPosBwt0_.push_back( currentPosBwt );
+#ifdef DEBUG_RAC_VERBOSE
+            cout << indexPosBwt0_.back() << " " << indexPosFile0_.back() << " " << indexCount0_.back() << endl;
 #endif
-            indexPosFile_.push_back( 0 );
+            indexPosFile0_.push_back( 0 );
         } // ~while
-        indexPosFile_.pop_back();
+        indexPosFile0_.pop_back();
         fclose( pIndexFile_ );
         pIndexFile_ = NULL;
     } // ~if
-    assert( indexPosBwt_.size() == indexPosFile_.size() );
-    assert( indexPosBwt_.size() == indexCount_.size() );
+    indexSize_ = indexPosBwt0_.size();
+    assert( indexSize_ == indexPosFile0_.size() );
+    assert( indexSize_ == indexCount0_.size() );
     //  rewindFile();
+
+    indexPosBwt_ = indexPosBwt0_.data();
+    indexPosFile_ = indexPosFile0_.data();
+    indexCount_ = indexCount0_.data();
+
+    // Save vectors to shared memory
+    if ( useSharedMemory && !indexPosBwt0_.empty() )
+    {
+        {
+            ofstream os( shmFilename1 );
+            if ( !os.good() )
+            {
+                cerr << "Error creating " << shmFilename1 << endl;
+                exit( -1 );
+            }
+            os.write( reinterpret_cast<const char *>( &indexSize_ ), sizeof( indexSize_ ) );
+            os.write( reinterpret_cast<const char *>( indexPosFile0_.data() ), indexSize_ * sizeof( indexPosFile0_[0] ) );
+        }
+        {
+            ofstream os( shmFilename2 );
+            os.write( reinterpret_cast<const char *>( &indexSize_ ), sizeof( indexSize_ ) );
+            os.write( reinterpret_cast<const char *>( indexCount0_.data() ), indexSize_ * sizeof( indexCount0_[0] ) );
+        }
+        {
+            ofstream os( shmFilename3 );
+            os.write( reinterpret_cast<const char *>( &indexSize_ ), sizeof( indexSize_ ) );
+            os.write( reinterpret_cast<const char *>( indexPosBwt0_.data() ), indexSize_ * sizeof( indexPosBwt0_[0] ) );
+        }
+    }
 } // ~initIndex
 
 // BwtReaderIncrementalRunLength member function definitions

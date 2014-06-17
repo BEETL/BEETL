@@ -210,7 +210,7 @@ ParameterEntry &ToolParameters::getEntry( const string &key )
         int internalId = it->second;
         return entries_[ internalId ];
     }
-    std::cerr << "Error: Invalid parameter key " << key << std::endl;
+    std::cerr << "Error: Invalid parameter key \"" << key << "\"" << std::endl;
     assert( false );
 }
 
@@ -222,7 +222,7 @@ ParameterEntry &ToolParameters::getEntry( const int key )
         int internalId = it->second;
         return entries_[ internalId ];
     }
-    std::cerr << "Error: Invalid parameter key " << key << std::endl;
+    std::cerr << "Error: Invalid parameter key \"" << key << "\"" << std::endl;
     assert( false );
 }
 
@@ -234,7 +234,7 @@ ParameterEntry ToolParameters::getEntry( const string &key ) const
         int internalId = it->second;
         return entries_[ internalId ];
     }
-    std::cerr << "Error: Invalid parameter key " << key << std::endl;
+    std::cerr << "Error: Invalid parameter key \"" << key << "\"" << std::endl;
     assert( false );
 }
 
@@ -246,7 +246,7 @@ ParameterEntry ToolParameters::getEntry( const int key ) const
         int internalId = it->second;
         return entries_[ internalId ];
     }
-    std::cerr << "Error: Invalid parameter key " << key << std::endl;
+    std::cerr << "Error: Invalid parameter key \"" << key << "\"" << std::endl;
     assert( false );
 }
 
@@ -314,10 +314,13 @@ void ToolParameters::printUsage() const
     cout << endl;
 }
 
+
 void ToolParameters::addDefaultVerbosityAndHelpEntries()
 {
     addEntry( -1, "temp directory", "--temp-directory", "-T", "Path for temporary files (hint: choose a fast drive)", ".", TYPE_STRING | ENVIRONMENT );
     addEntry( -1, "no temp subdir", "--no-temp-subdir", "", "Prevent creation of a uniquely named temporary sub-directory", "", TYPE_SWITCH | ENVIRONMENT );
+    addEntry( -1, "use shm", "--use-shm", "", "Use shared memory across processes (faster initialisation of beetl-search and beetl-extend) e.g. --use-shm=/dev/shm", "", TYPE_STRING | ENVIRONMENT );
+    addEntry( -1, "use color", "--color", "", "For beetl-extend to highlight the matching k-mers", "auto", TYPE_CHOICE | ENVIRONMENT, colorLabels );
     addEntry( -1, "verbosity", "--verbosity", "", "[quiet|normal|verbose|very-verbose|debug] or [0|1|2|3|4]", "normal", TYPE_STRING | ENVIRONMENT );
     addEntry( -1, "verbose", "", "-v", "Shortcut to --verbosity = verbose", "", TYPE_SWITCH | ENVIRONMENT );
     addEntry( -1, "very-verbose", "", "-vv", "Shortcut to --verbosity = very-verbose", "", TYPE_SWITCH | ENVIRONMENT );

@@ -59,8 +59,8 @@ class IntervalWriter
 {
 public:
     IntervalWriter( std::ostream &file );
-    void write( const IntervalRecord &ir );
-    void writeV2( const IntervalRecord &ir );
+    void write( const IntervalRecord &ir ) const;
+    void writeV2( const IntervalRecord &ir ) const;
 private:
     std::ostream &file_;
 };

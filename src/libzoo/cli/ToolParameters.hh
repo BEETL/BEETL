@@ -88,6 +88,24 @@ static const int MULTIPLE_OPTIONS = 99;
 
 
 
+// options: --color
+
+enum ColorFormat
+{
+    COLOR_FORMAT_NEVER = 0,
+    COLOR_FORMAT_ALWAYS = 1,
+    COLOR_FORMAT_AUTO = 2
+};
+
+static const string colorLabels[] =
+{
+    "never",
+    "always",
+    "auto",
+    "" // end marker
+};
+
+
 class ToolParameters
 {
 public:

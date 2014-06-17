@@ -25,6 +25,9 @@
 using std::string;
 
 
+namespace BeetlCorrectParameters
+{
+
 // options: input format
 
 enum InputFormat
@@ -118,12 +121,17 @@ enum BwtCorrectorParameterIds
     PARAMETER_MIN_SUPPORT
 };
 
+} // namespace BeetlCorrectParameters
+
+
+
 class BwtCorrectorParameters : public ToolParameters
 {
 
 public:
     BwtCorrectorParameters()
     {
+        using namespace BeetlCorrectParameters;
         addEntry( PARAMETER_INPUT_FILENAME, "input filename", "--input", "-i", "Prefix of BWT of reads you want to correct", "", TYPE_STRING | REQUIRED );
         addEntry( PARAMETER_GENOME_LENGTH, "genome length", "--genome-length", "-L", "Approximate length of genome from which your reads came", "", TYPE_INT | REQUIRED );
         addEntry( PARAMETER_ERROR_RATE, "error rate", "--error-rate", "-e", "Rate of errors on sequencing platform generating reads", "", TYPE_INT | REQUIRED );

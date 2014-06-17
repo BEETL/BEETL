@@ -30,6 +30,7 @@
 #define INCLUDED_CORRECTIONALIGNER_HH
 
 using namespace std;
+using namespace BeetlAlignParameters;
 
 template <class T>
 void zapMatrix( T **matrix, int rows );

@@ -82,7 +82,7 @@ int main( const int argc, const char **argv )
     if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
         printUsage();
-        exit( 1 );
+        exit( params["help"] == 0 );
     }
 
     // Use default parameter values where needed

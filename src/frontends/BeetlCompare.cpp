@@ -144,7 +144,6 @@ void launchBeetlCompare()
             , params["taxonomy"]
             , reportMinLength
             , params["min kmer length"]
-            , params["output filename prefix"]
             , params["subset"]
             , &params
                                            );
@@ -179,7 +178,7 @@ int main( const int argc, const char **argv )
     if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
         printUsage();
-        exit( 1 );
+        exit( params["help"] == 0 );
     }
 
     // Checking for extra parameters required in metagenomics mode

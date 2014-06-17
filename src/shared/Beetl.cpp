@@ -472,13 +472,13 @@ int main( int numArgs, char **args )
 
         // check for required arguments
         if ( ( maxLengthK > 0 ) && ( minimalOccurencesN > 0 ) &&
-             ( filesA.size() > 0 ) && ( filesA.size() == filesB.size() ) )
+             ( !filesA.empty() ) && ( filesA.size() == filesB.size() ) )
         {
 
             // create new tool object
             Algorithm *pcountWords = new CountWords( compressedInputA,
                     compressedInputB, whichHandler, minimalOccurencesN,
-                    maxLengthK, filesA, filesB, filesC, ncbiTax, testDatabase, minWord, prefix, "" );
+                    maxLengthK, filesA, filesB, filesC, ncbiTax, testDatabase, minWord, "" );
 
             // run the "main" method
             pcountWords->run();

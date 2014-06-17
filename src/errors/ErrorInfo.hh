@@ -74,7 +74,7 @@ struct ErrorInfo
         reverseStrand( false )
     {}
 
-    void print();
+    void print() const;
     static bool SortByRead( ErrorInfo a, ErrorInfo b );
     static bool SortByReadThenLastCycle( ErrorInfo a, ErrorInfo b );
 

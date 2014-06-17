@@ -14,14 +14,11 @@ void printKronaHeader( ofstream &output )
     output << "  <img id=\"hiddenImage\" src=\"hidden.png\" style=\"display:none\">" << endl;
     output << "  <noscript>Javascript must be enabled to view this page.</noscript>" << endl;
     output << "  <div style=\"display:none\">" << endl;
-    output << "  <krona collapse=\"true\" key=\"true\">" << endl;
+    output << "  <krona collapse=\"false\" key=\"true\">" << endl;
     output << "   <attributes magnitude=\"magnitude\">" << endl;
-    output << "    <list>members</list>" << endl;
     output << "    <attribute display=\"Abundance\">magnitude</attribute>" << endl;
-    output << "    <attribute listall=\"members\">count</attribute>" << endl;
-    output << "    <attribute listnode=\"members\">unassigned</attribute>" << endl;
-    output << "    <attribute display=\"Avg. log e-value\">score</attribute>" << endl;
     output << "    <attribute display=\"Rank\">rank</attribute>" << endl;
+    output << "    <attribute display=\"Tax id\">taxid</attribute>" << endl;
     output << "   </attributes>" << endl;
 }
 
@@ -56,13 +53,17 @@ void printKronaChildren( TAXMAP::iterator &iter, ofstream &output, int level, TA
     output << indent << "<magnitude>";
     for ( unsigned int s ( 0 ); s < wordMinSizeCount; s++ )
     {
-        int magnitude = iter->second.wordCountPerSize_[s] + iter->second.wordCountPerSizeOfChildren_[s];
+        uint64_t magnitude = iter->second.wordCountPerSize_[s] + iter->second.wordCountPerSizeOfChildren_[s];
         output << "<val>" << magnitude << "</val>";
     }
     output << "</magnitude>" << endl;
+
     unsigned int taxLevel = iter->second.taxLevel_;
     if ( taxLevel < taxLevelSize )
         output << indent << "<rank><val>" << taxLevelNames[taxLevel] << "</val></rank>" << endl;
+
+    output << indent << "<taxid><val>" << id << "</val></taxid>" << endl;
+
     //    cerr << "krona id " << id << " " << level << endl;
 
     for ( TAXMAP::iterator iter = taxInfo.begin() ; iter != taxInfo.end(); ++iter )

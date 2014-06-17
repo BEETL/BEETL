@@ -34,14 +34,12 @@ class BCRext : public Algorithm
     const bool useAsciiEncoder_;
     const bool useImplicitSort_;
     const bool useSeqFile_;
-    char *inFile_;
-    char *prefix_;
+    const string inFile_;
+    const string prefix_;
 public:
-    BCRext( bool, bool, bool, bool, bool, string, string );
+    BCRext( bool, bool, bool, bool, bool, const string &, const string & );
     ~BCRext()
     {
-        delete[] inFile_;
-        delete prefix_;
     }
     void run( void );
 };

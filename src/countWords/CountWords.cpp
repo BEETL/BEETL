@@ -43,7 +43,7 @@ CountWords::CountWords( bool inputACompressed,
                         bool inputBCompressed, char whichHandler,
                         int paramN, int paramK, const vector<string> &setA,
                         const vector<string> &setB, const vector<string> &setC,
-                        const string &ncbiTax, bool testDB, unsigned int minWordLen, string prefix, string subset
+                        const string &ncbiTax, bool testDB, unsigned int minWordLen, string subset
                         , const CompareParameters *compareParams
                       )
     : numCycles_( paramK )
@@ -58,6 +58,8 @@ CountWords::CountWords( bool inputACompressed,
     , doesPropagateBkptToSeqNumInSetB_( compareParams_ ? ( *compareParams_ )["generate seq num B"] : false )
     , noComparisonSkip_( compareParams_ ? ( *compareParams_ )["no comparison skip"] : false )
     , bwtInRam_( compareParams_ ? ( *compareParams_ )["BWT in RAM"] : false )
+    , propagateSequence_( compareParams_ ? ( *compareParams_ )["propagate sequence"] : false )
+    , outputDirectory_( compareParams_ ? ( *compareParams_ )["output directory"] : string( "BeetlCompareOutput" ) )
     , inBwtA_( alphabetSize )
     , inBwtB_( alphabetSize )
     , fsizeRatio_( 0 )
@@ -91,7 +93,13 @@ CountWords::CountWords( bool inputACompressed,
     inputACompressed_ = inputACompressed;
     inputBCompressed_ = inputBCompressed;
 
-    tmpPrefix_ = prefix;
+    // Check that output directory is empty. Create it if necessary.
+    mkdir( outputDirectory_.c_str(), 0750 );
+    if ( isDirectoryEmpty( outputDirectory_ ) == 0 )
+    {
+        Logger::error() << "Error: Output directory not empty" << endl;
+        assert( false && "output directory not empty" );
+    }
 
     /*
       Information for metagenomics search.
@@ -122,8 +130,10 @@ void CountWords::run( void )
     int cyclesToSkipComparisonFor = -1;
     int previousComparisonDeactivationLength = 0;
 
+#ifdef _OPENMP
     // Use nested openmp parallelisation
     omp_set_nested( 1 );
+#endif
 
     // Metagenomics-specific stuff
     if ( mode_ == BeetlCompareParameters::MODE_METAGENOMICS )
@@ -134,8 +144,8 @@ void CountWords::run( void )
     vector<int> pileToThread;
     if ( !useThreadsForSubsets )
     {
-        rangeStoresA.push_back( new RangeStoreExternal( tmpPrefix_ + "Intervals_setA" ) );
-        rangeStoresB.push_back( new RangeStoreExternal( tmpPrefix_ + "Intervals_setB" ) );
+        rangeStoresA.push_back( new RangeStoreExternal( propagateSequence_, "Intervals_setA" ) );
+        rangeStoresB.push_back( new RangeStoreExternal( propagateSequence_, "Intervals_setB" ) );
         pileToThread.resize( alphabetSize, 0 ); // All piles point to thread 0
     }
     else
@@ -143,9 +153,9 @@ void CountWords::run( void )
         for ( int i = 0; i < 4; ++i )
         {
             ostringstream oss;
-            oss << tmpPrefix_ << "Intervals_subset" << i;
-            rangeStoresA.push_back( new RangeStoreExternal( oss.str() + "_setA" ) );
-            rangeStoresB.push_back( new RangeStoreExternal( oss.str() + "_setB" ) );
+            oss << "Intervals_subset" << i;
+            rangeStoresA.push_back( new RangeStoreExternal( propagateSequence_, oss.str() + "_setA" ) );
+            rangeStoresB.push_back( new RangeStoreExternal( propagateSequence_, oss.str() + "_setB" ) );
         }
         pileToThread.resize( alphabetSize, 0 );
         pileToThread[whichPile['A']] = 0; // pile 'A' processed by thread 0
@@ -161,10 +171,8 @@ void CountWords::run( void )
 
     // We reproduce the same nested parallel distribution here than during the real processing loops, in order to load the BWT data in the most appropriate NUMA nodes
     const int subsetThreadCount = rangeStoresA.size();
+#if defined(_OPENMP)
     omp_set_num_threads( subsetThreadCount * alphabetSize );
-#if defined(PROPAGATE_SEQUENCE) and defined(_OPENMP)
-    // We need to disable parallelisation when PROPAGATE_SEQUENCE is activated, because of the shared 'currentWord_' variable
-    omp_set_num_threads( 1 );
 #endif
 
     #pragma omp parallel for
@@ -250,7 +258,7 @@ void CountWords::run( void )
                         if ( ( *compareParams_ )["use indexing"].isSet() )
                         {
                             cout << "Using indexed BWT file for " << setA_[i] << endl;
-                            inBwtA_[i] = new BwtReaderRunLengthIndex( setA_[i] );
+                            inBwtA_[i] = new BwtReaderRunLengthIndex( setA_[i], compareParams_->getStringValue( "use shm" ) );
                         }
                         else
                         {
@@ -284,7 +292,7 @@ void CountWords::run( void )
                         if ( ( *compareParams_ )["use indexing"].isSet() )
                         {
                             cout << "Using indexed BWT file for " << setB_[i] << endl;
-                            inBwtB_[i] = new BwtReaderRunLengthIndex( setB_[i] );
+                            inBwtB_[i] = new BwtReaderRunLengthIndex( setB_[i], compareParams_->getStringValue( "use shm" ) );
                         }
                         else
                         {
@@ -429,9 +437,12 @@ void CountWords::run( void )
     const int dontKnowIndex( whichPile[( int )dontKnowChar] );
 
     // sort out first iter
+    string currentWord = "xx";
     for ( int i( 1 ); i < alphabetSize; ++i )
     {
         const int subsetThreadNum = pileToThread[i];
+        if ( propagateSequence_ )
+            currentWord[1] = alphabet[i];
         for ( int j( 1 ); j < alphabetSize; ++j )
         {
             Logger_if( LOG_FOR_DEBUGGING )
@@ -445,30 +456,27 @@ void CountWords::run( void )
                     | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ) << endl;
                 }
             }
-#ifdef PROPAGATE_SEQUENCE
-            currentWord_.clear();
-            currentWord_ += alphabet[j];
-            currentWord_ += alphabet[i];
-#else
+            if ( propagateSequence_ )
+                currentWord[0] = alphabet[j];
             /*
-                        if (!subset.empty() && subset[subset.size()-1] != alphabet[i])
-                        {
-                            Logger::out() << "  skipped" << endl;
-                            continue;
-                        }
+
+                                    if (!subset.empty() && subset[subset.size()-1] != alphabet[i])
+                                    {
+                                        Logger::out() << "  skipped" << endl;
+                                        continue;
+                                    }
             */
-#endif
 
             if ( ( i != dontKnowIndex ) && ( j != dontKnowIndex ) ) // don't process ranges with N in them
             {
                 if ( countsPerPileA[i].count_[j] != 0 )
-                    rangeStoresA[subsetThreadNum]->addRange( Range(  currentWord_,
+                    rangeStoresA[subsetThreadNum]->addRange( Range(  currentWord,
                             ( countsCumulativeA_[i - 1].count_[j]
                               | ( matchFlag * ( LetterNumber )( countsPerPileB[i].count_[j] != 0 ) ) ),
                             countsPerPileA[i].count_[j], false )
                             , j, i, subset_, 1 );
                 if ( countsPerPileB[i].count_[j] != 0 )
-                    rangeStoresB[subsetThreadNum]->addRange( Range( currentWord_,
+                    rangeStoresB[subsetThreadNum]->addRange( Range( currentWord,
                             ( countsCumulativeB_[i - 1].count_[j]
                               | ( matchFlag * ( countsPerPileA[i].count_[j] != 0 ) ) ),
                             countsPerPileB[i].count_[j], false )
@@ -501,10 +509,6 @@ void CountWords::run( void )
     {
         cerr << "Starting iteration " << cycle << ", time now: " << timer.timeNow();
         cerr << "Starting iteration " << cycle << ", usage: " << timer << endl;
-
-#ifdef PROPAGATE_SEQUENCE
-        currentWord_.resize( cycle + 2 );
-#endif
 
         numRanges_ = 0;
         numSingletonRanges_ = 0;
@@ -684,6 +688,7 @@ void CountWords::CountWords_parallelSubsetThread(
     , RangeStoreExternal &rangeStoreB
 )
 {
+    string currentWord( cycle + 2, 'x' );
     int subsetThreadNum = threadNum / alphabetSize; // for ( int subsetThreadNum = 0; subsetThreadNum < subsetThreadCount; ++subsetThreadNum )
     int i = threadNum % alphabetSize; // for ( int i = 0; i < alphabetSize; ++i )
     /*
@@ -749,32 +754,34 @@ void CountWords::CountWords_parallelSubsetThread(
                                            , doesPropagateBkptToSeqNumInSetA_
                                            , doesPropagateBkptToSeqNumInSetB_
                                            , noComparisonSkip_
+                                           , propagateSequence_
                                          );
             switch ( mode_ )
             {
                 case BeetlCompareParameters::MODE_REFERENCE:
                 {
                     IntervalHandlerReference intervalHandler( minOcc_ );
-                    backTracker.process( i, currentWord_, intervalHandler );
+                    backTracker.process( i, currentWord, intervalHandler );
                 }
                 break;
                 case BeetlCompareParameters::MODE_METAGENOMICS:
                 {
                     IntervalHandlerMetagenome intervalHandler( minOcc_, setC_, mmappedCFiles_, fileNumToTaxIds_, testDB_, minWordLen_, numCycles_ );
-                    intervalHandler.createOutputFile( subsetThreadNum, i, j, cycle + 1 );
-                    backTracker.process( i, currentWord_, intervalHandler );
+                    intervalHandler.createOutputFile( subsetThreadNum, i, j, cycle + 1, outputDirectory_ );
+                    backTracker.process( i, currentWord, intervalHandler );
                 }
                 break;
                 case BeetlCompareParameters::MODE_SPLICE:
                 {
                     IntervalHandlerSplice intervalHandler( minOcc_ );
-                    backTracker.process( i, currentWord_, intervalHandler );
+                    backTracker.process( i, currentWord, intervalHandler );
                 }
                 break;
                 case BeetlCompareParameters::MODE_TUMOUR_NORMAL:
                 {
                     IntervalHandlerTumourNormal intervalHandler( minOcc_, fsizeRatio_ );
-                    backTracker.process( i, currentWord_, intervalHandler );
+                    intervalHandler.createOutputFile( subsetThreadNum, i, j, cycle + 1, outputDirectory_ );
+                    backTracker.process( i, currentWord, intervalHandler );
                 }
                 break;
                 default:

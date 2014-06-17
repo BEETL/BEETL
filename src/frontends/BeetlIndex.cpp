@@ -104,7 +104,7 @@ void launchBeetlIndex()
           thisPile != pileNames.end(); ++thisPile )
     {
         cerr << "Indexing file " << *thisPile << endl;
-        BwtReaderRunLengthIndex reader( thisPile->c_str() );
+        BwtReaderRunLengthIndex reader( thisPile->c_str(), params.getStringValue( "use shm" ) );
         indexFileName = *thisPile;
         indexFileName += ".idx";
         //        continue;
@@ -120,6 +120,7 @@ void launchBeetlIndex()
                      << endl;
                 exit( EXIT_FAILURE );
             }
+            fclose( pFile );
         } // ~if
 
         pFile = fopen( indexFileName.c_str() , "w" );
@@ -133,19 +134,6 @@ void launchBeetlIndex()
         reader.buildIndex( pFile, blockSize );
         fclose ( pFile );
     }
-
-#ifdef XXX
-    // TBD put all this in an object
-    BwtReaderRunLengthIndex reader( params["input"].userValue.c_str() );
-    string indexFileName( params["input"].userValue + ".idx" );
-    FILE *pFile;
-    pFile = fopen( indexFileName.c_str() , "w" );
-    if ( pFile == NULL )
-    {
-        cerr << "Problem opening file " << indexFileName << " for writing" << endl;
-        exit( EXIT_FAILURE );
-    }
-#endif
 }
 
 int main( const int argc, const char **argv )
@@ -169,7 +157,7 @@ int main( const int argc, const char **argv )
     if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
         printUsage();
-        exit( 1 );
+        exit( params["help"] == 0 );
     }
 
     // Use default parameter values where needed

@@ -77,28 +77,17 @@ typedef BwtWriterASCII BwtWriter;
 // added by Tobias, interface to new Beetl executable
 BCRext::BCRext( bool huffman, bool runlength,
                 bool ascii, bool implicitSort,
-                bool seqFile, string inFile, string prefix ) :
+                bool seqFile, const string &inFile, const string &prefix ) :
 
     // set tool flags
     useHuffmanEncoder_( huffman ),
     useRunlengthEncoder_( runlength ),
     useAsciiEncoder_( ascii ),
     useImplicitSort_( implicitSort ),
-    useSeqFile_ ( seqFile )
+    useSeqFile_ ( seqFile ),
+    inFile_( inFile ),
+    prefix_( prefix )
 {
-
-    // get memory allocated
-    prefix_ = new char[prefix.length() + 1];
-    inFile_ = new char[inFile.length() + 1];
-
-    // copt to char * in order to get valid c strings
-    inFile.copy( inFile_, inFile.length() );
-    prefix.copy( prefix_, prefix.length() );
-
-    // append \0 to obtain a valid escaped c string
-    inFile_[inFile.length()] = '\0';
-    prefix_[prefix.length()] = '\0';
-
     // Notes
     if ( implicitSort && ( huffman || runlength ) )
     {
@@ -182,13 +171,6 @@ void BCRext::run( void )
         exit( EXIT_FAILURE );
     }
 
-    if ( sizeof ( LetterNumber ) != 8 )
-    {
-        cerr << "Long long size is not 8 Byte. Aborting." << endl;
-        exit( EXIT_FAILURE );
-    }
-
-
     SequenceNumber seqNum( 0 );
 
 
@@ -201,14 +183,13 @@ void BCRext::run( void )
     int thisPile, lastPile;
     LetterNumber posInPile;
     //  char inChar;
-    long long charsToGrab;// charsLeft, charsThisBatch; // TBD make these long?
-    //unsigned int charsToGrab;// charsLeft, charsThisBatch; // TBD make these long?
+    LetterNumber charsToGrab;// charsLeft, charsThisBatch;
 
 
     Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << prefix << "Will read sequences from file " << inFile_ << endl;
 
     // read first sequence to determine read size
-    SeqReaderFile *seqReader( SeqReaderFile::getReader( fopen( inFile_, "rb" ) ) );
+    SeqReaderFile *seqReader( SeqReaderFile::getReader( fopen( inFile_.c_str(), "rb" ) ) );
     const char *seqBuf = seqReader->thisSeq();
 
     const int seqSize( strlen( seqBuf ) - 1 ); // -1 compensates for \n at end
@@ -628,7 +609,7 @@ void BCRext::run( void )
                     exit( EXIT_FAILURE );
                 }
 
-                unsigned int readCountChars = inBwt[lastPile]->readAndCount
+                LetterNumber readCountChars = inBwt[lastPile]->readAndCount
                                               ( countedThisIter[lastPile], charsToGrab );
 
                 if ( readCountChars != charsToGrab )
@@ -660,7 +641,7 @@ void BCRext::run( void )
 
                 charsToGrab = posInPile - prevCharsOutputThisIter.count_[thisPile];
 
-                unsigned int readSendChars = inBwt2[thisPile]->readAndSend
+                LetterNumber readSendChars = inBwt2[thisPile]->readAndSend
                                              ( *outBwt[thisPile], charsToGrab );
 
                 if ( readSendChars != charsToGrab )

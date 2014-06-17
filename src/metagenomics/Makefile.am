@@ -17,6 +17,7 @@ parseMetagenomeOutput_SOURCES = parse.cpp
 parseMetagenomeOutput_LDADD = ../liball.a ../libzoo.a
 
 convertMetagenomicRangesToTaxa_SOURCES = ConvertMetagenomicRangesToTaxa.cpp
+convertMetagenomicRangesToTaxa_CXXFLAGS = ${OPENMP_CXXFLAGS}
 convertMetagenomicRangesToTaxa_LDADD = ../liball.a ../libzoo.a
 
 

@@ -33,6 +33,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <sys/stat.h>
 
@@ -59,6 +60,7 @@ void printUsage()
     cout << "    RunFolder : Illumina Run Folder containing BCL files" << endl;
     cout << "    BWT_ASCII : ASCII sequence of BWT-reordered nucleotides" << endl;
     cout << "    BWT_RLE   : Run-length-encoded version of BWT_ASCII, where bits 0-3 = binary-encoded nucleotide and bits 4-7 = count-1" << endl;
+    cout << "    BWT_RLE53 : Run-length-encoded version of BWT_ASCII, where bits 0-2 = binary-encoded nucleotide and bits 3-7 = count-1" << endl;
     cout << endl;
 }
 
@@ -86,9 +88,11 @@ void outputLineUsingMissingDataFrom( ofstream &outputStream, ifstream &missingDa
 
 void skipLineInMissingDataFile( ifstream &missingDataFile )
 {
-    string str;
     if ( missingDataFile.good() )
+    {
+        string str;
         getline( missingDataFile, str );
+    }
 }
 
 void launchBeetlConvert()
@@ -137,11 +141,10 @@ void launchBeetlConvert()
         else if ( params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // FASTA -> CYC
-            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
+            unique_ptr<SeqReaderFile> pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
             TransposeFasta trasp;
-            trasp.init( pReader );
-            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false );
-            delete pReader;
+            trasp.init( pReader.get() );
+            trasp.convert( params.getStringValue( "output filename" ), false );
             return;
         }
         else if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII || params["output format"] == OUTPUT_FORMAT_BWT_RLE )
@@ -189,11 +192,10 @@ void launchBeetlConvert()
         else if ( params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // FASTQ -> CYC
-            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
+            unique_ptr<SeqReaderFile> pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
             TransposeFasta trasp;
-            trasp.init( pReader );
-            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false );
-            delete pReader;
+            trasp.init( pReader.get() );
+            trasp.convert( params.getStringValue( "output filename" ), false );
             return;
         }
         else if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII || params["output format"] == OUTPUT_FORMAT_BWT_RLE )
@@ -205,12 +207,8 @@ void launchBeetlConvert()
         else if ( params["output format"] == OUTPUT_FORMAT_FASTQ )
         {
             // FASTQ -> FASTQ
-            istream *inputStreamPtr = NULL;
             string inputFilename = params.getStringValue( "input filename" );
-            if ( inputFilename == "-" )
-                inputStreamPtr = &std::cin;
-            else
-                inputStreamPtr = new ifstream( inputFilename );
+            shared_ptr<istream> inputStreamPtr = openInputFileOrDashAsCin( inputFilename );
             istream &inputStream( *inputStreamPtr );
             ofstream outputStream( params.getStringValue( "output filename" ).c_str() );
             string str1, str2, str3, str4;
@@ -246,9 +244,9 @@ void launchBeetlConvert()
                         str4 = str4.substr( firstValidIndex, lastValidIndex - firstValidIndex + 1 );
                     }
                 }
-                outputStream << str2 << '\n';
+                outputSequenceConstrainedWithSequenceLength( outputStream, str2, params["sequence length"] );
                 outputStream << str3 << '\n';
-                outputStream << str4 << '\n';
+                outputSequenceConstrainedWithSequenceLength( outputStream, str4, params["sequence length"] );
             }
             return;
         }
@@ -311,11 +309,18 @@ void launchBeetlConvert()
         else if ( params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // SEQ -> CYC
-            SeqReaderFile *pReader( SeqReaderFile::getReader( fopen( params.getStringValue( "input filename" ).c_str(), "rb" ) ) );
+            string inputFilename = params.getStringValue( "input filename" );
+            FILE *f;
+            if ( inputFilename == "-" )
+                f = stdin;
+            else
+                f = fopen( inputFilename.c_str(), "rb" );
+            unique_ptr<SeqReaderFile> pReader( SeqReaderFile::getReader( f ) );
             TransposeFasta trasp;
-            trasp.init( pReader );
-            trasp.convert( params.getStringValue( "input filename" ), params.getStringValue( "output filename" ), false );
-            delete pReader;
+            trasp.init( pReader.get() );
+            trasp.convert( params.getStringValue( "output filename" ), false );
+            if ( f != stdin )
+                fclose( f );
             return;
         }
         else if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII || params["output format"] == OUTPUT_FORMAT_BWT_RLE )
@@ -494,14 +499,14 @@ void launchBeetlConvert()
                 else
                     sprintf( inputFilename, params.getStringValue( "input filename" ).c_str(), cycleNum + 1 );
 
-                istream *is;
+                unique_ptr<istream> is;
                 if ( params["input format"] == INPUT_FORMAT_BCL_GZ )
                 {
-                    is = new igzstream( inputFilename );
+                    is.reset( new igzstream( inputFilename ) );
                 }
                 else
                 {
-                    is = new ifstream( inputFilename, ios_base::binary );
+                    is.reset( new ifstream( inputFilename, ios_base::binary ) );
                 }
                 if ( !is->good() )
                 {
@@ -579,7 +584,7 @@ void launchBeetlConvert()
             uint cycleCount = bclRunFolder.getCycleCount();
 
             // Open output files
-            vector<ofstream *> outCyc, outCycQual;
+            vector< unique_ptr< ofstream > > outCyc, outCycQual;
             for ( uint i = 0; i < cycleCount; ++i )
             {
                 int cycleNum = i;
@@ -588,13 +593,13 @@ void launchBeetlConvert()
                 ostringstream oss;
                 oss << params.getStringValue( "output filename" ) << "." << cycleNum;
                 string outputFilename = oss.str();
-                outCyc.push_back( new ofstream( outputFilename.c_str(), ios_base::binary ) );
+                outCyc.push_back( unique_ptr<ofstream>( new ofstream( outputFilename.c_str(), ios_base::binary ) ) );
 
                 // Open output quality file
                 ostringstream ossQual;
                 ossQual << params.getStringValue( "output filename" ) << "." << cycleNum << ".qual";
                 string outputFilenameQual = ossQual.str();
-                outCycQual.push_back( new ofstream( outputFilenameQual.c_str(), ios_base::binary ) );
+                outCycQual.push_back( unique_ptr<ofstream>( new ofstream( outputFilenameQual.c_str(), ios_base::binary ) ) );
             }
 
             string nextLane;
@@ -621,11 +626,6 @@ void launchBeetlConvert()
             }
 
             // Closing all files
-            for ( uint i = 0; i < cycleCount; ++i )
-            {
-                delete outCyc[i];
-                delete outCycQual[i];
-            }
             outCyc.clear();
             outCycQual.clear();
 
@@ -638,13 +638,11 @@ void launchBeetlConvert()
         if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE )
         {
             // BWT_ASCII -> BWT_RLE
-            BwtReaderBase *pReader = new BwtReaderASCII( params.getStringValue( "input filename" ) );
-            BwtWriterBase *pWriter = new BwtWriterRunLength( params.getStringValue( "output filename" ) );
+            BwtReaderASCII pReader( params.getStringValue( "input filename" ) );
+            BwtWriterRunLength pWriter( params.getStringValue( "output filename" ) );
 
-            while ( pReader->readAndSend( *pWriter, 1000000000 ) > 0 ) {}
+            while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
 
-            delete pReader;
-            delete pWriter;
             return;
         }
         else if ( params["output format"] == OUTPUT_FORMAT_FASTA || params["output format"] == OUTPUT_FORMAT_FASTQ || params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_CYC )
@@ -659,13 +657,31 @@ void launchBeetlConvert()
         if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII )
         {
             // BWT_RLE -> BWT_ASCII
-            BwtReaderBase *pReader = new BwtReaderRunLength( params.getStringValue( "input filename" ) );
-            BwtWriterBase *pWriter = new BwtWriterASCII( params.getStringValue( "output filename" ) );
+            BwtReaderRunLength pReader( params.getStringValue( "input filename" ) );
+            BwtWriterASCII pWriter( params.getStringValue( "output filename" ) );
 
-            while ( pReader->readAndSend( *pWriter, 1000000000 ) > 0 ) {}
+            while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
 
-            delete pReader;
-            delete pWriter;
+            return;
+        }
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE53 )
+        {
+            // BWT_RLE -> BWT_RLE53
+            BwtReaderRunLength pReader( params.getStringValue( "input filename" ) );
+            BwtWriterRunLength_5_3 pWriter( params.getStringValue( "output filename" ) );
+
+            while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
+
+            return;
+        }
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE_DYNAMIC )
+        {
+            // BWT_RLE -> BWT_RLE_DYNAMIC
+            BwtReaderRunLength pReader( params.getStringValue( "input filename" ) );
+            BwtWriterRunLengthDynamic pWriter( params.getStringValue( "output filename" ) );
+
+            while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
+
             return;
         }
         else if ( params["output format"] == OUTPUT_FORMAT_FASTA || params["output format"] == OUTPUT_FORMAT_FASTQ || params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_CYC )
@@ -702,7 +718,7 @@ int main( const int argc, const char **argv )
     if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
         printUsage();
-        exit( 1 );
+        exit( params["help"] == 0 );
     }
 
     // Auto-detection of missing arguments
@@ -740,11 +756,11 @@ int main( const int argc, const char **argv )
     // Check for unsupported cases
     if ( params["sequence length"].isSet() )
     {
-        if ( ! ( ( params["input format"] == INPUT_FORMAT_FASTQ && ( params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_FASTA ) ) ||
+        if ( ! ( ( params["input format"] == INPUT_FORMAT_FASTQ && ( params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_FASTA || params["output format"] == OUTPUT_FORMAT_FASTQ ) ) ||
                  ( params["input format"] == INPUT_FORMAT_FASTA && params["output format"] == OUTPUT_FORMAT_SEQ ) )
            )
         {
-            cerr << "Error: --sequence-length is currently only implemented for FASTQ->SEQ, FASTQ->FASTA and FASTA->SEQ conversions." << endl;
+            cerr << "Error: --sequence-length is currently only implemented for FASTQ->SEQ, FASTQ->FASTA, FASTQ->FASTQ and FASTA->SEQ conversions." << endl;
             exit( 1 );
         }
     }

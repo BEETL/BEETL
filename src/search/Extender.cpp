@@ -21,6 +21,7 @@
 #include "BCRexternalBWT.hh"
 #include "Timer.hh"
 #include "config.h"
+#include "libzoo/util/ColorText.hh"
 #include "libzoo/util/Logger.hh"
 #include "libzoo/util/TemporaryFilesManager.hh"
 
@@ -69,49 +70,67 @@ void Extender::fillRangeStore( RangeStoreExternal &rangeStore, const LetterCount
 
         LetterNumber pos = rec.position;
         LetterNumber count = rec.count;
-        if ( pos < minPos )
+
+        LetterNumber pos0 = pos;
+        LetterNumber count0 = count;
+        for ( LetterNumber k = 0; k < count0; ++k )
         {
-            LetterNumber diff = minPos - pos;
-            if ( count > diff )
+            pos = pos0 + k;
+            count = 1;
+            IntervalRecord *recX = new IntervalRecord( rec );
+            recX->position = pos;
+            recX->count = count; // Very dirty. TODO: clean up
+
+            if ( pos < minPos )
             {
-                pos = minPos;
-                count -= diff;
-            }
-            else
-                count = 0;
-        }
-
-        if ( count )
-        {
-            LetterNumber start = 0, end = 0;
-            for ( int i( 0 ); i < alphabetSize; i++ )
-            {
-                start = end;
-                end += countsPerPile[whichPile[( int )rec.kmer[0]]].count_[i];
-
-                LetterNumber intersectionStart = max( pos, start );
-                LetterNumber intersectionEnd = min( pos + count, end );
-
-                if ( intersectionStart < intersectionEnd )
+                LetterNumber diff = minPos - pos;
+                if ( count > diff )
                 {
-                    rangeStore.addRange(
-                        Range(
-                            rec.kmer,
-                            intersectionStart,
-                            intersectionEnd - intersectionStart,
-                            false, // unused
-                            true, // hasUserData
-                            &rec
-                        ),
-                        whichPile[( int )rec.kmer[0]],
-                        i,
-                        "", //subset
-                        1 //initial cycle
-                    );
+                    pos = minPos;
+                    count -= diff;
                 }
+                else
+                    count = 0;
             }
-            minPos = pos + count;
+
+            if ( count )
+            {
+                string word( "xx" );;
+                LetterNumber start = 0, end = 0;
+                for ( int i( 0 ); i < alphabetSize; i++ )
+                {
+                    start = end;
+                    end += countsPerPile[whichPile[( int )rec.kmer[0]]].count_[i];
+                    word[1] = alphabet[i];
+
+                    LetterNumber intersectionStart = max( pos, start );
+                    LetterNumber intersectionEnd = min( pos + count, end );
+
+                    if ( intersectionStart < intersectionEnd )
+                    {
+                        word[0] = rec.kmer[0];
+                        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "  interval: " << *recX << endl;
+                        rangeStore.addRange(
+                            Range(
+                                word,
+                                intersectionStart,
+                                intersectionEnd - intersectionStart,
+                                false, // unused
+                                true, // hasUserData
+                                recX
+                            ),
+                            whichPile[( int )rec.kmer[0]],
+                            i,
+                            "", //subset
+                            1 //initial cycle
+                        );
+                    }
+                }
+                minPos = pos + count;
+            }
         }
+        pos = pos0;
+        count = count0;
     }
 }
 
@@ -119,6 +138,8 @@ void Extender::run()
 {
     Timer  timer;
     bool compressIntermediateBwts = true;
+    EndPosFile endPosFile( extendParams_.getStringValue( "bwt filename prefix" ) );
+    ColorText::init( extendParams_.getValue( "use color" ) );
 
     vector <BwtReaderBase *> inBwt( alphabetSize );
 
@@ -136,7 +157,7 @@ void Extender::run()
             if ( extendParams_["use indexing"].isSet() )
             {
                 cout << "Using indexed BWT file" << endl;
-                inBwt[i] = new BwtReaderRunLengthIndex( fileName );
+                inBwt[i] = new BwtReaderRunLengthIndex( fileName, extendParams_.getStringValue( "use shm" ) );
             }
             else
             {
@@ -155,23 +176,27 @@ void Extender::run()
     for ( int i( 1 ); i < alphabetSize; i++ )
         countsCumulative[i] += countsCumulative[i - 1];
 
+    LetterNumber totalCounts = 0;
+    for ( int i = 0; i < alphabetSize; i++ )
+        totalCounts += countsCumulative[alphabetSize - 1].count_[i];
+    SequenceNumber seqCount = countsCumulative[alphabetSize - 1].count_[0];
+    SequenceNumber cycleCount = totalCounts / seqCount;
+
     cout << "countsPerPile:" << endl;
     countsPerPile.print();
     cout << "countsCumulative:" << endl;
     countsCumulative.print();
 
-    RangeStoreExternal r;
+    const bool propagateSequence = extendParams_["propagate sequence"].isSet();
+    RangeStoreExternal r( propagateSequence );
     fillRangeStore( r, countsPerPile, countsCumulative );
-
-
-    string currentWord;
 
     LetterCount countsSoFar;
     LetterNumber currentPos;
     LetterNumber numRanges, numSingletonRanges;
 
     r.clear();
-    for ( int cycle( 1 ); ; ++cycle )
+    for ( uint cycle( 1 ); cycle < cycleCount + 10; ++cycle )
     {
         cout << "cycle: " << cycle << endl;
 
@@ -181,22 +206,20 @@ void Extender::run()
             Logger::out() << "   usage: " << timer << endl;
         }
 
-#ifdef PROPAGATE_SEQUENCE
-        currentWord.resize( cycle + 2 );
-#endif
-
         numRanges = 0;
         numSingletonRanges = 0;
         r.setCycleNum( cycle );
 
-        for ( int i( 1 ); i < alphabetSize; ++i )
+        for ( int i( 0 ); i < alphabetSize; ++i )
         {
+            string currentWord( cycle + 2, 'x' );
             inBwt[i]->rewindFile();
             currentPos = 0;
             countsSoFar.clear();
-            countsSoFar += countsCumulative[i - 1];
+            if ( i > 0 )
+                countsSoFar += countsCumulative[i - 1];
 
-            for ( int j( 1 ); j < alphabetSize; ++j )
+            for ( int j( 0 ); j < alphabetSize; ++j )
             {
                 r.setPortion( i, j );
 
@@ -207,11 +230,13 @@ void Extender::run()
                     countsSoFar,
                     subset_,
                     cycle + 1,
-                    true, // propagate breakpoints until $ sign
-                    true // skip-already-processed-intervals deactivated
+                    false, // propagate breakpoints until $ sign
+                    true, // skip-already-processed-intervals deactivated
+                    propagateSequence,
+                    endPosFile
                 );
 
-                ExtenderIntervalHandler intervalHandler;
+                ExtenderIntervalHandler intervalHandler( endPosFile );
                 Range rangeObject( true );
                 backTracker.process( i, currentWord, intervalHandler, rangeObject );
 

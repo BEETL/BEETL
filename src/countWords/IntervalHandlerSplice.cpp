@@ -72,43 +72,31 @@ void IntervalHandlerSplice::foundInBoth
 
         isBreakpointDetected = true;
         #pragma omp critical (IO)
-        Logger::out()
-                << "BKPT"
-#ifdef PROPAGATE_SEQUENCE
-                << ' ' << thisRangeB.word_
-#else
-                // Print what we know of the sequence
-                << ' ' << alphabet[pileNum] << string( cycle - 1, 'x' )
-#endif
-                << ' ' << countsThisRangeA.count_[0]
-                << ':' << countsThisRangeA.count_[1]
-                << ':' << countsThisRangeA.count_[2]
-                << ':' << countsThisRangeA.count_[3]
-                << ':' << countsThisRangeA.count_[4]
-                << ':' << countsThisRangeA.count_[5]
-                << ' ' << countsThisRangeB.count_[0]
-                << ':' << countsThisRangeB.count_[1]
-                << ':' << countsThisRangeB.count_[2]
-                << ':' << countsThisRangeB.count_[3]
-                << ':' << countsThisRangeB.count_[4]
-                << ':' << countsThisRangeB.count_[5]
-                << ' ' << ( thisRangeA.pos_ & matchMask )
-                << ' ' << ( thisRangeB.pos_ & matchMask )
-                << ' ' << thisRangeA.num_
-                << ' ' << thisRangeB.num_
-                << endl;
-
-#ifdef OLD
-        cout << "BKPT ";
-#ifdef PROPAGATE_SEQUENCE
-        cout << thisRangeA.word_;
-#endif
-        for ( int l( 0 ); l < alphabetSize; l++ )
-            cout << ( ( l == 0 ) ? ' ' : ':' ) << countsThisRangeA.count_[l];
-        for ( int l( 0 ); l < alphabetSize; l++ )
-            cout << ( ( l == 0 ) ? ' ' : ':' ) << countsThisRangeB.count_[l];
-        cout << endl;
-#endif
+        {
+            Logger::out() << "BKPT ";
+            if ( thisRangeB.word_.empty() )
+                Logger::out() << alphabet[pileNum] << string( cycle - 1, 'x' ); // No propagated sequence => Print what we know of the sequence
+            else
+                Logger::out() << thisRangeB.word_;
+            Logger::out()
+                    << ' ' << countsThisRangeA.count_[0]
+                    << ':' << countsThisRangeA.count_[1]
+                    << ':' << countsThisRangeA.count_[2]
+                    << ':' << countsThisRangeA.count_[3]
+                    << ':' << countsThisRangeA.count_[4]
+                    << ':' << countsThisRangeA.count_[5]
+                    << ' ' << countsThisRangeB.count_[0]
+                    << ':' << countsThisRangeB.count_[1]
+                    << ':' << countsThisRangeB.count_[2]
+                    << ':' << countsThisRangeB.count_[3]
+                    << ':' << countsThisRangeB.count_[4]
+                    << ':' << countsThisRangeB.count_[5]
+                    << ' ' << ( thisRangeA.pos_ & matchMask )
+                    << ' ' << ( thisRangeB.pos_ & matchMask )
+                    << ' ' << thisRangeA.num_
+                    << ' ' << thisRangeB.num_
+                    << endl;
+        }
     }
 
     // don't bother with Ns
@@ -130,22 +118,23 @@ void IntervalHandlerSplice::foundInAOnly
     if ( countsThisRangeA.count_[0] > 0 )
     {
         #pragma omp critical (IO)
-        Logger::out()
-                << "READ"
-#ifdef PROPAGATE_SEQUENCE
-                << ' ' << thisRangeA.word_
-#else
-                << ' ' << alphabet[pileNum]
-#endif
-                << ' ' << thisRangeA.pos_
-                << ' ' << countsThisRangeA.count_[0]
-                << ':' << countsThisRangeA.count_[1]
-                << ':' << countsThisRangeA.count_[2]
-                << ':' << countsThisRangeA.count_[3]
-                << ':' << countsThisRangeA.count_[4]
-                << ':' << countsThisRangeA.count_[5]
-                << ' ' << countsSoFarA.count_[0]
-                << endl;
+        {
+            Logger::out() << "READ ";
+            if ( thisRangeA.word_.empty() )
+                Logger::out() << alphabet[pileNum]; // No propagated sequence
+            else
+                Logger::out() << thisRangeA.word_;
+            Logger::out()
+                    << ' ' << thisRangeA.pos_
+            << ' ' << countsThisRangeA.count_[0]
+            << ':' << countsThisRangeA.count_[1]
+            << ':' << countsThisRangeA.count_[2]
+            << ':' << countsThisRangeA.count_[3]
+            << ':' << countsThisRangeA.count_[4]
+            << ':' << countsThisRangeA.count_[5]
+            << ' ' << countsSoFarA.count_[0]
+            << endl;
+        }
     }
     // TBD print out IDs of discovered reads
 
@@ -171,22 +160,23 @@ void IntervalHandlerSplice::foundInBOnly
     if ( countsThisRangeB.count_[0] > 0 )
     {
         #pragma omp critical (IO)
-        Logger::out()
-                << "INBS"
-#ifdef PROPAGATE_SEQUENCE
-                << ' ' << thisRangeB.word_
-#else
-                << ' ' << alphabet[pileNum]
-#endif
-                << ' ' << thisRangeB.pos_
-                << ' ' << countsThisRangeB.count_[0]
-                << ':' << countsThisRangeB.count_[1]
-                << ':' << countsThisRangeB.count_[2]
-                << ':' << countsThisRangeB.count_[3]
-                << ':' << countsThisRangeB.count_[4]
-                << ':' << countsThisRangeB.count_[5]
-                << ' ' << countsSoFarB.count_[0]
-                << endl;
+        {
+            Logger::out() << "INBS ";
+            if ( thisRangeB.word_.empty() )
+                Logger::out() << alphabet[pileNum]; // No propagated sequence
+            else
+                Logger::out() << thisRangeB.word_;
+            Logger::out()
+                    << ' ' << thisRangeB.pos_
+            << ' ' << countsThisRangeB.count_[0]
+            << ':' << countsThisRangeB.count_[1]
+            << ':' << countsThisRangeB.count_[2]
+            << ':' << countsThisRangeB.count_[3]
+            << ':' << countsThisRangeB.count_[4]
+            << ':' << countsThisRangeB.count_[5]
+            << ' ' << countsSoFarB.count_[0]
+            << endl;
+        }
     }
     // TBD print out IDs of discovered reads
 

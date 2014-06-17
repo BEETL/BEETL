@@ -22,9 +22,11 @@
 #include "libzoo/util/Logger.hh"
 
 #include <cstdlib>
+#include <dirent.h>
 #include <sstream>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 
 using namespace std;
 
@@ -245,6 +247,25 @@ bool readWriteCheck( const char *fileName, const bool readWrite, const bool fail
     return ( file != NULL );
 }
 
+int isDirectoryEmpty( const string &dirname ) // return: -1=directory doesn't exist, 0=not empty, 1=empty
+{
+    int n = 0;
+    struct dirent *d;
+    DIR *dir = opendir( dirname.c_str() );
+    if ( dir == NULL ) //Not a directory or doesn't exist
+        return -1;
+    while ( ( d = readdir( dir ) ) != NULL )
+    {
+        if ( ++n > 2 )
+            break;
+    }
+    closedir( dir );
+    if ( n <= 2 ) //Directory Empty
+        return 1;
+    else
+        return 0;
+}
+
 void checkIfEqual( const int arg1, const int arg2 )
 {
 
@@ -448,4 +469,16 @@ void readProcSelfStat( int &out_pid, int &out_num_threads, int &out_processor )
     //   long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
     //   vm_usage     = vsize / 1024.0;
     //   resident_set = rss * page_size_kb;
+}
+
+
+
+shared_ptr<istream> openInputFileOrDashAsCin( const string &filename )
+{
+    shared_ptr<istream> input;
+    if ( filename == "-" )
+        input.reset( &cin, emptyDeleter() );
+    else
+        input.reset( new ifstream( filename.c_str() ) );
+    return input;
 }

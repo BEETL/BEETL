@@ -49,7 +49,7 @@ public:
     virtual void fflush();
     virtual void fclose();
 
-    void operator=( const FILE *f );
+    //    void operator=( const FILE *f );
 
     friend size_t fwrite( const void *ptr, size_t size, size_t count, FastOFStream *stream )
     {
@@ -75,7 +75,7 @@ public:
         else
             return 0;
     }
-    friend int fileno( FastOFStream *stream )
+    friend int fileno( FastOFStream *stream ) const
     {
         return stream->fd;
     }

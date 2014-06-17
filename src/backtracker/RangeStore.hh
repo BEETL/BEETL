@@ -39,6 +39,7 @@ struct RangeStore
     virtual void setPortion( int pileNum, int portionNum ) = 0;
     virtual bool getRange( Range &thisRange ) = 0;
     virtual void addRange( const Range &, const int pileNum, const int portionNum, const string &subset, const int cycle ) = 0;
+    virtual void addOutOfOrderRange( const Range &, const int pileNum, const AlphabetSymbol portionNum, const string &subset, const int cycle ) = 0;
     virtual bool isRangeKnown( const Range &, const int pileNum, const int portionNum, const string &subset, const int cycle ) = 0;
 
 protected:
@@ -51,7 +52,7 @@ protected:
 //
 struct RangeStoreExternal : public RangeStore
 {
-    RangeStoreExternal( const string fileStem = "Intervals" );
+    RangeStoreExternal( const bool propagateSequence = false, const string fileStem = "Intervals" );
 
     virtual ~RangeStoreExternal();
 
@@ -64,6 +65,7 @@ struct RangeStoreExternal : public RangeStore
     virtual bool getRange( Range &thisRange );
 
     virtual void addRange( const Range &, const int pileNum, const int portionNum, const string &subset, const int cycle );
+    virtual void addOutOfOrderRange( const Range &, const int pileNum, const AlphabetSymbol portionNum, const string &subset, const int cycle );
     virtual bool isRangeKnown( const Range &, const int pileNum, const int portionNum, const string &subset, const int cycle );
 
     virtual void clear( bool doDeleteFiles = true );
@@ -76,14 +78,14 @@ struct RangeStoreExternal : public RangeStore
     string fileStemOut_;
 
     RangeState stateIn_;
-    RangeState stateOut_[alphabetSize][alphabetSize];
+    vector< vector< RangeState > > stateOut_; //[alphabetSize][alphabetSize];
 
 private:
     bool getRange( RangeState &stateFile, Range &thisRange );
 
-    RangeState stateInForComparison_[alphabetSize][alphabetSize];
+    vector< vector< RangeState > > stateInForComparison_; //[alphabetSize][alphabetSize];
     Range lastRangeReadForComparison_[alphabetSize][alphabetSize];
-
+    vector< std::pair< Range, AlphabetSymbol > > outOfOrderRangesForPile0_;
 }; // ~struct RangeStoreExternal
 
 #endif

@@ -92,6 +92,9 @@ struct IntervalHandlerBase
         r = Range( word, pos, num, isBkptExtension );
         return r;
     }
+
+    void createOutputFile( const int subsetThreadNum, const int i, const int j, const int cycle, const string &outputDirectory );
+    std::ofstream outFile_;
 };
 
 typedef void ( IntervalHandlerBase::*IntervalHandler_FoundCallbackPtr ) (

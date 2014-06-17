@@ -35,6 +35,8 @@ void launchBeetlExtend()
     extender.run();
 }
 
+#include "libzoo/util/ColorText.hh"
+
 int main( const int argc, const char **argv )
 {
     // Generated using: http://patorjk.com/software/taag/#p=display&f=Soft&t=BEETL%20extend
@@ -56,7 +58,7 @@ int main( const int argc, const char **argv )
     if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
         printUsage();
-        exit( 1 );
+        exit( params["help"] == 0 );
     }
 
     // Use default parameter values where needed

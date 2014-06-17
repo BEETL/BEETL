@@ -62,20 +62,15 @@ void BclRunFolder::generateLanesAndTilesList( const string &laneFormat, const st
     }
     else
     {
-        for ( unsigned laneCount = 1; ; ++laneCount )
+        for ( unsigned laneCount = 0; laneCount < 100; ++laneCount )
         {
             stringstream laneName;
-            laneName << "L00" << laneCount;
+            laneName << "L0" << ( laneCount % 10 ) << ( laneCount / 10 );
             string filename = runFolder_ + "/Data/Intensities/BaseCalls/" + laneName.str();
             if ( doesFileExist( filename ) )
             {
                 clog << "Discovered lane " << filename << endl;
                 lanes.push_back( laneName.str() );
-            }
-            else
-            {
-                --laneCount;
-                break;
             }
         }
         if ( lanes.empty() )
@@ -132,7 +127,14 @@ unsigned int BclRunFolder::getCycleCount()
         for ( cycleCount_ = 1; ; ++cycleCount_ )
         {
             stringstream filenameBase;
-            filenameBase << runFolder_ << "/Data/Intensities/BaseCalls/L001/C" << cycleCount_ << ".1/s_1_1101.bcl";
+            if ( !lanesAndTiles_.empty() )
+            {
+                const string &lane = lanesAndTiles_[0].first;
+                const string &tile = lanesAndTiles_[0].second;
+                filenameBase << runFolder_ << "/Data/Intensities/BaseCalls/" << lane << "/C" << cycleCount_ << ".1/" << tile << ".bcl";
+            }
+            else
+                filenameBase << runFolder_ << "/Data/Intensities/BaseCalls/L001/C" << cycleCount_ << ".1/s_1_1101.bcl";
             string filename1 = filenameBase.str();
             string filename2 = filenameBase.str() + ".gz";
             if ( doesFileExist( filename1 ) )

@@ -70,25 +70,20 @@ void dumpRamFiles()
 
 void debugRamFile( char *filenameIn, size_t n, char *filenameOut = "tmp.debug" )
 {
-    BwtReaderIncrementalRunLength *pReader;
-    pReader = new BwtReaderIncrementalRunLength( filenameIn );
-    assert( pReader != NULL );
+    BwtReaderIncrementalRunLength pReader( filenameIn );
 
     Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "Writing " << filenameOut << endl;
-    BwtWriterASCII *pWriter = new BwtWriterASCII( filenameOut );
+    BwtWriterASCII pWriter( filenameOut );
     for ( size_t i = 0; i < n; ++i )
     {
-        pReader->readAndSend( *pWriter, 1 );
+        pReader.readAndSend( pWriter, 1 );
     }
     fflush( 0 );
 
     while ( 1 )
     {
-        pReader->readAndSend( *pWriter, 1 );
+        pReader.readAndSend( pWriter, 1 );
     }
-
-    delete pWriter;
-    delete pReader;
 }
 
 void BCRexternalBWT::convertFileFromIntermediateToFinalFormat( const char *filenameIn, const char *filenameOut )
@@ -329,7 +324,7 @@ BwtReaderBase *BCRexternalBWT::instantiateBwtReaderForLastCycle( const char *fil
 }
 
 
-int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtParameters *bwtParams )
+int BCRexternalBWT::buildBCR( const string &file1, const string &fileOut, const BwtParameters *bwtParams )
 {
 #ifdef _OPENMP
     //    if ( bwtParams->getValue( PARAMETER_PARALLEL_PROCESSING ) != PARALLEL_PROCESSING_OFF )
@@ -355,13 +350,13 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
         TmpFilename cycFilesPrefix2( fileOut ); // "move" filename to temp directory
         cycFilesPrefix = cycFilesPrefix2.str();
         FILE *f;
-        if ( strcmp( file1, "-" ) == 0 )
+        if ( file1 == "-" )
             f = stdin;
         else
-            f = fopen( file1, "rb" );
+            f = fopen( file1.c_str(), "rb" );
         SeqReaderFile *pReader( SeqReaderFile::getReader( f ) );
         transp.init( pReader, readQualities );
-        transp.convert( file1, cycFilesPrefix );
+        transp.convert( cycFilesPrefix );
         delete pReader;
         if ( f != stdin )
             fclose( f );
@@ -742,6 +737,7 @@ int BCRexternalBWT::buildBCR( char const *file1, char const *fileOut, const BwtP
 
     // to delete those:
     delete [] newSymb;
+    delete [] nextSymb;
     // vectTriple.~vector<sortElement>();
     /*
       delete [] seqN;
@@ -1336,12 +1332,10 @@ void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, Sequence
 
     LetterCount counters;
 
-    LetterNumber toRead = 0;
     //Find the positions of the new symbols
     SequenceNumber j = startIndex;
 
     BwtReaderBase *pReader( NULL );
-    sortElement newVectTripleItem;
 
     counters.clear();
 
@@ -1374,6 +1368,7 @@ void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, Sequence
 
     if ( j < endIndex )
     {
+        sortElement newVectTripleItem;
         //    BwtReader reader(filename.str().c_str());
 
         SequenceNumber k = j;
@@ -1394,7 +1389,7 @@ void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, Sequence
             foundSymbol = '\0';
 
             //cont is the number of symbols already read!
-            toRead = vectTriple[k].posN - cont;
+            LetterNumber toRead = vectTriple[k].posN - cont;
             if ( toRead > 0 )
             {
                 Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "toRead: " << toRead << endl;
@@ -1679,12 +1674,6 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
     const bool generateCycleQualities = ( bwtParams_->getValue( PARAMETER_GENERATE_CYCLE_QUAL ) != GENERATE_CYCLE_QUAL_OFF );
     const bool isCycleBwtPBE = ( bwtParams_->getValue( PARAMETER_GENERATE_CYCLE_BWT ) == GENERATE_CYCLE_BWT_PBE );
 
-    BwtReaderBase *pReader( NULL );
-    BwtWriterBase *pWriter( NULL );
-    BwtReaderBase *pQualReader( NULL );
-    BwtWriterBase *pQualWriter( NULL );
-    BwtWriterBase *pWriterPredictionBasedEncoding( NULL );
-    BwtWriterBase *pQualWriterPredictionBasedEncoding( NULL );
     PredictionStatistics predictionStatistics;
 
     // If there are no letters to add at the last cycle, still process it
@@ -1706,45 +1695,43 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
         TmpFilename filenameIn( "", currentPile, "" );
         TmpFilename filenameOut( "new_", currentPile, "" );
 
-        if ( pReader != NULL ) delete pReader;
-        if ( pWriter != NULL ) delete pWriter;
-
         assert( currentPile > 0 ); // I removed the special case for pile 0
-        pReader = instantiateBwtReaderForIntermediateCycle( filenameIn, true );
+        unique_ptr<BwtReaderBase> pReader( instantiateBwtReaderForIntermediateCycle( filenameIn, true ) );
+        unique_ptr<BwtWriterBase> pWriter;
         if ( debugCycle < lengthRead )
         {
-            pWriter = instantiateBwtWriterForIntermediateCycle( filenameOut );
+            pWriter.reset( instantiateBwtWriterForIntermediateCycle( filenameOut ) );
         }
         else
         {
-            pWriter = instantiateBwtWriterForLastCycle( filenameOut );
+            pWriter.reset( instantiateBwtWriterForLastCycle( filenameOut ) );
         }
         assert( pReader != NULL );
         assert( pWriter != NULL );
 
 
+        unique_ptr<BwtReaderBase> pQualReader;
+        unique_ptr<BwtWriterBase> pQualWriter;
         if ( permuteQualities )
         {
-            if ( pQualReader != NULL ) delete pQualReader;
-            if ( pQualWriter != NULL ) delete pQualWriter;
             TmpFilename filenameQualIn( "", currentPile, ".qual" );
             TmpFilename filenameQualOut( "new_", currentPile, ".qual" );
-            pQualReader = new BwtReaderASCII( filenameQualIn );
-            pQualWriter = new BwtWriterASCII( filenameQualOut );
+            pQualReader.reset( new BwtReaderASCII( filenameQualIn ) );
+            pQualWriter.reset( new BwtWriterASCII( filenameQualOut ) );
         }
 
+        unique_ptr<BwtWriterBase> pWriterPredictionBasedEncoding;
+        unique_ptr<BwtWriterBase> pQualWriterPredictionBasedEncoding;
         if ( generateCycleBwt )
         {
             Filename pbeFilenameOut( "cycle", debugCycle, "_pile", currentPile, isCycleBwtPBE ? ".pbe" : ".ascii" );
-            if ( pWriterPredictionBasedEncoding != NULL ) delete pWriterPredictionBasedEncoding;
-            pWriterPredictionBasedEncoding = new BwtWriterASCII( pbeFilenameOut );
+            pWriterPredictionBasedEncoding.reset( new BwtWriterASCII( pbeFilenameOut ) );
         }
 
         if ( generateCycleQualities )
         {
             Filename pbeFilenameQualOut( "cycle", debugCycle, "_pile", currentPile, ".pbe.qual" );
-            if ( pQualWriterPredictionBasedEncoding != NULL ) delete pQualWriterPredictionBasedEncoding;
-            pQualWriterPredictionBasedEncoding = new BwtWriterASCII( pbeFilenameQualOut );
+            pQualWriterPredictionBasedEncoding.reset( new BwtWriterASCII( pbeFilenameQualOut ) );
         }
 
         //For each new symbol in the same pile
@@ -1846,29 +1833,6 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
         j = k;
     }
 
-    delete pReader;
-    pReader = NULL; // %%%
-    delete pWriter;
-    pWriter = NULL; // %%%
-    if ( permuteQualities )
-    {
-        delete pQualReader;
-        pQualReader = NULL;
-        delete pQualWriter;
-        pQualWriter = NULL;
-    }
-
-    if ( pWriterPredictionBasedEncoding )
-    {
-        delete pWriterPredictionBasedEncoding;
-        pWriterPredictionBasedEncoding = NULL;
-    }
-    if ( pQualWriterPredictionBasedEncoding )
-    {
-        delete pQualWriterPredictionBasedEncoding;
-        pWriterPredictionBasedEncoding = NULL;
-    }
-
     if ( generateCycleQualities )
     {
         Filename pbeStatsFilename( "cycle", debugCycle, "_pile", currentPile, ".pbe.qual.stats" );
@@ -1876,7 +1840,7 @@ void BCRexternalBWT::storeBWT_parallelPile( uchar const *newSymb, uchar const *n
     }
 }
 
-void BCRexternalBWT::storeEntireBWT( const char *fn )
+void BCRexternalBWT::storeEntireBWT( const string &fn )
 {
 
     LetterNumber numchar = 0;
@@ -1888,7 +1852,7 @@ void BCRexternalBWT::storeEntireBWT( const char *fn )
     for ( unsigned i = 0; i < 255; ++i )
         freqOut[i] = 0;
 
-    FILE *OutFileBWT = fopen( fn, "wb" );
+    FILE *OutFileBWT = fopen( fn.c_str(), "wb" );
     if ( OutFileBWT == NULL )
     {
         cerr << "storeEntireBWT: Error opening " << endl;
@@ -1960,7 +1924,7 @@ void BCRexternalBWT::storeEntireBWT( const char *fn )
     if ( verboseEncode == 1 )
     {
         cerr << "\nThe Entire BWT:" << endl;
-        OutFileBWT = fopen( fn, "rb" );
+        OutFileBWT = fopen( fn.c_str(), "rb" );
         if ( OutFileBWT == NULL )
         {
             cerr << "storeEntireBWT: Error opening " << endl;
@@ -2896,7 +2860,7 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
     delete [] bufferLCP;
 }
 
-void BCRexternalBWT::storeEntireLCP( const char *fn )
+void BCRexternalBWT::storeEntireLCP( const string &fn )
 {
     assert( false && "TODO" );
 }
@@ -2972,7 +2936,7 @@ void BCRexternalBWT::writeEndPosFile( const uint8_t subSequenceNum, const bool l
     LetterNumber cont = 0;
     LetterCount counters;
     int currentPile = 0;
-    BwtReaderBase *pReader = NULL;
+    unique_ptr<BwtReaderBase> pReader;
     for ( SequenceNumber i = 0; i < nText; i++ )
     {
         while ( currentPile != vectTriple[i].pileN )
@@ -2995,7 +2959,7 @@ void BCRexternalBWT::writeEndPosFile( const uint8_t subSequenceNum, const bool l
 
             // open next bwt file
             TmpFilename filenameIn( "", currentPile, "" );
-            pReader = instantiateBwtReaderForLastCycle( filenameIn );
+            pReader.reset( instantiateBwtReaderForLastCycle( filenameIn ) );
             cont = 0;
         }
 

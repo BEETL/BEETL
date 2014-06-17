@@ -25,6 +25,9 @@
 using std::string;
 
 
+namespace BeetlAlignParameters
+{
+
 // options: input format
 
 enum ReadsFormat
@@ -74,11 +77,16 @@ enum AlignmentParameterIds
     PARAMETER_TRIM_CORRECTED_READS
 };
 
+} // namespace BeetlAlignParameters
+
+
+
 class AlignmentParameters : public ToolParameters
 {
 public:
     AlignmentParameters()
     {
+        using namespace BeetlAlignParameters;
         addEntry( PARAMETER_INPUT_READS_FILE , "input reads file", "--input-reads", "-i", "Original reads file", "", TYPE_STRING | REQUIRED );
         addEntry( PARAMETER_INPUT_READS_FORMAT , "input reads format", "--input-reads-format", "", "Original reads format", "", TYPE_CHOICE | REQUIRED, formatLabels );
         addEntry( PARAMETER_OUTPUT_READS_FORMAT , "output reads format", "--output-reads-format", "", "Output reads format", "", TYPE_CHOICE | REQUIRED, formatLabels );

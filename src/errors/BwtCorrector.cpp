@@ -57,6 +57,7 @@ int BwtCorrector::getMinSupport( int cycle )
 
 ErrorStore BwtCorrector::findErrors()
 {
+    const bool propagateSequence = false;//( compareParams_ ? ( *compareParams_ )["propagate sequence"] : false );
     ErrorStore result;
 
     Timer  timer;
@@ -77,7 +78,7 @@ ErrorStore BwtCorrector::findErrors()
         fileNameSS << indexPrefix_ << "-B0" << i;
         string fileName = fileNameSS.str().c_str();
         if ( compressIntermediateBwts == true )
-            inBwt[i] = new BwtReaderRunLengthIndex( fileName );
+            inBwt[i] = new BwtReaderRunLengthIndex( fileName, correctorParams_->getStringValue( "use shm" ) );
         else
             inBwt[i] = new BwtReaderASCII( fileName );
         inBwt[i]->  readAndCount( countsPerPile[i] );
@@ -90,22 +91,20 @@ ErrorStore BwtCorrector::findErrors()
 
     countsCumulative.print();
 
-    string thisWord;
-
+    string currentWord = "xx";
     for ( int i( 1 ); i < alphabetSize; ++i )
     {
+        if ( propagateSequence )
+            currentWord[1] = alphabet[i];
         for ( int j( 1 ); j < alphabetSize; ++j )
         {
-#ifdef PROPAGATE_SEQUENCE
-            thisWord.clear();
-            thisWord += alphabet[j];
-            thisWord += alphabet[i];
-#endif
+            if ( propagateSequence )
+                currentWord[0] = alphabet[j];
 
             if ( countsPerPile[i].count_[j] != 0 )
                 r.addRange(
                     ErrorCorrectionRange(
-                        thisWord,
+                        currentWord,
                         countsCumulative[i - 1].count_[j],
                         countsPerPile[i].count_[j],
                         false
@@ -135,15 +134,14 @@ ErrorStore BwtCorrector::findErrors()
             Logger::out() << "   usage: " << timer << endl;
         }
 
-#ifdef PROPAGATE_SEQUENCE
-        thisWord.resize( c + 3 );
-#endif
         numRanges = 0;
         numSingletonRanges = 0;
         r.setCycleNum( c + 1 );
 
         for ( int i( 1 ); i < alphabetSize; ++i )
         {
+            string thisWord( c + 3, 'x' );
+
             inBwt[i]->rewindFile();
             currentPos = 0;
             countsSoFar.clear();
@@ -170,8 +168,10 @@ ErrorStore BwtCorrector::findErrors()
                     //                    numCycles,
                     subset_,
                     c + 2,
-                    true,
-                    true // skip-already-processed-intervals deactivated
+                    false, // doesn't propagate to end of reads
+                    true, // skip-already-processed-intervals deactivated
+                    propagateSequence,
+                    endPosFile_
                 );
 
                 BwtCorrectorIntervalHandler intervalHandler( result, minWitnessLength_, minimumSupport, c + 2 );

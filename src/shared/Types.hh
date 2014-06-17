@@ -53,8 +53,8 @@ const LetterNumber matchFlag( ( ( LetterNumber )1 ) << ( ( 8 * sizeof( LetterNum
 const LetterNumber matchMask( ~matchFlag );
 
 // For Metagenomics
-const string taxLevelNames[] = {"superkingdom", "phylum", "class", "order", "family", "genus", "species", "strain"};
-const uint taxLevelSize = 8;
+const string taxLevelNames[] = {"superkingdom", "phylum", "class", "order", "family", "genus", "species", "subspecies", "unnamed rank 9", "unnamed rank 10", "unnamed rank 11"};
+const uint taxLevelSize = 11;
 typedef uint32_t MetagFileNumRefType;
 
 // For generalized suffix array (GSA): Definition of each element

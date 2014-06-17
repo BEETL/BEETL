@@ -22,9 +22,6 @@
 
 #include <fcntl.h>
 #include <map>
-#include <sstream>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 using namespace std;
 
@@ -414,14 +411,12 @@ void IntervalHandlerMetagenome::foundInBoth
             isBreakpointDetected = true;
             #pragma omp critical (IO)
             {
+                Logger::out() << "BKPT ";
+                if ( thisRangeB.word_.empty() )
+                    Logger::out() << alphabet[pileNum] << string( cycle - 1, 'x' ); // No propagated sequence => Print what we know of the sequence
+                else
+                    Logger::out() << thisRangeB.word_;
                 Logger::out()
-                        << "BKPT"
-#ifdef PROPAGATE_SEQUENCE
-                        << ' ' << thisRangeB.word_
-#else
-                        // Print what we know of the sequence
-                        << ' ' << alphabet[pileNum] << string( cycle - 1, 'x' )
-#endif
                         << ' ' << countsThisRangeA.count_[0]
                         << ':' << countsThisRangeA.count_[1]
                         << ':' << countsThisRangeA.count_[2]
@@ -444,7 +439,7 @@ void IntervalHandlerMetagenome::foundInBoth
         bool maxLengthReached = ( cycle >= ( int )maxWordLength_ );
         if ( differentProp || belowMinDepthBecauseOfEndOfReads || maxLengthReached || singletonInRef )
         {
-//#define SIMPLE_OUTPUT_WITHOUT_FILE_NUMBERS
+#define SIMPLE_OUTPUT_WITHOUT_FILE_NUMBERS
 #ifdef SIMPLE_OUTPUT_WITHOUT_FILE_NUMBERS
             outFile_ << "BKPT";
             if ( differentProp )
@@ -457,14 +452,6 @@ void IntervalHandlerMetagenome::foundInBoth
                 outFile_ << "+MAX";
 
             outFile_
-            /*
-            #ifdef PROPAGATE_SEQUENCE
-                                << ' ' << thisRangeB.word_
-            #else
-                        // Print what we know of the sequence
-                                << ' ' << alphabet[pileNum] << string( cycle - 1, 'x' )
-            #endif
-            */
                     << ' ' << pileNum
                     << ' ' << alphabet[pileNum]
                     << ' ' << ( cycle - 1 )
@@ -523,26 +510,26 @@ void IntervalHandlerMetagenome::foundInBoth
                     {
                         //                        if ( !( differentProp || belowMinDepthBecauseOfEndOfReads ) )
                         //                            Logger::out() << "ending"; // == This MTAXA is due to maxLengthReached
-/*
-                        if ( singletonInRef )
-                            outFile_
-                                    << "MTAXA" << cycle
-                                    << ' ' << i
-                                    << ' ' << sharedTaxa[i]
-                                    << ' ' << thisRangeA.num_
-                                    << '\n';
-                        else
-*/
+                        /*
+                                                if ( singletonInRef )
+                                                    outFile_
+                                                            << "MTAXA" << cycle
+                                                            << ' ' << i
+                                                            << ' ' << sharedTaxa[i]
+                                                            << ' ' << thisRangeA.num_
+                                                            << '\n';
+                                                else
+                        */
                         {
                             outFile_
                                     << "MTAXA " << i
                                     << ' ' << sharedTaxa[i]
-#ifdef PROPAGATE_SEQUENCE
-                                    << ' ' << thisRangeB.word_
-#else
-                                    // Print what we know of the sequence, as downstream tool 'parseMetagenomeOutput' is just using first char and length of this string
-                                    << ' ' << alphabet[pileNum] << string( cycle - 1, 'x' )
-#endif
+                                    << ' ';
+                            if ( thisRangeB.word_.empty() )
+                                outFile_ << alphabet[pileNum] << string( cycle - 1, 'x' ); // No propagated sequence => Print what we know of the sequence, as downstream tool 'parseMetagenomeOutput' is just using first char and length of this string
+                            else
+                                outFile_ << thisRangeB.word_;
+                            outFile_
                                     << ' ' << ( thisRangeB.pos_ & matchMask )
                                     << ' ' << countsThisRangeA.count_[0]
                                     << ':' << countsThisRangeA.count_[1]
@@ -717,21 +704,4 @@ void IntervalHandlerMetagenome::foundInAOnly
 
     for ( int l( 0 ); l < alphabetSize; l++ )
         propagateIntervalA[l] = false;
-}
-
-void IntervalHandlerMetagenome::createOutputFile( const int subsetThreadNum, const int i, const int j, const int cycle )
-{
-    mkdir( "metaBeetl.out", 0750 );
-#define CONCATENATE_J_PILES
-    if ( cycle >= ( int )minWordLength_ )
-    {
-        ostringstream filename;
-#ifdef CONCATENATE_J_PILES
-        filename << "metaBeetl.out/cycle" << cycle << ".subset" << subsetThreadNum << "." << i;
-        outFile_.open( filename.str(), ( j == 1 ) ? ios::out : ios::app );
-#else
-        filename << "metaBeetl.out/cycle" << cycle << ".subset" << subsetThreadNum << "." << i << "." << j;
-        outFile_.open( filename.str() );
-#endif
-    }
 }

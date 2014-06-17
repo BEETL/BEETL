@@ -31,7 +31,8 @@ public:
                        int minOcc, const int maxLength, const string &subset, const int cycle,
                        const bool doesPropagateBkptToSeqNumInSetA,
                        const bool doesPropagateBkptToSeqNumInSetB,
-                       const bool noComparisonSkip );
+                       const bool noComparisonSkip,
+                       const bool propagateSequence );
 
 
     void process (

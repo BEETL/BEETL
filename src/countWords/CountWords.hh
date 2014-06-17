@@ -41,7 +41,7 @@ class CountWords : public Algorithm
 
 public:
     CountWords( bool, bool, char, int, int, const vector<string> &, const vector<string> &
-                , const vector<string> &, const string &, bool testDB, uint minWord, string prefix, string subset
+                , const vector<string> &, const string &, bool testDB, uint minWord, string subset
                 , const CompareParameters *compareParams = NULL
               );
 
@@ -80,8 +80,6 @@ private:
     string ncbiInfo_;
     //Christina: added a minimal word length for the output else the parsing of the results takes to long for my liking
     uint minWordLen_;
-    // Prefix for temp output files
-    string tmpPrefix_;
     //for each fileNumber there should be the same amount of taxIds, this can stop at any level it will be filled up with zeros
     vector< vector< int> > fileNumToTaxIds_;
     //
@@ -92,12 +90,14 @@ private:
     const string subset_; // Compute only the results that have this string as a suffix' suffix
     const CompareParameters *compareParams_;
 
-    // Switches
+    // Switches and parameters
     const bool doPauseBetweenCycles_;
     const bool doesPropagateBkptToSeqNumInSetA_;
     const bool doesPropagateBkptToSeqNumInSetB_;
     bool noComparisonSkip_;
     const bool bwtInRam_;
+    const bool propagateSequence_;
+    const string outputDirectory_;
 
     // Used for computations
     vector <BwtReaderBase *> inBwtA_;
@@ -108,7 +108,6 @@ private:
     LetterNumber numNotSkippedB_;
     LetterNumber numSkippedA_;
     LetterNumber numSkippedB_;
-    string currentWord_; // only used if PROPAGATE_SEQUENCE is active
     LetterCountEachPile countsCumulativeA_;
     LetterCountEachPile countsCumulativeB_;
     double fsizeRatio_;

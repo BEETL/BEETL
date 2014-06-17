@@ -99,8 +99,8 @@ struct IntervalHandlerMetagenome : public IntervalHandlerBase
     uint minWordLength_;
     uint maxWordLength_;
 
-    void createOutputFile( const int subsetThreadNum, const int i, const int j, const int cycle );
-    std::ofstream outFile_;
+    //    void createOutputFile( const int subsetThreadNum, const int i, const int j, const int cycle );
+    //    std::ofstream outFile_;
 };
 
 

@@ -41,9 +41,9 @@ public:
         bool rleBWT
     );
     virtual ~WitnessReader();
-    int currentWitnessCount();
+    int currentWitnessCount() const;
     LetterCount TotalCountSoFar();
-    int currentWitnessBlockStart();
+    int currentWitnessBlockStart() const;
     LetterCount currentWitnessSupport();
     bool nextWitnessBlock( LetterCount &lc );
     void test();

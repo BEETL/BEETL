@@ -41,7 +41,7 @@ int main ( int argc, char *argv[] )
 
         cerr << "This script takes an array of fasta files and a saving directory. This is the first step in generating a metagenome database for count words." << endl
              << "For each fasta file two single sequence files will be saved. One with the singe sequence from the file and one with the reverse complement. " << endl
-             << "Plasmids will be omited through a header search. " << endl
+             << "Plasmids and transposons will be omitted through a header search. " << endl
              << "Additional a file with the name headerFile.cvs will be created. There all new file numbers will be connected with their fasta header" << endl << endl ;
 
 
@@ -117,7 +117,7 @@ void createSingeSeqFilesPlusReference( const vector<string> &fileNames, const st
                 cout << "header " << name << endl;
             }
         }
-        if ( name.find( "plasmid" ) == string::npos )
+        if ( name.find( "plasmid" ) == string::npos && name.find( "transposon" ) == string::npos )
         {
             ofstream genomeOut;
             genomeOut.open( genomeOutFile.c_str(), ios::out );

@@ -27,26 +27,13 @@ using SXSI::BWTCollection;
 #define BCR_ID "$Id: BCR_BWTCollection.cpp,v 1.6 2011/11/28 16:38:32 acox Exp $"
 
 
-BCR::BCR( int mode, string in, string out,
-          CompressionFormatType outputCompression ) :
+BCR::BCR( const int mode, const string &in, const string &out,
+          const CompressionFormatType outputCompression ) :
     mode_( mode ),
     outputCompression_( outputCompression )
 {
-    // get memory allocated
-
-    inFile_ = new char[in.length() + 1];
-    outFile_ = new char[out.length() + 1];
-
-    // copy to char * in order to get valid c strings
-    in.copy( inFile_, in.length() );
-    out.copy( outFile_, out.length() );
-
-    // append \0 to obtain a valid escaped c string
-    inFile_[in.length()] = '\0';
-    outFile_[out.length()] = '\0';
-
-    // set mode
-    //    mode_ = mode;
+    inFile_ = in;
+    outFile_ = out;
 }
 
 void BCR::run( void )

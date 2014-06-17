@@ -19,6 +19,8 @@
 
 #include "libzoo/util/Logger.hh"
 
+#include <cstring>
+
 using namespace std;
 
 
@@ -136,9 +138,7 @@ bool Range::readFrom( TemporaryFile *pFile, RangeState &currentState )
 
     /*
             Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "got range: " << fileStemIn_
-#ifdef PROPAGATE_SEQUENCE
                     << " " << thisRange.word_
-#endif
                     << " " << thisRange.pos_
                     << " " << thisRange.num_ << " " << thisRange.isBkptExtension_ << endl;
     */
@@ -160,7 +160,7 @@ void Range::prettyPrint( ostream &os ) const
     os << "}";
 }
 
-RangeState::RangeState() : pFile_( NULL )
+RangeState::RangeState( const bool propagateSequence ) : pFile_( NULL ), propagateSequence_( propagateSequence )
 {
     clear();
 }
@@ -174,23 +174,25 @@ void RangeState::clear( void )
     lastProcessedPos_ = 0;
 #endif
 
-#ifdef PROPAGATE_SEQUENCE
-    wordLast_[0] = notInAlphabet;
-    wordLast_[1] = '\0';
-#endif //ifdef PROPAGATE_SEQUENCE
+    if ( propagateSequence_ )
+    {
+        wordLast_ = "x";
+        wordLast_[0] = notInAlphabet;
+        //        wordLast_[1] = '\0';
+    }
 } // ~clear
 
-#ifdef PROPAGATE_SEQUENCE
+
 void RangeState::addSeq( const string &seq )
 {
-    //#define COMPRESS_SEQ
+#define COMPRESS_SEQ
 #ifdef COMPRESS_SEQ
     if ( wordLast_[0] != notInAlphabet )
     {
         const char *pSeq( seq.c_str() );
         assert( seq.size() < 65536 );
         uint16_t pSeqLen = seq.size();
-        char *pLast( wordLast_ );
+        const char *pLast( wordLast_.c_str() );
         while ( *pSeq == *pLast && pSeqLen > 0 )
         {
             ++pSeq;
@@ -202,7 +204,7 @@ void RangeState::addSeq( const string &seq )
         fwrite( &pSeqLen, sizeof( uint16_t ), 1, pFile_ );
         fwrite( pSeq, pSeqLen, 1, pFile_ );
 
-        strcpy( pLast, pSeq );
+        strcpy( ( char * )pLast, pSeq );
     }
     else
     {
@@ -214,7 +216,7 @@ void RangeState::addSeq( const string &seq )
         fwrite( seq.c_str(), seqLen, 1, pFile_ );
 
 #ifdef COMPRESS_SEQ
-        strcpy( wordLast_, seq.c_str() );
+        wordLast_ = seq;
     }
 #endif //ifdef COMPRESS_SEQ
 }
@@ -225,17 +227,20 @@ void RangeState::getSeq( string &word )
     if ( wordLast_[0] != notInAlphabet )
     {
         Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "FF " << word;
-        word = wordLast_;
-        unsigned int wordLen = strlen( wordLast_ ); //word.size();
+        //        word = wordLast_;
+        unsigned int wordLen = wordLast_.size(); //strlen( wordLast_ ); //word.size();
 
         uint16_t seqLen;
         fread( &seqLen, sizeof( uint16_t ), 1, pFile_ );
         assert( seqLen < 256 );
         assert( seqLen <= wordLen );
-        if ( seqLen == 0 || fread( wordLast_ + ( wordLen - seqLen ), seqLen, 1, pFile_ ) != 1 )
+        if ( seqLen > 0 )
         {
-            cerr << "Could not get valid data from file. Aborting." << endl;
-            exit( -1 );
+            if ( fread( ( char * )( wordLast_.c_str() ) + ( wordLen - seqLen ), seqLen, 1, pFile_ ) != 1 )
+            {
+                cerr << "Could not get valid data from file. Aborting." << endl;
+                exit( -1 );
+            }
         }
         //        wordLast_[ seqLen ] = 0;
 
@@ -253,7 +258,8 @@ void RangeState::getSeq( string &word )
         uint16_t seqLen;
         fread( &seqLen, sizeof( uint16_t ), 1, pFile_ );
         assert( seqLen < 256 );
-        if ( fread( wordLast_, seqLen, 1, pFile_ ) != 1 )
+        wordLast_.resize( seqLen );
+        if ( fread( ( char * )( wordLast_.c_str() ), seqLen, 1, pFile_ ) != 1 )
         {
             cerr << "Could not get valid data from file. Aborting." << endl;
             exit( -1 );
@@ -263,14 +269,15 @@ void RangeState::getSeq( string &word )
         word = wordLast_;
     }
 }
-#endif //ifdef PROPAGATE_SEQUENCE
+
 
 RangeState &RangeState::operator<<( const Range &r )
 {
     r.writeTo( pFile_, *this );
-#ifdef PROPAGATE_SEQUENCE
-    addSeq( r.word_ );
-#endif
+    if ( propagateSequence_ )
+    {
+        addSeq( r.word_ );
+    }
     return *this;
 }
 
@@ -279,9 +286,10 @@ RangeState &RangeState::operator>>( Range &r )
 {
     if ( r.readFrom( pFile_, *this ) )
     {
-#ifdef PROPAGATE_SEQUENCE
-        getSeq( r.word_ );
-#endif
+        if ( propagateSequence_ )
+        {
+            getSeq( r.word_ );
+        }
     }
     /*
         else

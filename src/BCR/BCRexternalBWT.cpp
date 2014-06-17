@@ -50,20 +50,21 @@ using SXSI::BWTCollection;
 /**
  * Constructor inits
  */
-BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, CompressionFormatType outputCompression, ToolParameters *toolParams )
-    : toolParams_( toolParams )
+BCRexternalBWT::BCRexternalBWT ( const string &file1, const string &fileOutput, const int mode, const CompressionFormatType outputCompression, ToolParameters *toolParams )
+    : toolParams_( toolParams, emptyDeleter() )
     , bwtParams_( 0 )
     , unbwtParams_( 0 )
+    , searchParams_( 0 )
 {
     const char *intermediateCycFiles = "cyc.";
     if ( mode == 0 )
     {
         using namespace BeetlBwtParameters;
-        bwtParams_ = dynamic_cast<BwtParameters *>( toolParams_ );
-        if ( bwtParams_ == NULL )
+        bwtParams_ = dynamic_pointer_cast<BwtParameters>( toolParams_ );
+        if ( !bwtParams_ )
         {
             // Legacy mode: old code provides only outputCompression. We create a BwtParameters structure to let it work.
-            bwtParams_ = new BwtParameters;
+            bwtParams_.reset( new BwtParameters );
             switch ( outputCompression )
             {
                 case compressionASCII:
@@ -106,7 +107,7 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
             remove( fileEndPos );
         }
 
-        int result = buildBCR( file1, intermediateCycFiles, bwtParams_ );
+        int result = buildBCR( file1, intermediateCycFiles, bwtParams_.get() );
         checkIfNotEqual( result, 0 );
         bool hasProcessedQualities = ( result == 2 );
 
@@ -124,8 +125,8 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
         //Do we want compute the extended suffix array (position and number of sequence)?
         if ( BUILD_SA == 1 )  //To store the SA
         {
-            storeEntirePairSA( fileOutput );
-            storeEntireSAfromPairSA( fileOutput );
+            storeEntirePairSA( fileOutput.c_str() );
+            storeEntireSAfromPairSA( fileOutput.c_str() );
         }
 
         if ( verboseEncode == 1 )
@@ -138,7 +139,7 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
                 TmpFilename fnLCP(      fileOutput, ".lcp" );
                 Filename fileOutRes( fileOutput, ".txt" );
 
-                FILE *InFileBWT = fopen( fileOutput, "rb" );
+                FILE *InFileBWT = fopen( fileOutput.c_str(), "rb" );
                 if ( InFileBWT == NULL )
                 {
                     std::cerr << "Entire BWT file: Error opening "  << fileOutput << std::endl;
@@ -297,28 +298,28 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
     else if ( mode == 1 )
     {
         using namespace BeetlUnbwtParameters;
-        unbwtParams_ = dynamic_cast<UnbwtParameters *>( toolParams );
+        unbwtParams_ = dynamic_pointer_cast<UnbwtParameters>( toolParams_ );
         if ( unbwtParams_ == NULL )
         {
             // Legacy mode: old code was set using #defines. We create a BwtParameters structure to reflect the default values.
-            unbwtParams_ = new UnbwtParameters;
+            unbwtParams_.reset( new UnbwtParameters );
             ( *unbwtParams_ )[PARAMETER_DECODE_DIRECTION] = DECODE_DIRECTION_BACKWARD;
             ( *unbwtParams_ )[PARAMETER_USE_VECTOR] = USE_VECTOR_ON;
         }
 
         std::cerr << "Start BCR decode\n";
         const char *fileOutBwt = "";
-        int result = unbuildBCR( file1, fileOutBwt, intermediateCycFiles, fileOutput );
+        int result = unbuildBCR( file1.c_str(), fileOutBwt, intermediateCycFiles, fileOutput.c_str() );
         checkIfEqual( result, 1 );
     }
     else if ( mode == 2 )
     {
         using namespace BeetlSearchParameters;
-        searchParams_ = dynamic_cast<SearchParameters *>( toolParams );
+        searchParams_ = dynamic_pointer_cast<SearchParameters>( toolParams_ );
         if ( searchParams_ == NULL )
         {
             // Legacy mode: old code was set using #defines. We create a BwtParameters structure to reflect the default values.
-            searchParams_ = new SearchParameters;
+            searchParams_.reset( new SearchParameters );
         }
 
         std::cerr << "Start Locate Function:\n";
@@ -356,7 +357,7 @@ BCRexternalBWT::BCRexternalBWT ( char *file1, char *fileOutput, int mode, Compre
 
 
         vector <int> seqID;
-        int result = SearchAndLocateKmer( file1, fileOutBwt, intermediateCycFiles, kmers, lenKmer, seqID );
+        int result = SearchAndLocateKmer( file1.c_str(), fileOutBwt, intermediateCycFiles, kmers, lenKmer, seqID );
         checkIfEqual( result, 1 );
         std::cerr << "\nBCRexternalBWT: We have located all kmers, Now we store the positions of the found kmers" << endl;
         if ( seqID.empty() )
@@ -713,7 +714,7 @@ LetterNumber BCRexternalBWT::rankManySymbolsByVector( FILE &InFileBWT, LetterNum
 {
     const LetterNumber offset = toRead;
     LetterNumber numchar, count = 0; //count is the number of symbols already read!
-    uchar *bufferBlock = new uchar[DIMBLOCK];
+    static uchar *bufferBlock = new uchar[DIMBLOCK];
 
     //it reads toRead symbols from the fp file (Partial BWT)
     while ( toRead > 0 )            //((numchar!=0) && (toRead > 0)) {
@@ -747,7 +748,7 @@ LetterNumber BCRexternalBWT::rankManySymbolsByVector( FILE &InFileBWT, LetterNum
             exit ( EXIT_FAILURE );
         }
     }
-    delete [] bufferBlock;
+    //    delete [] bufferBlock;
 
     if ( foundQual )
     {
@@ -1336,11 +1337,12 @@ int BCRexternalBWT::computeVectorUnbuildBCR( char const *file1, char const *file
             vectorOcc[x][y].resize( numBlocksInPartialBWT[x], 0 );
     }
 
-    uchar *bufBlock = new uchar[DIMBLOCK];
 
 
+    #pragma omp parallel for
     for ( AlphabetSymbol x = 0 ; x < sizeAlpha; x++ )   //For each BWT-partial
     {
+        vector< uchar > bufBlock( DIMBLOCK );
         Filename newfilename( file1, "-B0", x, "" );
 
         FILE *InFileBWT = fopen( newfilename, "rb" );
@@ -1353,7 +1355,7 @@ int BCRexternalBWT::computeVectorUnbuildBCR( char const *file1, char const *file
         LetterNumber numBlock = 0;
         while ( !feof( InFileBWT ) && ( numBlock < numBlocksInPartialBWT[x] ) ) //Added check on numBlocks
         {
-            SequenceLength num_read = fread( bufBlock, sizeof( uchar ), DIMBLOCK, InFileBWT );
+            SequenceLength num_read = fread( bufBlock.data(), sizeof( uchar ), DIMBLOCK, InFileBWT );
             for ( SequenceLength i = 0; i < num_read; i++ )
             {
                 vectorOcc[x][alpha[( int )( bufBlock[i] )]][numBlock]++;
@@ -1367,7 +1369,6 @@ int BCRexternalBWT::computeVectorUnbuildBCR( char const *file1, char const *file
                 vectorOcc[x][z][y] = vectorOcc[x][z][y - 1] + vectorOcc[x][z][y]; //Sum the previous one: ie Blcok y and block y-1
     }
 
-    delete [] bufBlock;
     /*
     #ifdef DEBUG
         for (AlphabetSymbol x = 0 ; x < sizeAlpha; x++) {
@@ -1441,10 +1442,12 @@ int BCRexternalBWT::initializeUnbuildBCR( char const *file1, char const *fileOut
         for ( AlphabetSymbol h = 0 ; h < sizeAlpha; h++ )
             tableOcc[j][h] = 0;
 
-    uchar *buf = new uchar[SIZEBUFFER];
 
+    LetterNumber lengthTotPlusEof = 0;
+    #pragma omp parallel for reduction(+:lengthTotPlusEof)
     for ( AlphabetSymbol g = 0 ; g < sizeAlpha; g++ )
     {
+        vector< uchar > buf( SIZEBUFFER );
         Filename newfilename( file1, "-B0", g, "" );
 
         FILE *InFileBWT = fopen( newfilename, "rb" );
@@ -1456,15 +1459,16 @@ int BCRexternalBWT::initializeUnbuildBCR( char const *file1, char const *fileOut
 
         while ( !feof( InFileBWT ) )
         {
-            SequenceLength num_read = fread( buf, sizeof( uchar ), SIZEBUFFER, InFileBWT );
+            SequenceLength num_read = fread( buf.data(), sizeof( uchar ), SIZEBUFFER, InFileBWT );
             for ( SequenceLength i = 0; i < num_read; i++ )
             {
                 tableOcc[g][alpha[( int )( buf[i] )]]++;
             }
-            lengthTot_plus_eof += num_read;
+            lengthTotPlusEof += num_read;
         }
         fclose( InFileBWT );
     }
+    lengthTot_plus_eof = lengthTotPlusEof;
 
     nText = 0;
     for ( AlphabetSymbol g = 0 ; g < sizeAlpha; g++ )
@@ -2166,6 +2170,8 @@ int BCRexternalBWT::RecoverNsymbolsReverseByVector( char const *file1, char cons
 
     LetterNumber toRead = 0;
     LetterNumber *counters = new LetterNumber[sizeAlpha];  //it counts the number of each symbol into the i-Pile-BWT
+    for ( AlphabetSymbol i = 0 ; i < sizeAlpha; i++ )
+        counters[i] = 0;
     SequenceNumber j = 0;
     while ( j < nText )
     {
@@ -2194,12 +2200,12 @@ int BCRexternalBWT::RecoverNsymbolsReverseByVector( char const *file1, char cons
                 exit ( EXIT_FAILURE );
             }
         }
+        LetterNumber currentReadPos = 0;
+        LetterNumber nextReadPos = 0;
         SequenceNumber k = j;
         //LetterNumber cont = 0;   //number of the read symbols
         uchar foundSymbol, foundQual;
         //SequenceLength lenCheck=0;
-        LetterNumber numberRead = 0;
-        LetterNumber numBlock = 0;
         while ( ( k < nText ) && ( vectTriple[k].pileN == currentPile ) )
         {
             if ( verboseDecode == 1 )
@@ -2216,31 +2222,41 @@ int BCRexternalBWT::RecoverNsymbolsReverseByVector( char const *file1, char cons
             foundQual = '\0';
             //cont is the number of symbols already read!
             //toRead = vectTriple[k].posN - cont;
-            toRead = vectTriple[k].posN;
-            for ( AlphabetSymbol i = 0 ; i < sizeAlpha; i++ )
-                counters[i] = 0;
-            //std::cerr << "toRead is " << toRead << "\n";
-            if ( toRead > 0 )
-            {
-                //we need to know how many occurrences of each symbol there are up to the position toRead.
-                //if ToRead > dimBlock, we can use vectorOcc in order to find the occorrences in the blocks precede the block where the position toRead is.
-                //Before, we need to find the block where toRead position is.
-                int result = findBlockToRead( counters, currentPile, &toRead, &numBlock );
-                checkIfEqual ( result , 1 );
-                //std::cerr << "numBlock: " << numBlock << " toRead " << toRead << "\n";
-            }
+            nextReadPos = toRead = vectTriple[k].posN;
+            // always true: assert( currentReadPos == ftell( InFileBWT ) );
 
-            if ( toRead <= DIMBLOCK )   //If toRead == DIMBLOCK, because I can need to known foundSymbol character
+            if ( toRead > currentReadPos && toRead - currentReadPos < DIMBLOCK )
             {
+                // Next position is close enough to the last one, so that we can avoid to fseek
+                toRead -= currentReadPos;
+            }
+            else
+            {
+                LetterNumber numBlock = 0;
+                for ( AlphabetSymbol i = 0 ; i < sizeAlpha; i++ )
+                    counters[i] = 0;
+                //std::cerr << "toRead is " << toRead << "\n";
+                if ( toRead > 0 )
+                {
+                    //we need to know how many occurrences of each symbol there are up to the position toRead.
+                    //if ToRead > dimBlock, we can use vectorOcc in order to find the occorrences in the blocks precede the block where the position toRead is.
+                    //Before, we need to find the block where toRead position is.
+                    int result = findBlockToRead( counters, currentPile, &toRead, &numBlock );
+                    checkIfEqual ( result , 1 );
+                    //std::cerr << "numBlock: " << numBlock << " toRead " << toRead << "\n";
+                }
+
+                assert ( toRead <= DIMBLOCK );   //If toRead == DIMBLOCK, because I can need to known foundSymbol character
                 //std::cerr << "Move file to the position " << numBlock*DIMBLOCK <<  "\n";
                 fseek ( InFileBWT, numBlock * DIMBLOCK, SEEK_SET );
                 if ( newQual )
                     fseek ( InFileBWTQual, numBlock * DIMBLOCK, SEEK_SET );
-                numberRead = rankManySymbolsByVector( *InFileBWT, counters, toRead, &foundSymbol, newQual ? &foundQual : NULL, InFileBWTQual );
-                //std::cerr << "foundSymbol " << (int)foundSymbol <<  "\n";
-                checkIfEqual ( toRead , numberRead );
-                //cont += numberRead;
             }
+
+            LetterNumber numberRead = rankManySymbolsByVector( *InFileBWT, counters, toRead, &foundSymbol, newQual ? &foundQual : NULL, InFileBWTQual );
+            checkIfEqual ( toRead , numberRead );
+            //std::cerr << "foundSymbol " << (int)foundSymbol <<  "\n";
+            //cont += numberRead;
             /*
                 std::cerr << "counters  after FirstVector:\t";
                 for (AlphabetSymbol i = 0 ; i < sizeAlpha; i++)
@@ -2283,6 +2299,7 @@ int BCRexternalBWT::RecoverNsymbolsReverseByVector( char const *file1, char cons
             if ( verboseDecode == 1 )
                 std::cerr << "Result: j  : Q[q]=" << ( int )vectTriple[k].pileN << " P[q]=" << ( LetterNumber )vectTriple[k].posN <<  " N[q]=" << ( SequenceNumber )vectTriple[k].seqN << std::endl << std::endl;
 
+            currentReadPos = nextReadPos;
             k++;
         }
         fclose( InFileBWT );

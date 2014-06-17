@@ -97,9 +97,7 @@ public:
         const bool hasUserData = false,
         void *userData = NULL
     ) :
-#ifdef PROPAGATE_SEQUENCE
         word_( word ),
-#endif
         pos_( pos ),
         num_( num ),
         isBkptExtension_( isBkptExtension ),
@@ -121,9 +119,7 @@ public:
 
     virtual void clear()
     {
-#ifdef PROPAGATE_SEQUENCE
         word_.clear();
-#endif
         pos_ = 0;
         num_ = 0;
         isBkptExtension_ = 0;
@@ -134,15 +130,22 @@ public:
     virtual bool readFrom( TemporaryFile *pFile, RangeState &currentState );
     virtual void prettyPrint( std::ostream &os ) const;
 
-#ifdef PROPAGATE_SEQUENCE
     string word_;
-#endif
     LetterNumber pos_;
     LetterNumber num_;
     bool isBkptExtension_;
     bool  hasUserData_;
     void *userData_;
 };
+
+inline bool compareRangeByPos( const Range &r1, const Range &r2 )
+{
+    return r1.pos_ < r2.pos_;
+}
+inline bool compareRangeByPosInPair( const std::pair<Range, AlphabetSymbol> &rp1, const std::pair<Range, AlphabetSymbol> &rp2 )
+{
+    return rp1.first.pos_ < rp2.first.pos_;
+}
 
 
 //
@@ -152,7 +155,7 @@ public:
 //
 struct RangeState
 {
-    RangeState();
+    RangeState( const bool propagateSequence );
     void clear( void );
 
     TemporaryFile *pFile_;
@@ -164,13 +167,11 @@ struct RangeState
     RangeState &operator>>( Range & );
     bool good();
 
-#ifdef PROPAGATE_SEQUENCE
 private:
+    bool propagateSequence_;
+    string wordLast_;
     void addSeq( const string &seq );
     void getSeq( string &word );
-
-    char wordLast_[256];
-#endif //ifdef PROPAGATE_SEQUENCE
 };
 
 

@@ -17,6 +17,14 @@ The algorithms employed in BEETL are intended to scale to collections of
 sequences containing one billion entries or more.
 
 
+External dependencies
+---------------------
+
+On a clean Amazon Ubuntu instance, you would need:
+
+    sudo apt-get install unzip g++ zlib1g-dev make
+
+
 Installation
 ------------
 
@@ -24,17 +32,6 @@ Assuming the following paths:
 - /sourcePath : BEETL source code directory
 - /buildPath : temporary build directory 
 - /installPath : final installation directory
-
-If you obtained the source from git:
-
-    cd /sourcePath
-    ./bootstrap_with_autotools
-
-If you have gcc>=4.7, you can activate OpenMP parallelism with:
-
-    export CXXFLAGS="-DUSE_OPENMP -fopenmp"
-
-Then, for everyone:
 
     cd /buildPath
     /sourcePath/configure --prefix=/installPath
@@ -60,7 +57,18 @@ Running `beetl --help` shows a high-level description of each BEETL tool:
 
 ...and more tools:
 
+    beetl-fastq     Index and search FASTQ files
     beetlflow-tumour-normal-filter.sh
+
+
+Paired and reverse-complemented reads
+-------------------------------------
+
+If using paired reads, two input styles can be used:
+- the two reads can be provided in an "all 1 all 2" configuration (rather than interleaved): all reads 1 as a first set, and all reads 2 as a second set, concatenated in one input file. `beetl-bwt --paired-reads-input` can then be used to keep track of this configuration.
+- or each two paired reads can be concatenated as one and `beetl-bwt --sub-sequence-length` will split them.
+
+Reverse-complemented reads are not usually present in the input file, but generated during BWT construction by `beetl-bwt --add-rev-comp`.
 
 
 Examples
@@ -75,7 +83,7 @@ Examples
     beetl-unbwt -i myBWT -o output.fasta
 
 
-### K-mer search in FastQ using BWT
+### K-mer search in FastQ using BWT (bases only, see below for qualities)
 
     # FastQ to BWT
     beetl-bwt -i input.fastq -o bwt --generate-end-pos-file
@@ -91,6 +99,15 @@ Examples
 
     # Extraction of the FastQ lines
     beetl-convert -i input.fastq --extract-sequences=searchedKmers.sequenceNumbers -o sequencesWithSearchedKmers.fastq
+
+
+### K-mer search in FastQ (returning full reads: read ids + bases + quality scores)
+
+    # FastQ conversion
+    beetl-fastq --mode=init -i myFile.fastq -o myIndexedFile
+
+    # K-mer search + extraction of the FastQ lines
+    beetl-fastq --mode=search -i myIndexFile -k ACGT
 
 
 ### Error correction using BWT
@@ -243,14 +260,37 @@ How to create a database of reference genomes for metaBEETL:
      -h singleSeqGenomes/headerFile.csv \
      -f singleSeqGenomes/filecounter.csv \
      > ncbiFileNumToTaxTree
+
+   ( grep scientific downloads/names.dmp ; cat metaBeetlExtraNames.dmp ) > metaBeetlTaxonomyNames.dmp
 ```
 
-8. Link (or move) all the useful files to a final directory  
+8. Run meta-BEETL on each of the genomes to calculate the normalisation factors
+```
+   mkdir normalisation
+   cd normalisation
+   for genome in ../singleSeqGenomes/G_*; do
+      genomeGNum=`basename ${genome}`
+      mkdir ${genomeGNum}
+      cd ${genomeGNum}
+      for i in ../singleSeqGenomes/bwt_${genomeGNum}-B0?; do ln -s ${i} ; done
+      for i in 0 1 2 3 4 5 6; do touch bwt_G_${genomeNum}-B0${i}; done
+      time beetl-compare --mode=metagenomics -a bwt_G_${genomeNum} -b ../../singleSeqGenomes/ncbiMicros -t ../../ncbiFileNumToTaxTree -w 20 -n 1 -k 50 --no-comparison-skip -v &> out.step1
+      rm -f metaBeetl.out/cycle51.subset*
+      time cat metaBeetl.out/cycle*.subset* | convertMetagenomicRangesToTaxa_withoutMmap ../../ncbiFileNumToTaxTree ${workDir}/ncbiMicros ../../metaBeetlTaxonomyNames.dmp 20 50 - &> out.step2
+      cd ..
+   done
+
+   for i in `seq 1 2977`; do echo "G_$i"; X=`grep -P "G_${i}$" /illumina/scratch/BWT/metagenomics/allNucleotides/20131201/filecounter.csv |cut -f 1 -d ','`; TAX=`grep -P "^${X} " /illumina/scratch/BWT/metagenomics/allNucleotides/20131201/ncbiFileNumToTaxTree` ; echo "TAX(${X}): ${TAX}"; TAXID=`echo "${TAX}" | sed 's/\( 0\)*$//g' |awk '{print $NF}'`; echo "TAXID=${TAXID}"; COUNTS=`grep Counts ${i}/out.step2`; echo "COUNTS=${COUNTS}"; MAIN_COUNT=`echo "${COUNTS}  " | sed "s/^.* ${TAXID}:\([0-9]*\) .*$/\1/ ; s/Counts.*/0/"` ; echo "MAIN_COUNT=${MAIN_COUNT}" ; SUM=`echo "${COUNTS}  " | tr ' ' '\n' | sed 's/.*://' | awk 'BEGIN { sum=0 } { sum+=$1 } END { print sum }'` ; echo "SUM=$SUM"; PERCENT=`echo -e "scale=5\n100*${MAIN_COUNT}/${SUM}" | bc` ; echo "PERCENT=${PERCENT}" ; echo "FINAL: G_${i} ${TAXID} ${MAIN_COUNT} ${SUM} ${COUNTS}" ; done > r2977
+
+   grep FINAL r2977 > ~/normalisation.txt
+```
+
+9. Link (or move) all the useful files to a final directory
 ```
    mkdir metaBeetlNcbiDb
    cd metaBeetlNcbiDb
    ln -s ../ncbiFileNumToTaxTree
-   ln -s ../downloads/names.dmp
+   ln -s ../downloads/metaBeetlTaxonomyNames.dmp
    ln -s ../singleSeqGenomes/filecounter.csv
    ln -s ../singleSeqGenomes/headerFile.csv
    for i in ../singleSeqGenomes/ncbiMicros-[BC]0[0-5]; do ln -s $i ; done
@@ -331,7 +371,7 @@ Run:
       -f \
       -b metaBeetlOutput.txt \
       -t ${METAGENOME_DATABASE_PATH}/ncbiFileNumToTaxTree \
-      -n ${METAGENOME_DATABASE_PATH}/names.dmp \
+      -n ${METAGENOME_DATABASE_PATH}/metaBeetlTaxonomyNames.dmp \
       -w 50 75 100
 
 -w is a vector of wordSizes for which results should be generated.  

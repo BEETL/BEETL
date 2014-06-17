@@ -37,10 +37,10 @@ public:
     /**
      * Constructor
      */
-    explicit BCRexternalBWT ( char *file1, char *fileOut, int mode, CompressionFormatType outputCompression, ToolParameters *toolParams = NULL );
+    explicit BCRexternalBWT ( const string &file1, const string &fileOut, const int mode, const CompressionFormatType outputCompression, ToolParameters *toolParams = NULL );
     ~BCRexternalBWT();
 
-    int buildBCR( char const *, char const *, const BwtParameters *bwtParams );
+    int buildBCR( const string &, const string &, const BwtParameters *bwtParams );
     int unbuildBCR( char const *, char const *, char const *, char const * );
     int backwardSearchBCR( char const * , char const * , char const * , char const * );
     int decodeBCRnaiveForward( char const *, char const *, char const * ); //Inverse BWT by Forward direction of nText sequences, one sequence at a time, in lexicographic order.
@@ -53,12 +53,12 @@ public:
     int recoverNSequenceForwardSequentially( char const * , char const *, SequenceNumber );
     void storeBWT( uchar const *, uchar const *qual = NULL );
     void storeBWT_parallelPile( uchar const *newSymb, uchar const *newQual, unsigned int parallelPile, SequenceNumber startIndex, SequenceNumber endIndex );
-    void storeEntireBWT( const char * );
+    void storeEntireBWT( const string & );
     void storeSA( SequenceLength );
     void storeEntirePairSA( const char * );
     void storeEntireSAfromPairSA( const char * );
     virtual void storeBWTandLCP( uchar const * );
-    virtual void storeEntireLCP( const char * );
+    virtual void storeEntireLCP( const string & );
     LetterNumber rankManySymbols( FILE &, LetterNumber *, LetterNumber, uchar * );
 #ifdef XXX
     LetterNumber rankManySymbols( FILE &, LetterCount &, LetterNumber, uchar * ); // TEMP
@@ -94,10 +94,10 @@ private:
     void writeEndPosFile( const uint8_t subSequenceNum, const bool lastFile );
 
     BwtWriterBase *pWriterBwt0_; // persistent file, as we only ever need to append (never insert) characters to it
-    ToolParameters *toolParams_;
-    BwtParameters *bwtParams_;
-    UnbwtParameters *unbwtParams_;
-    SearchParameters *searchParams_;
+    shared_ptr< ToolParameters > toolParams_;
+    shared_ptr< BwtParameters > bwtParams_;
+    shared_ptr< UnbwtParameters > unbwtParams_;
+    shared_ptr< SearchParameters > searchParams_;
 };
 
 #endif

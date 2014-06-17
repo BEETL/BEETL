@@ -76,15 +76,12 @@ void IntervalHandlerTumourNormal::foundInBoth
         }
 
         isBreakpointDetected = true;
-        #pragma omp critical (IO)
-        Logger::out()
-                << "BKPT"
-#ifdef PROPAGATE_SEQUENCE
-                << ' ' << thisRangeB.word_
-#else
-                // Print what we know of the sequence
-                << ' ' << alphabet[pileNum] << string( cycle - 1, 'x' )
-#endif
+        outFile_ << "BKPT ";
+        if ( thisRangeB.word_.empty() )
+            outFile_ << alphabet[pileNum] << string( cycle - 1, 'x' ); // No propagated sequence => Print what we know of the sequence
+        else
+            outFile_ << thisRangeB.word_;
+        outFile_
                 << ' ' << countsThisRangeA.count_[0]
                 << ':' << countsThisRangeA.count_[1]
                 << ':' << countsThisRangeA.count_[2]
@@ -132,14 +129,12 @@ void IntervalHandlerTumourNormal::foundInAOnly
     {
         Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
         {
-            #pragma omp critical (IO)
-            Logger::out()
-                    << "READ"
-#ifdef PROPAGATE_SEQUENCE
-                    << ' ' << thisRangeA.word_
-#else
-                    << ' ' << alphabet[pileNum]
-#endif
+            outFile_ << "READ ";
+            if ( thisRangeA.word_.empty() )
+                outFile_ << alphabet[pileNum]; // No propagated sequence
+            else
+                outFile_ << thisRangeA.word_;
+            outFile_
                     << ' ' << thisRangeA.pos_
                     << ' ' << countsThisRangeA.count_[0]
                     << ':' << countsThisRangeA.count_[1]
@@ -176,14 +171,12 @@ void IntervalHandlerTumourNormal::foundInBOnly
     {
         Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
         {
-            #pragma omp critical (IO)
-            Logger::out()
-                    << "INBS"
-#ifdef PROPAGATE_SEQUENCE
-                    << ' ' << thisRangeB.word_
-#else
-                    << ' ' << alphabet[pileNum]
-#endif
+            outFile_ << "INBS ";
+            if ( thisRangeB.word_.empty() )
+                outFile_ << alphabet[pileNum]; // No propagated sequence
+            else
+                outFile_ << thisRangeB.word_;
+            outFile_
                     << ' ' << thisRangeB.pos_
                     << ' ' << countsThisRangeB.count_[0]
                     << ':' << countsThisRangeB.count_[1]

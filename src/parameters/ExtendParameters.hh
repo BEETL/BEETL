@@ -38,6 +38,7 @@ public:
         addEntry( -1, "sequence numbers output filename", "--output-seqnum", "-o", "Destination file to output sequence numbers", "", TYPE_STRING );
         addEntry( -1, "dollar positions output filename", "--output-dollar-pos", "-p", "Destination file to output BWT positions of dollar signs", "", TYPE_STRING );
         addEntry( -1, "use indexing", "--use-indexing", "-ui", "Use indexing of BWT files to speed up searching", "", TYPE_SWITCH );
+        addEntry( -1, "propagate sequence", "--propagate-sequence", "", "Propagate and output sequence with each BWT range (slower)", "", TYPE_SWITCH );
 
         addDefaultVerbosityAndHelpEntries();
     }

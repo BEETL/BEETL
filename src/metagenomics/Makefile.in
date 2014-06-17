@@ -97,11 +97,13 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_convertMetagenomicRangesToTaxa_OBJECTS =  \
-	ConvertMetagenomicRangesToTaxa.$(OBJEXT)
+am_convertMetagenomicRangesToTaxa_OBJECTS = convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.$(OBJEXT)
 convertMetagenomicRangesToTaxa_OBJECTS =  \
 	$(am_convertMetagenomicRangesToTaxa_OBJECTS)
 convertMetagenomicRangesToTaxa_DEPENDENCIES = ../liball.a ../libzoo.a
+convertMetagenomicRangesToTaxa_LINK = $(CXXLD) \
+	$(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_findTaxa_OBJECTS = findCertainTaxLevel.$(OBJEXT)
 findTaxa_OBJECTS = $(am_findTaxa_OBJECTS)
 findTaxa_DEPENDENCIES = ../liball.a ../libzoo.a
@@ -329,6 +331,7 @@ findTaxa_LDADD = ../liball.a ../libzoo.a
 parseMetagenomeOutput_SOURCES = parse.cpp
 parseMetagenomeOutput_LDADD = ../liball.a ../libzoo.a
 convertMetagenomicRangesToTaxa_SOURCES = ConvertMetagenomicRangesToTaxa.cpp
+convertMetagenomicRangesToTaxa_CXXFLAGS = ${OPENMP_CXXFLAGS}
 convertMetagenomicRangesToTaxa_LDADD = ../liball.a ../libzoo.a
 noinst_HEADERS = metaShared.hh Krona.hh
 all: all-am
@@ -410,7 +413,7 @@ clean-binPROGRAMS:
 
 convertMetagenomicRangesToTaxa$(EXEEXT): $(convertMetagenomicRangesToTaxa_OBJECTS) $(convertMetagenomicRangesToTaxa_DEPENDENCIES) $(EXTRA_convertMetagenomicRangesToTaxa_DEPENDENCIES) 
 	@rm -f convertMetagenomicRangesToTaxa$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(convertMetagenomicRangesToTaxa_OBJECTS) $(convertMetagenomicRangesToTaxa_LDADD) $(LIBS)
+	$(AM_V_CXXLD)$(convertMetagenomicRangesToTaxa_LINK) $(convertMetagenomicRangesToTaxa_OBJECTS) $(convertMetagenomicRangesToTaxa_LDADD) $(LIBS)
 
 findTaxa$(EXEEXT): $(findTaxa_OBJECTS) $(findTaxa_DEPENDENCIES) $(EXTRA_findTaxa_DEPENDENCIES) 
 	@rm -f findTaxa$(EXEEXT)
@@ -473,8 +476,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ConvertMetagenomicRangesToTaxa.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GenomesToSingleSeq.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/findCertainTaxLevel.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mergeBacteria-MergeBacteria.Po@am__quote@
@@ -495,6 +498,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o: ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -MT convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o -MD -MP -MF $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo -c -o convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o `test -f 'ConvertMetagenomicRangesToTaxa.cpp' || echo '$(srcdir)/'`ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ConvertMetagenomicRangesToTaxa.cpp' object='convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -c -o convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o `test -f 'ConvertMetagenomicRangesToTaxa.cpp' || echo '$(srcdir)/'`ConvertMetagenomicRangesToTaxa.cpp
+
+convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj: ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -MT convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj -MD -MP -MF $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo -c -o convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj `if test -f 'ConvertMetagenomicRangesToTaxa.cpp'; then $(CYGPATH_W) 'ConvertMetagenomicRangesToTaxa.cpp'; else $(CYGPATH_W) '$(srcdir)/ConvertMetagenomicRangesToTaxa.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ConvertMetagenomicRangesToTaxa.cpp' object='convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -c -o convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj `if test -f 'ConvertMetagenomicRangesToTaxa.cpp'; then $(CYGPATH_W) 'ConvertMetagenomicRangesToTaxa.cpp'; else $(CYGPATH_W) '$(srcdir)/ConvertMetagenomicRangesToTaxa.cpp'; fi`
 
 makeBWTSkew-BuildChromosomeBwt.o: BuildChromosomeBwt.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -MT makeBWTSkew-BuildChromosomeBwt.o -MD -MP -MF $(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Tpo -c -o makeBWTSkew-BuildChromosomeBwt.o `test -f 'BuildChromosomeBwt.cpp' || echo '$(srcdir)/'`BuildChromosomeBwt.cpp

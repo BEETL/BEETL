@@ -62,6 +62,7 @@ void SearchUsingBacktracker::run()
 
     string bwtPrefix = searchParams_["input"];
     string subset_ = "";
+    EndPosFile endPosFile( bwtPrefix );
 
     vector<string> kmerList;
     if ( searchParams_["one kmer string"].isSet() )
@@ -110,7 +111,7 @@ void SearchUsingBacktracker::run()
             if ( searchParams_["use indexing"].isSet() )
             {
                 Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Using indexed BWT file" << endl;
-                inBwt[i] = new BwtReaderRunLengthIndex( fileName );
+                inBwt[i] = new BwtReaderRunLengthIndex( fileName, searchParams_.getStringValue( "use shm" ) );
             }
             else
             {
@@ -216,6 +217,7 @@ void SearchUsingBacktracker::run()
             {
                 r.setPortion( i, j );
 
+                const bool propagateSequence = false;//( compareParams_ ? ( *compareParams_ )["propagate sequence"] : false );
                 OneBwtBackTracker backTracker(
                     inBwt[i],
                     currentPos,
@@ -224,7 +226,9 @@ void SearchUsingBacktracker::run()
                     subset_,
                     cycle + 1,
                     false, // don't propagate breakpoints until $ sign
-                    true // skip-already-processed-intervals deactivated
+                    true, // skip-already-processed-intervals deactivated
+                    propagateSequence,
+                    endPosFile
                 );
 
                 KmerSearchIntervalHandler intervalHandler;

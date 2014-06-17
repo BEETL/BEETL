@@ -25,6 +25,7 @@
 #include "Types.hh"
 
 #include <cstdio>
+#include <map>
 #include <string>
 
 
@@ -82,23 +83,29 @@ struct BwtWriterASCII : public BwtWriterFile
 };
 
 
-struct BwtWriterRunLength : public BwtWriterFile
+struct BwtWriterRunLengthBase : public BwtWriterFile
 {
-    BwtWriterRunLength( const string &fileName ):
+    BwtWriterRunLengthBase( const string &fileName, const int baseFieldWidthInBits ):
         BwtWriterFile( fileName ),
         runLength_( 0 ), pBuf_( buf_ ), pBufMax_( buf_ + ReadBufferSize ), lastChar_( notInAlphabet )
 #ifdef REPORT_COMPRESSION_RATIO
         , charsReceived_( 0 ), bytesWritten_( 0 )
 #endif
-    {}
+        , baseFieldWidthInBits_( baseFieldWidthInBits )
+        , lengthFieldWidthInBits_( 8 - baseFieldWidthInBits )
+        , lengthFieldMask_( ~( ( uchar )0 ) << baseFieldWidthInBits )
+    {
+        assert( baseFieldWidthInBits_ >= 3 );
+        assert( baseFieldWidthInBits_ <= 7 );
+    }
 
-    virtual ~BwtWriterRunLength();
+    virtual ~BwtWriterRunLengthBase();
 
     virtual void operator()( const char *p, LetterNumber numChars );
 
     void sendChar( char c );
 
-    void encodeRun( char c, LetterNumber runLength );
+    virtual void encodeRun( char c, LetterNumber runLength );
 
     virtual void sendRun( char c, LetterNumber runLength );
     virtual char getLastChar();
@@ -113,10 +120,54 @@ struct BwtWriterRunLength : public BwtWriterFile
     LetterNumber charsReceived_;
     LetterNumber bytesWritten_;
 #endif
+    const int baseFieldWidthInBits_;
+    const int lengthFieldWidthInBits_;
+    const uchar lengthFieldMask_;
 
 protected:
     virtual void flushBuffer();
-}; // ~BwtWriterRunLength
+
+    //#define GENERATE_RLE_HISTOGRAM
+#ifdef GENERATE_RLE_HISTOGRAM
+    std::map< std::pair< uchar, LetterNumber >, LetterNumber > histogram_;
+#endif
+}; // ~BwtWriterRunLengthBase
+
+
+struct BwtWriterRunLength : public BwtWriterRunLengthBase
+{
+    BwtWriterRunLength( const string &fileName ):
+        BwtWriterRunLengthBase( fileName, 4 )
+    {}
+
+};
+typedef BwtWriterRunLength BwtWriterRunLength_4_4;
+
+
+struct BwtWriterRunLength_5_3 : public BwtWriterRunLengthBase
+{
+    BwtWriterRunLength_5_3( const string &fileName ):
+        BwtWriterRunLengthBase( fileName, 3 )
+    {}
+};
+
+
+// New Bwt encoding.
+// First version has its encoding calculated offline, so not really dynamic
+// A,C,G,T: 1-63
+// N: 1
+// $: 1, 2, 3
+struct BwtWriterRunLengthDynamic : public BwtWriterRunLengthBase
+{
+    BwtWriterRunLengthDynamic( const string &fileName );
+
+    virtual void encodeRun( char c, LetterNumber runLength );
+
+protected:
+    vector<uchar> symbolForRunLength1ForPile_;
+    vector<LetterNumber> maxEncodedRunLengthForPile_;
+};
+
 
 struct BwtWriterIncrementalRunLength : public BwtWriterFile
 {

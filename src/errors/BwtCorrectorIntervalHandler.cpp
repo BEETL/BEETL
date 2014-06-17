@@ -58,13 +58,12 @@ void BwtCorrectorIntervalHandler::foundInAOnly(
     thisRangeA.clearDataForSubIntervals();
 
     int correct;
-
-#ifdef PROPAGATE_SEQUENCE
-    int intervalWordLength_ = thisRangeA.word_.size();
-    assert( thisRangeA.word_.size() == cycle );
-#else
     int intervalWordLength_ = cycle;
-#endif
+
+    // Set default propagation + we never propagate '$' signs
+    propagateIntervalA[0] = false;
+    for ( int l( 1 ); l < alphabetSize; l++ )
+        propagateIntervalA[l] = ( countsThisRangeA.count_[l] > 0 );
 
     if ( thisRangeA.data_.errorIntervalType == INTERVAL_TYPE_DEFAULT )
         if ( thisRangeA.num_ <= minOccurrences_ )

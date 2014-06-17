@@ -35,6 +35,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -48,7 +49,7 @@ int main( const int argc, const char **argv )
     if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
         params.printUsage();
-        exit( 1 );
+        exit( params["help"] == 0 );
     }
 
     //read the corrections to be applied out of the corrections file...
@@ -56,7 +57,7 @@ int main( const int argc, const char **argv )
     std::sort( corrections.begin(), corrections.end(), ErrorInfo::SortByRead );
 
     cout << "Attempting to make " << corrections.size() << " corrections..." << endl;
-    CorrectionAligner *aligner;
+    unique_ptr<CorrectionAligner> aligner;
 
     int alignmentType = params.getValue( "alignment type" );
 
@@ -68,12 +69,13 @@ int main( const int argc, const char **argv )
             exit( 1 );
         }
         cout << "Using Smith-Water man local alignment to position the corrections..." << endl;
-        aligner = new SmithWatermanCorrectionAligner(
-            2,
-            params.getValue( "mismatch penalty" ),
-            params.getValue( "deletion penalty" ),
-            params.getValue( "insertion penalty" )
-        );
+        aligner.reset( new SmithWatermanCorrectionAligner(
+                           2,
+                           params.getValue( "mismatch penalty" ),
+                           params.getValue( "deletion penalty" ),
+                           params.getValue( "insertion penalty" )
+                       )
+                     );
     }
     else if ( alignmentType == ALIGNMENT_TYPE_NO_INDELS )
     {
@@ -83,16 +85,22 @@ int main( const int argc, const char **argv )
             exit( 1 );
         }
         cout << "Superimposing correction strings onto reads (without indels) and trimming to original length" << endl;
-        aligner = new NoIndelAligner(
-            params.getStringValue( "correction quality" )[0],
-            params.getValue( "min witness length" ),
-            ( params.getValue( "trim corrected reads" ) == 1 )
-        );
+        aligner.reset( new NoIndelAligner(
+                           params.getStringValue( "correction quality" )[0],
+                           params.getValue( "min witness length" ),
+                           ( params.getValue( "trim corrected reads" ) == 1 )
+                       )
+                     );
 
     }
     else if ( alignmentType == ALIGNMENT_TYPE_STITCH )
     {
-        aligner = new StitchAligner();
+        aligner.reset( new StitchAligner() );
+    }
+    else
+    {
+        cerr << "Error: unexpected alignment type" << endl;
+        assert( false );
     }
 
     string readsFileName = params.getStringValue( "input reads file" );
@@ -134,7 +142,6 @@ int main( const int argc, const char **argv )
 
     fclose( reads );
     delete readsFile;
-    delete aligner;
     cout << "Done" << endl;
     return 0;
 }

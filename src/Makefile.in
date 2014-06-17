@@ -108,6 +108,7 @@ am_liball_a_OBJECTS = BCR/liball_a-BCR_BWTCollection.$(OBJEXT) \
 	BCR/liball_a-PredictiveEncoding.$(OBJEXT) \
 	BCR/liball_a-Sorting.$(OBJEXT) \
 	BCR/liball_a-TransposeFasta.$(OBJEXT) \
+	shared/liball_a-EndPosFile.$(OBJEXT) \
 	shared/liball_a-Timer.$(OBJEXT) \
 	shared/liball_a-Tools.$(OBJEXT) \
 	shared/liball_a-Filename.$(OBJEXT) \
@@ -149,7 +150,8 @@ am_libzoo_a_OBJECTS = libzoo/cli/libzoo_a-Common.$(OBJEXT) \
 	libzoo/io/libzoo_a-Bcl.$(OBJEXT) \
 	libzoo/io/libzoo_a-FastOFStream.$(OBJEXT) \
 	libzoo/util/libzoo_a-Logger.$(OBJEXT) \
-	libzoo/util/libzoo_a-TemporaryFilesManager.$(OBJEXT)
+	libzoo/util/libzoo_a-TemporaryFilesManager.$(OBJEXT) \
+	libzoo/util/libzoo_a-ColorText.$(OBJEXT)
 libzoo_a_OBJECTS = $(am_libzoo_a_OBJECTS)
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
@@ -404,6 +406,8 @@ liball_a_SOURCES = \
 	shared/Algorithm.hh \
 	shared/Alphabet.hh \
 	shared/Config.hh \
+	shared/EndPosFile.cpp \
+	shared/EndPosFile.hh \
 	shared/FragmentedVector.hh \
 	shared/LetterCount.hh \
 	shared/Types.hh \
@@ -498,7 +502,9 @@ libzoo_a_SOURCES = \
 	libzoo/util/Logger.hh \
 	libzoo/util/TemporaryFilesManager.cpp \
 	libzoo/util/TemporaryFilesManager.hh \
-	libzoo/util/AutoGrowVector.hh
+	libzoo/util/AutoGrowVector.hh \
+	libzoo/util/ColorText.cpp \
+	libzoo/util/ColorText.hh
 
 libzoo_a_CXXFLAGS = -I$(srcdir) ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
 all: all-recursive
@@ -564,6 +570,8 @@ shared/$(am__dirstamp):
 shared/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) shared/$(DEPDIR)
 	@: > shared/$(DEPDIR)/$(am__dirstamp)
+shared/liball_a-EndPosFile.$(OBJEXT): shared/$(am__dirstamp) \
+	shared/$(DEPDIR)/$(am__dirstamp)
 shared/liball_a-Timer.$(OBJEXT): shared/$(am__dirstamp) \
 	shared/$(DEPDIR)/$(am__dirstamp)
 shared/liball_a-Tools.$(OBJEXT): shared/$(am__dirstamp) \
@@ -706,6 +714,8 @@ libzoo/util/libzoo_a-Logger.$(OBJEXT): libzoo/util/$(am__dirstamp) \
 libzoo/util/libzoo_a-TemporaryFilesManager.$(OBJEXT):  \
 	libzoo/util/$(am__dirstamp) \
 	libzoo/util/$(DEPDIR)/$(am__dirstamp)
+libzoo/util/libzoo_a-ColorText.$(OBJEXT): libzoo/util/$(am__dirstamp) \
+	libzoo/util/$(DEPDIR)/$(am__dirstamp)
 
 libzoo.a: $(libzoo_a_OBJECTS) $(libzoo_a_DEPENDENCIES) $(EXTRA_libzoo_a_DEPENDENCIES) 
 	$(AM_V_at)-rm -f libzoo.a
@@ -809,6 +819,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@libzoo/cli/$(DEPDIR)/libzoo_a-ToolParameters.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libzoo/io/$(DEPDIR)/libzoo_a-Bcl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libzoo/io/$(DEPDIR)/libzoo_a-FastOFStream.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@libzoo/util/$(DEPDIR)/libzoo_a-ColorText.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libzoo/util/$(DEPDIR)/libzoo_a-Logger.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@libzoo/util/$(DEPDIR)/libzoo_a-TemporaryFilesManager.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@search/$(DEPDIR)/liball_a-Extender.Po@am__quote@
@@ -818,6 +829,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@search/$(DEPDIR)/liball_a-KmerSearchRange.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@search/$(DEPDIR)/liball_a-SearchUsingBacktracker.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@shared/$(DEPDIR)/OldBeetl-Beetl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@shared/$(DEPDIR)/liball_a-EndPosFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@shared/$(DEPDIR)/liball_a-Filename.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@shared/$(DEPDIR)/liball_a-SeqReader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@shared/$(DEPDIR)/liball_a-SequenceExtractor.Po@am__quote@
@@ -937,6 +949,20 @@ BCR/liball_a-TransposeFasta.obj: BCR/TransposeFasta.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BCR/TransposeFasta.cpp' object='BCR/liball_a-TransposeFasta.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o BCR/liball_a-TransposeFasta.obj `if test -f 'BCR/TransposeFasta.cpp'; then $(CYGPATH_W) 'BCR/TransposeFasta.cpp'; else $(CYGPATH_W) '$(srcdir)/BCR/TransposeFasta.cpp'; fi`
+
+shared/liball_a-EndPosFile.o: shared/EndPosFile.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-EndPosFile.o -MD -MP -MF shared/$(DEPDIR)/liball_a-EndPosFile.Tpo -c -o shared/liball_a-EndPosFile.o `test -f 'shared/EndPosFile.cpp' || echo '$(srcdir)/'`shared/EndPosFile.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-EndPosFile.Tpo shared/$(DEPDIR)/liball_a-EndPosFile.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/EndPosFile.cpp' object='shared/liball_a-EndPosFile.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-EndPosFile.o `test -f 'shared/EndPosFile.cpp' || echo '$(srcdir)/'`shared/EndPosFile.cpp
+
+shared/liball_a-EndPosFile.obj: shared/EndPosFile.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-EndPosFile.obj -MD -MP -MF shared/$(DEPDIR)/liball_a-EndPosFile.Tpo -c -o shared/liball_a-EndPosFile.obj `if test -f 'shared/EndPosFile.cpp'; then $(CYGPATH_W) 'shared/EndPosFile.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/EndPosFile.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) shared/$(DEPDIR)/liball_a-EndPosFile.Tpo shared/$(DEPDIR)/liball_a-EndPosFile.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='shared/EndPosFile.cpp' object='shared/liball_a-EndPosFile.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -c -o shared/liball_a-EndPosFile.obj `if test -f 'shared/EndPosFile.cpp'; then $(CYGPATH_W) 'shared/EndPosFile.cpp'; else $(CYGPATH_W) '$(srcdir)/shared/EndPosFile.cpp'; fi`
 
 shared/liball_a-Timer.o: shared/Timer.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(liball_a_CXXFLAGS) $(CXXFLAGS) -MT shared/liball_a-Timer.o -MD -MP -MF shared/$(DEPDIR)/liball_a-Timer.Tpo -c -o shared/liball_a-Timer.o `test -f 'shared/Timer.cpp' || echo '$(srcdir)/'`shared/Timer.cpp
@@ -1483,6 +1509,20 @@ libzoo/util/libzoo_a-TemporaryFilesManager.obj: libzoo/util/TemporaryFilesManage
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='libzoo/util/TemporaryFilesManager.cpp' object='libzoo/util/libzoo_a-TemporaryFilesManager.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo/util/libzoo_a-TemporaryFilesManager.obj `if test -f 'libzoo/util/TemporaryFilesManager.cpp'; then $(CYGPATH_W) 'libzoo/util/TemporaryFilesManager.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/util/TemporaryFilesManager.cpp'; fi`
+
+libzoo/util/libzoo_a-ColorText.o: libzoo/util/ColorText.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo/util/libzoo_a-ColorText.o -MD -MP -MF libzoo/util/$(DEPDIR)/libzoo_a-ColorText.Tpo -c -o libzoo/util/libzoo_a-ColorText.o `test -f 'libzoo/util/ColorText.cpp' || echo '$(srcdir)/'`libzoo/util/ColorText.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) libzoo/util/$(DEPDIR)/libzoo_a-ColorText.Tpo libzoo/util/$(DEPDIR)/libzoo_a-ColorText.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='libzoo/util/ColorText.cpp' object='libzoo/util/libzoo_a-ColorText.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo/util/libzoo_a-ColorText.o `test -f 'libzoo/util/ColorText.cpp' || echo '$(srcdir)/'`libzoo/util/ColorText.cpp
+
+libzoo/util/libzoo_a-ColorText.obj: libzoo/util/ColorText.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -MT libzoo/util/libzoo_a-ColorText.obj -MD -MP -MF libzoo/util/$(DEPDIR)/libzoo_a-ColorText.Tpo -c -o libzoo/util/libzoo_a-ColorText.obj `if test -f 'libzoo/util/ColorText.cpp'; then $(CYGPATH_W) 'libzoo/util/ColorText.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/util/ColorText.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) libzoo/util/$(DEPDIR)/libzoo_a-ColorText.Tpo libzoo/util/$(DEPDIR)/libzoo_a-ColorText.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='libzoo/util/ColorText.cpp' object='libzoo/util/libzoo_a-ColorText.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libzoo_a_CXXFLAGS) $(CXXFLAGS) -c -o libzoo/util/libzoo_a-ColorText.obj `if test -f 'libzoo/util/ColorText.cpp'; then $(CYGPATH_W) 'libzoo/util/ColorText.cpp'; else $(CYGPATH_W) '$(srcdir)/libzoo/util/ColorText.cpp'; fi`
 
 shared/OldBeetl-Beetl.o: shared/Beetl.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(OldBeetl_CXXFLAGS) $(CXXFLAGS) -MT shared/OldBeetl-Beetl.o -MD -MP -MF shared/$(DEPDIR)/OldBeetl-Beetl.Tpo -c -o shared/OldBeetl-Beetl.o `test -f 'shared/Beetl.cpp' || echo '$(srcdir)/'`shared/Beetl.cpp

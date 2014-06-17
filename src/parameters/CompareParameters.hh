@@ -106,7 +106,7 @@ public:
         addEntry( COMPARE_OPTION_MODE, "mode", "--mode", "-m", "See \"Mode\" note below", "", TYPE_CHOICE | REQUIRED, modeLabels );
         addEntry( -1, "input setA", "--inputA", "-a", "Input filename prefix for Set A (such as \"prefix-B0[0-6]\" are Set A's BWT files)", "", TYPE_STRING | REQUIRED );
         addEntry( -1, "input setB", "--inputB", "-b", "Input filename prefix for Set B (such as \"prefix-B0[0-6]\" are Set B's BWT files)", "", TYPE_STRING | REQUIRED );
-        addEntry( -1, "output filename prefix", "--output", "-o", "Output filename prefix", "outCompare", TYPE_STRING | REQUIRED );
+        addEntry( -1, "output directory", "--output", "-o", "Output directory", "BeetlCompareOutput", TYPE_STRING | REQUIRED );
         addEntry( -1, "max length", "--max-length", "-k", "Maximal k-mer length (number of analysis cycles)", "100", TYPE_INT );
         addEntry( -1, "min occ", "--min-occ", "-n", "Minimum number of occurrences (coverage)", "2", TYPE_INT );
         addEntry( -1, "inputA format", "--inputA-format", "", "", "detect", TYPE_CHOICE | REQUIRED, inputFormatLabels );
@@ -120,6 +120,7 @@ public:
         addEntry( -1, "pause between cycles", "--pause-between-cycles", "", "Wait for a key press after each cycle", "", TYPE_SWITCH );
         addEntry( -1, "BWT in RAM", "--bwt-in-ram", "", "Keep BWT in RAM for faster processing", "", TYPE_SWITCH );
         addEntry( -1, "use indexing", "--use-indexing", "-ui", "Use indexing of BWT files to speed up accesses", "", TYPE_SWITCH );
+        addEntry( -1, "propagate sequence", "--propagate-sequence", "", "Propagate and output sequence with each BWT range (slower)", "", TYPE_SWITCH );
 
         //        addEntry( -1, "setB metadata", "--genome-metadata", "-c", "For Metagenomics mode only: Input filename \"extended\" prefix for Set B's metadata (for files \"prefix[0-6]\")", "${inputB}-C0", TYPE_STRING );
         addEntry( -1, "taxonomy", "--taxonomy", "-t", "For Metagenomics mode only: Input filename for Set B's taxonomy information", "", TYPE_STRING );

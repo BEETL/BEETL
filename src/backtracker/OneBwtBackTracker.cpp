@@ -30,9 +30,11 @@ OneBwtBackTracker::OneBwtBackTracker(
     const string &subset,
     const int cycle,
     const bool doesPropagateBkptToSeqNumInSet,
-    const bool noComparisonSkip
+    const bool noComparisonSkip,
+    const bool propagateSequence,
+    EndPosFile &endPosFile
 )
-    : BackTrackerBase( subset, cycle, noComparisonSkip )
+    : BackTrackerBase( subset, cycle, noComparisonSkip, propagateSequence )
     , inBwt_( inBwt ),
     currentPos_( currentPos ),
     r_( r ),
@@ -43,6 +45,7 @@ OneBwtBackTracker::OneBwtBackTracker(
     //    numSingletonRanges_( 0 ),
     doesPropagateBkptToSeqNumInSet_( doesPropagateBkptToSeqNumInSet )
     //    noComparisonSkip_( noComparisonSkip )
+    , endPosFile_( endPosFile )
 {
     for ( int l( 0 ); l < alphabetSize; ++l )
         propagateInterval_[l] = false;
@@ -72,6 +75,7 @@ void OneBwtBackTracker::process (
         , thisWord
         , doesPropagateBkptToSeqNumInSet_
         , ( IntervalHandler_FoundCallbackPtr )( &IntervalHandlerBase::foundInAOnly )
+        , endPosFile_
         , 1
     );
 

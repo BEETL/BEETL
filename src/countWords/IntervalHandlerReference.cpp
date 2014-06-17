@@ -97,46 +97,49 @@ void IntervalHandlerReference::foundInBoth
     if ( significantNonRef == true )
     {
         isBreakpointDetected = true;
-#ifdef PROPAGATE_SEQUENCE
-        #pragma omp critical (IO)
-        Logger::out()
-                << "BKPT"
-                << ' ' << thisRangeB.word_
-                << ' ' << ( thisRangeB.pos_ & matchMask )
-                << ' ' << countsThisRangeA.count_[0]
-                << ':' << countsThisRangeA.count_[1]
-                << ':' << countsThisRangeA.count_[2]
-                << ':' << countsThisRangeA.count_[3]
-                << ':' << countsThisRangeA.count_[4]
-                << ':' << countsThisRangeA.count_[5]
-                << ':' << countsThisRangeB.count_[0]
-                << ':' << countsThisRangeB.count_[1]
-                << ':' << countsThisRangeB.count_[2]
-                << ':' << countsThisRangeB.count_[3]
-                << ':' << countsThisRangeB.count_[4]
-                << ':' << countsThisRangeB.count_[5]
-                << endl;
-#else
-        #pragma omp critical (IO)
-        Logger::out()
-                << "BKPT"
-                << ' ' << alphabet[pileNum]
-                << ' ' << countsThisRangeA.count_[0]
-                << ':' << countsThisRangeA.count_[1]
-                << ':' << countsThisRangeA.count_[2]
-                << ':' << countsThisRangeA.count_[3]
-                << ':' << countsThisRangeA.count_[4]
-                << ':' << countsThisRangeA.count_[5]
-                << ':' << countsThisRangeB.count_[0]
-                << ':' << countsThisRangeB.count_[1]
-                << ':' << countsThisRangeB.count_[2]
-                << ':' << countsThisRangeB.count_[3]
-                << ':' << countsThisRangeB.count_[4]
-                << ':' << countsThisRangeB.count_[5]
-                << ' ' << ( thisRangeA.pos_ & matchMask )
-                << ' ' << ( thisRangeB.pos_ & matchMask )
-                << endl;
-#endif
+        if ( !thisRangeB.word_.empty() )
+        {
+            #pragma omp critical (IO)
+            Logger::out()
+                    << "BKPT"
+                    << ' ' << thisRangeB.word_
+                    << ' ' << ( thisRangeB.pos_ & matchMask )
+                    << ' ' << countsThisRangeA.count_[0]
+                    << ':' << countsThisRangeA.count_[1]
+                    << ':' << countsThisRangeA.count_[2]
+                    << ':' << countsThisRangeA.count_[3]
+                    << ':' << countsThisRangeA.count_[4]
+                    << ':' << countsThisRangeA.count_[5]
+                    << ':' << countsThisRangeB.count_[0]
+                    << ':' << countsThisRangeB.count_[1]
+                    << ':' << countsThisRangeB.count_[2]
+                    << ':' << countsThisRangeB.count_[3]
+                    << ':' << countsThisRangeB.count_[4]
+                    << ':' << countsThisRangeB.count_[5]
+                    << endl;
+        }
+        else
+        {
+            #pragma omp critical (IO)
+            Logger::out()
+                    << "BKPT"
+                    << ' ' << alphabet[pileNum]
+                    << ' ' << countsThisRangeA.count_[0]
+                    << ':' << countsThisRangeA.count_[1]
+                    << ':' << countsThisRangeA.count_[2]
+                    << ':' << countsThisRangeA.count_[3]
+                    << ':' << countsThisRangeA.count_[4]
+                    << ':' << countsThisRangeA.count_[5]
+                    << ':' << countsThisRangeB.count_[0]
+                    << ':' << countsThisRangeB.count_[1]
+                    << ':' << countsThisRangeB.count_[2]
+                    << ':' << countsThisRangeB.count_[3]
+                    << ':' << countsThisRangeB.count_[4]
+                    << ':' << countsThisRangeB.count_[5]
+                    << ' ' << ( thisRangeA.pos_ & matchMask )
+                    << ' ' << ( thisRangeB.pos_ & matchMask )
+                    << endl;
+        }
     }
 
     // don't bother with Ns
@@ -177,9 +180,10 @@ void IntervalHandlerReference::foundInAOnly
         #pragma omp critical (IO)
     {
         Logger::out() << "READ ";
-#ifdef PROPAGATE_SEQUENCE
-        Logger::out() << thisRangeA.word_;
-#endif
+        if ( thisRangeA.word_.empty() )
+            Logger::out() << alphabet[pileNum]; // No propagated sequence
+        else
+            Logger::out() << thisRangeA.word_;
         Logger::out() << " " << thisRangeA.pos_;
         for ( int l( 0 ); l < alphabetSize; l++ )
             Logger::out() << ( ( l == 0 ) ? " " : ":" ) << countsThisRangeA.count_[l];

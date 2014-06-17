@@ -137,7 +137,7 @@ protected:
 class BwtReaderRunLengthIndex : public BwtReaderRunLength
 {
 public:
-    BwtReaderRunLengthIndex( const string &fileName );
+    BwtReaderRunLengthIndex( const string &fileName, const string &optionalSharedMemoryPath );
     //    BwtReaderRunLengthIndex( const BwtReaderRunLengthIndex & );
 
     BwtReaderRunLengthIndex( const BwtReaderRunLengthIndex &obj ) :
@@ -178,7 +178,7 @@ public:
 
     void buildIndex( FILE *pFile, const int indexBinSize );
 
-    void initIndex( void );
+    void initIndex( const string &optionalSharedMemoryPath );
 
     //  bool getRun(void);
 protected:
@@ -189,9 +189,15 @@ protected:
 
     FILE *pIndexFile_;
 
-    vector<LetterNumber> indexPosBwt_;
-    vector<LetterNumber> indexPosFile_;
-    vector<LetterCountCompact> indexCount_;
+    vector<LetterNumber> indexPosBwt0_;
+    vector<LetterNumber> indexPosFile0_;
+    vector<LetterCountCompact> indexCount0_;
+
+    LetterNumber *indexPosBwt_;
+    LetterNumber *indexPosFile_;
+    LetterCountCompact *indexCount_;
+    uint32_t indexSize_;
+
     uint32_t indexNext_;
 
 }; // class ~BwtReaderRunLengthIndex

@@ -45,10 +45,10 @@ public:
     void init( SeqReaderFile *pReader, const bool processQualities = true );
     ~TransposeFasta();
 
-    bool convert( const string &input, const string &output, bool generatedFilesAreTemporary = true );   //Input from Fasta file (converts Fasta File into cyc Files)
+    bool convert( /*const string &input,*/ const string &output, bool generatedFilesAreTemporary = true );   //Input from Fasta file (converts Fasta File into cyc Files)
     bool inputCycFile( const string &cycPrefix );                                    //Input from cyc files
     bool convertFromCycFileToFastaOrFastq( const string &fileInputPrefix, const string &fileOutput, bool generatedFilesAreTemporary = true, SequenceExtractor *sequenceExtractor = NULL );      //Convert cyc files into Fasta or Fastq File
-    bool hasProcessedQualities()
+    bool hasProcessedQualities() const
     {
         return processQualities_;
     }

@@ -42,25 +42,25 @@ void launchBeetlSearch()
 int main( const int argc, const char **argv )
 {
     // Generated using: http://patorjk.com/software/taag/#p=display&f=Soft&t=BEETL%20search
-    cout << ",-----.  ,------.,------.,--------.,--.                                          ,--.      " << endl;
-    cout << "|  |) /_ |  .---'|  .---''--.  .--'|  |        ,---.  ,---.  ,--,--.,--.--. ,---.|  ,---.  " << endl;
-    cout << "|  .-.  \\|  `--, |  `--,    |  |   |  |       (  .-' | .-. :' ,-.  ||  .--'| .--'|  .-.  | " << endl;
-    cout << "|  '--' /|  `---.|  `---.   |  |   |  '--.    .-'  `)\\   --.\\ '-'  ||  |   \\ `--.|  | |  | " << endl;
-    cout << "`------' `------'`------'   `--'   `-----'    `----'  `----' `--`--'`--'    `---'`--' `--' " << endl;
-    cout << "Version " << PACKAGE_VERSION << endl;
-    cout << endl;
+    clog << ",-----.  ,------.,------.,--------.,--.                                          ,--.      " << endl;
+    clog << "|  |) /_ |  .---'|  .---''--.  .--'|  |        ,---.  ,---.  ,--,--.,--.--. ,---.|  ,---.  " << endl;
+    clog << "|  .-.  \\|  `--, |  `--,    |  |   |  |       (  .-' | .-. :' ,-.  ||  .--'| .--'|  .-.  | " << endl;
+    clog << "|  '--' /|  `---.|  `---.   |  |   |  '--.    .-'  `)\\   --.\\ '-'  ||  |   \\ `--.|  | |  | " << endl;
+    clog << "`------' `------'`------'   `--'   `-----'    `----'  `----' `--`--'`--'    `---'`--' `--' " << endl;
+    clog << "Version " << PACKAGE_VERSION << endl;
+    clog << endl;
 
-    cout << "Command called:" << endl << "   ";
+    clog << "Command called:" << endl << "   ";
     for ( int i = 0; i < argc; ++i )
     {
-        cout << " " << argv[i];
+        clog << " " << argv[i];
     }
-    cout << "\n" << endl;
+    clog << "\n" << endl;
 
     if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
         printUsage();
-        exit( 1 );
+        exit( params["help"] == 0 );
     }
 
     // Use default parameter values where needed

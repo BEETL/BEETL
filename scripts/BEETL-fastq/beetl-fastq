@@ -1,0 +1,514 @@
+#!/usr/bin/env perl
+
+=head1 LICENSE
+
+Copyright (c) 2014 Illumina, Inc.
+
+
+This software is covered by the "Illumina Non-Commercial Use Software
+and Source Code License Agreement" and any user of this software or
+source file is bound by the terms therein (see accompanying file
+Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
+
+This file is part of the BEETL software package.
+
+Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
+Lightweight BWT Construction for Very Large String Collections.
+Proceedings of CPM 2011, pp.219-231
+
+
+=head1 NAME
+
+beetl-fastq
+
+=head1 DIAGNOSTICS
+
+=head2 Exit status
+
+0: successful completion
+1: abnormal completion
+2: fatal error
+
+=head2 Errors
+
+All error messages are prefixed with "ERROR: ".
+
+=head2 Warnings
+
+All warning messages are prefixed with "WARNING: ".
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+=back
+
+=head1 BUGS AND LIMITATIONS
+
+There are no known bugs in this module.
+
+All documented features are fully implemented.
+
+Please report problems to Illumina Technical Support (support@illumina.com)
+
+Patches are welcome.
+
+=head1 AUTHOR
+
+Lilian Janin
+
+=cut
+
+use warnings FATAL => 'all';
+use strict;
+use Cwd qw(abs_path);
+use POSIX qw(strftime);
+use IO::File;
+use Carp;
+use Cwd;
+use Switch;
+
+use Pod::Usage;
+use Getopt::Long;
+
+
+my $VERSION = '@BEETL_VERSION_FULL@';
+
+my $programName = (File::Spec->splitpath(abs_path($0)))[2];
+my $programPath = (File::Spec->splitpath(abs_path($0)))[1];
+my $Version_text =
+    "$programName $VERSION\n"
+  . "Copyright (c) 2014 Illumina\n"
+  . "This source file is covered by the \"Illumina Non-Commercial Use Software and\n"
+  . "Source Code License Agreement\" and bound by the terms therein.\n";
+
+my $usage =
+    "Usage: $programName [options]\n"
+#  . "\t-j, --jobs=4|16|64           - Specifies the number of jobs (commands) to run simultaneously.\n"
+  . "\t-m, --mode={init|search}     - Command to run\n"
+  . "\t-i, --input                  - Input filename or prefix\n"
+  . "\t-o, --output                 - Output filename or prefix\n"
+  . "\n"
+  . "Init mode options:\n"
+  . "\t-s, --sort                   - Sort FastQ in Reverse Lexicographical Order (experimental)\n"
+  . "\t--sort-options               - Options to pass to the tool \"sort\", e.g. \"-S 40G\" to use 40G of RAM\n"
+  . "\n"
+  . "Search mode options:\n"
+  . "\t-j, --input-kmer-file        - K-mer file, only used in search mode\n"
+  . "\t-k, --input-kmer             - K-mer value (-j and -k are mutually exclusive)\n"
+  . "\t-r, --repeat-threshold       - If a k-mer gets more matches than this, its reads won't be extracted (Default: 100)\n"
+  . "\t-p, --paired-reads           - Also extract paired reads, original fastq assumed to be {reads1 block, reads2 block}\n"
+
+  . "\n"
+  . "\t-v, --verbose                - Verbose stdout\n"
+  . "\t--help                       - prints usage guide\n"
+  . "\t--version                    - prints version information\n"
+
+.<<'EXAMPLES_END';
+
+EXAMPLES:
+    beetl-fastq --mode=init -i data.fastq.gz -o prefix
+    beetl-fastq --mode=search -i prefix -o result.fastq -k ACGTACGTACGT
+
+EXAMPLES_END
+
+
+# Dependency check
+my $dependencyCheck = 0;
+$dependencyCheck |= system("razip -h > /dev/null");
+#print "which: $? $dependencyCheck\n";
+$dependencyCheck |= system("beetl-bwt -h > /dev/null");
+#print "which: $? $dependencyCheck\n";
+$dependencyCheck |= system("beetl-index -h > /dev/null");
+#print "which: $? $dependencyCheck\n";
+$dependencyCheck |= system("beetl-search -h > /dev/null 2> /dev/null");
+#print "which: $? $dependencyCheck\n";
+$dependencyCheck |= system("beetl-extend -h > /dev/null");
+#print "which: $? $dependencyCheck\n";
+$dependencyCheck |= system("${programPath}/index_lines.pl -h > /dev/null");
+#print "which: $? $dependencyCheck\n";
+$dependencyCheck |= system("rm --help > /dev/null");
+#print "which: $? $dependencyCheck\n";
+if ($dependencyCheck != 0)
+{
+  print "Error: The tools listed above need to be in your PATH\n";
+  exit 0;
+}
+
+
+my $help             = 'nohelp';
+my $isVersion        = 0;
+my %PARAMS           = ();
+
+my $argvStr = join ' ', @ARGV;
+
+$PARAMS{verbose} = 0;
+my @inputAggregate = ();
+my @outputAggregate = ();
+$PARAMS{repeatThreshold} = 100;
+
+my $result = GetOptions(
+#    "jobs|j=i"             => \$PARAMS{jobs},
+    "mode|m=s"             => \$PARAMS{mode},
+    "input|i=s"            => \$PARAMS{input}, #\@inputAggregate,
+    "output|o=s"           => \$PARAMS{output}, #\@outputAggregate,
+
+    "sort|s"               => \$PARAMS{sort},
+    "sort-options=s"       => \$PARAMS{sortOptions},
+
+    "input-kmer-file|j=s"  => \$PARAMS{inputKmerFile},
+    "input-kmer|k=s"       => \$PARAMS{inputKmer},
+    "repeat-threshold|r=i" => \$PARAMS{repeatThreshold},
+    "paired-reads|p"       => \$PARAMS{pairedReads},
+
+    "verbose|v"            => \$PARAMS{verbose},
+    "version"              => \$isVersion,
+    "help"                 => \$help
+);
+
+die("ERROR: Unrecognized command-line argument(s): @ARGV")  if (0 < @ARGV);
+
+# display the version info
+if ($isVersion) {
+    print $Version_text;
+    exit(0);
+}
+
+# display the help text when generic command line options are incorrect
+if ( ( $result == 0 || !defined($PARAMS{mode}) ) && 'nohelp' eq $help)
+{
+  die "$usage";
+}
+
+
+if ($PARAMS{mode} eq "init")
+{
+  # display the help text when mode-specific command line options are incorrect
+  if ( !defined($PARAMS{input}) || !defined($PARAMS{output}) )
+  {
+    die "$usage";
+  }
+
+  # Check that we won't overwrite any existing file
+  if (-e "$PARAMS{output}-B00") {
+    print "WARNING: Output file $PARAMS{output}-B00 already exists. Your only chance to save this file is to Ctrl+C before the end of this script!\n";
+  }
+
+
+  my $readIdsFilename = $PARAMS{output} . ".readIds";
+  my $qualsFilename = $PARAMS{output} . ".quals";
+  mkdir "cyc";
+
+  my $cmd;
+  if ($PARAMS{input} =~ /.gz$/) {
+    $cmd = "zcat";
+  } else {
+    $cmd = "cat";
+  }
+  $cmd .= " $PARAMS{input} |";
+
+  if ($PARAMS{sort})
+  {
+    $cmd .= " sed -n 'N;N;N;s/\\n/\\t/g;p' | rev | sort -k 3 $PARAMS{sortOptions} | rev | tr '\\t' '\\n' |";
+  }
+
+  open (FASTQ, ${cmd}) || die "Failed to open $PARAMS{input}: $!";
+  open (READNAMES, ">${readIdsFilename}") || die "Failed to open ${readIdsFilename}: $!";
+  open (BASES, "|beetl-convert --input-format=seq --output-format=cyc -i - -o cyc/cyc") || die "Failed to run beetl-convert: $!";
+  open (QUALS, ">${qualsFilename}") || die "Failed to open ${qualsFilename}: $!";
+  my $lineCount = 0;
+  while (my $line=<FASTQ>)
+  {
+    print READNAMES $line;
+    $line=<FASTQ>;
+    print BASES $line;
+    $line=<FASTQ>; # + sign
+    $line=<FASTQ>;
+    print QUALS $line;
+    $lineCount++;
+  }
+  close (FASTQ);
+  close (READNAMES);
+  close (BASES);
+  close (QUALS);
+
+  if ($lineCount == 0) {
+    print "Error: No lines read from FastQ\n";
+    exit(1);
+  }
+
+  $cmd="razip -c ${readIdsFilename} > ${readIdsFilename}.rz";
+  launchCommand( ${cmd} );
+
+  $cmd="razip -c ${qualsFilename} > ${qualsFilename}.rz";
+  launchCommand( ${cmd} );
+
+  $cmd="beetl-bwt -i cyc/cyc --input-format=cyc -o $PARAMS{output} --generate-end-pos-file";
+  launchCommand( ${cmd} );
+
+  waitForChildrenToExitCleanly();
+
+
+  $cmd="rm -rf ${qualsFilename} ${readIdsFilename} cyc";
+  launchCommand( ${cmd} );
+
+  $cmd="${programPath}/index_lines.pl ${qualsFilename}.rz";
+  launchCommand( ${cmd} );
+
+  $cmd="${programPath}/index_lines.pl ${readIdsFilename}.rz";
+  launchCommand( ${cmd} );
+
+  $cmd="beetl-index -i $PARAMS{output}";
+  launchCommand( ${cmd} );
+
+  waitForChildrenToExitCleanly();
+}
+
+elsif ($PARAMS{mode} eq "search")
+{
+  # display the help text when mode-specific command line options are incorrect
+  if ( !defined($PARAMS{input}) || !defined($PARAMS{output}) || ( !defined($PARAMS{inputKmerFile}) && !defined($PARAMS{inputKmer})  ))
+  {
+    die "$usage";
+  }
+
+  my $readIdsFilename = $PARAMS{input} . ".readIds";
+  my $qualsFilename = $PARAMS{input} . ".quals";
+  my $kmerId;
+  if (defined($PARAMS{inputKmerFile})) {
+    $kmerId = $PARAMS{inputKmerFile};
+    $kmerId =~ s:/:_:g;
+  }
+  else
+    { $kmerId = $PARAMS{inputKmer}; }
+  my $intermediateFile1 = $PARAMS{input} . "-" . ${kmerId} . ".searchResults";
+  my $intermediateFile2 = $PARAMS{input} . "-" . ${kmerId} . ".extendResults";
+
+  # Check that we won't overwrite any existing file
+  if (-e "$PARAMS{output}") { print "$PARAMS{output} already exists. Aborting to avoid overwriting possibly important files.\n"; exit 1; }
+#  if (-e "${intermediateFile1}") { print "${intermediateFile1} already exists. Aborting to avoid overwriting possibly important files.\n"; exit 1; }
+#  if (-e "${intermediateFile2}") { print "${intermediateFile1} already exists. Aborting to avoid overwriting possibly important files.\n"; exit 1; }
+
+  # Open output file early to detect missing write permissions
+  open (OUT, ">$PARAMS{output}") || die "Failed to open $PARAMS{output}: $!";
+
+  my $cmd="beetl-search -i $PARAMS{input} -ui -o ${intermediateFile1}";
+  if (defined($PARAMS{inputKmerFile})) {
+    $cmd .= " -j $PARAMS{inputKmerFile}";
+  }
+  else {
+    $cmd .= " -k $PARAMS{inputKmer}";
+  }
+  if (!$PARAMS{verbose}) {
+    $cmd .= " > /dev/null 2> /dev/null";
+  }
+  launchCommandAndWait( ${cmd} );
+
+  # Filter out results with more than `repeatThreshold` matches
+  my $matchCount = 0;
+  my $ignoredKmersCount = 0;
+  open (INP1, "${intermediateFile1}") || die "Failed to open ${intermediateFile1}: $!";
+  open (OUT1, ">${intermediateFile1}.2") || die "Failed to open ${intermediateFile1}.2: $!";
+  while (my $line = <INP1>)
+  {
+    my @values = split(" ", $line);
+    if (@values >= 3) {
+      my $count = $values[2];
+      if ($values[2] < $PARAMS{repeatThreshold} ) {
+        print OUT1 $line;
+        $matchCount += $count;
+      } else {
+        print STDERR "Warning: Too many matches for: $line";
+        $ignoredKmersCount++;
+      }
+    }
+  }
+  close (INP1);
+  close (OUT1);
+  if (${ignoredKmersCount} > 0) {
+    print "Number of k-mers ignored due to high number of matches: ${ignoredKmersCount}\n";
+  }
+  print "Number of matching reads about to be extracted: ${matchCount}\n";
+
+  if (${matchCount} > 0) {
+
+  $cmd="beetl-extend -i ${intermediateFile1}.2 -b $PARAMS{input} -ui --propagate-sequence -o ${intermediateFile2}.0";
+  if ($PARAMS{verbose}) {
+    $cmd .= " | tee ${intermediateFile2}";
+  } else {
+    $cmd .= " > ${intermediateFile2}";
+  }
+  launchCommandAndWait( ${cmd} );
+
+  $cmd="grep Output ${intermediateFile2} | tail -n +2 | cut -f 7,8 | sort -gu > ${intermediateFile2}.2";
+  launchCommandAndWait( ${cmd} );
+
+  my $lastTmpFilename = "${intermediateFile2}.2";
+
+
+  if ($PARAMS{pairedReads})
+  {
+    # Calculate read nums of paired reads, remove those that were already in the search results, and run beetl-extend to find the bases
+    my ($myInt32, $myInt8, $myInt8b);
+    open (END_POS_FILE, "<$PARAMS{input}-end-pos") or die "Can't open $PARAMS{input}-end-pos file for reading +!";
+    binmode (END_POS_FILE);
+    read (END_POS_FILE, $myInt32, 4) or die "Can't read first 4 bytes in $PARAMS{input}";
+    read (END_POS_FILE, $myInt8, 1) or die "Can't read next 1 byte in $PARAMS{input}";
+    read (END_POS_FILE, $myInt8b, 1) or die "Can't read next 1 byte in $PARAMS{input}";
+    close (END_POS_FILE );
+    my $seqCount = unpack('L',$myInt32);
+    my $subSequenceCount = unpack('C',$myInt8);
+    my $hasRevComp = unpack('C',$myInt8b);
+    my $entriesCount = $seqCount*$subSequenceCount*($hasRevComp+1);
+    print "seqCount=${seqCount}\n";
+    print "subSequenceCount=${subSequenceCount}\n";
+    print "hasRevComp=${hasRevComp}\n";
+    print "=>entriesCount=${entriesCount}\n";
+
+
+    my $halfEntriesCount = $entriesCount / 2;
+    my %neededReads;
+    my $matchCount = 0;
+    my $readPairsCount = 0;
+    open (INP1, "${intermediateFile2}.2") || die "Failed to open ${intermediateFile2}.2: $!";
+    while (my $line=<INP1>)
+    {
+      if ($line =~ /^(.*)\t/)
+      {
+        my $readNum = " $1";
+        if (defined($neededReads{readNum})) {
+          delete $neededReads{readNum};
+          $readPairsCount--;
+        }
+        else {
+          my $neededReadNum;
+          if ($readNum < $halfEntriesCount)
+            { $neededReadNum = $readNum + $halfEntriesCount }
+          else
+            { $neededReadNum = $readNum - $halfEntriesCount }
+          $neededReads{$neededReadNum} = 1;
+        }
+        $matchCount++;
+        $readPairsCount++;
+      }
+    }
+    close (INP1);
+    print "Found $matchCount matching reads in $readPairsCount read pairs\n";
+
+    open (OUT3, ">${intermediateFile2}.3") || die "Failed to open ${intermediateFile2}.3: $!";
+    for my $key (sort keys %neededReads) {
+      my $val = $neededReads{$key};
+      print OUT3 "\$ $key 1\n";
+    }
+    close (OUT3);
+
+
+    $cmd="beetl-extend -i ${intermediateFile2}.3 -b $PARAMS{input} -ui --propagate-sequence -o ${intermediateFile2}.4";
+    if ($PARAMS{verbose}) {
+      $cmd .= " | tee ${intermediateFile2}.5";
+    } else {
+      $cmd .= " > ${intermediateFile2}.5";
+    }
+    launchCommandAndWait( ${cmd} );
+
+    $cmd="(grep Output ${intermediateFile2}.5 | tail -n +2 | cut -f 7,8 ; cat ${intermediateFile2}.2) | sort -gu > ${intermediateFile2}.6";
+    launchCommandAndWait( ${cmd} );
+
+    $lastTmpFilename = "${intermediateFile2}.6";
+  }
+
+
+  # Extract reads by groups of 1000, to avoid command line overload and to be able to keep bases in RAM
+  open (INP1, "${lastTmpFilename}") || die "Failed to open ${lastTmpFilename}: $!";
+  my $readNums = "";
+  my @bases = ();
+  my $counter = 0;
+  while (1)
+  {
+    my $line=<INP1>;
+    if ($counter==1000 || !defined($line))
+    {
+      # Group of 1000 or final group ready to get processed: extract read Ids and qualities from razip files
+
+      print "Extracting ${counter} reads...\n";
+      if ($counter > 0)
+      {
+        $cmd="${programPath}/index_lines.pl ${readIdsFilename}.rz ${readNums}";
+        open (INP_READ_IDS, "${cmd} |") || die "Failed to open ${cmd}: $!";
+        $cmd="${programPath}/index_lines.pl ${qualsFilename}.rz ${readNums}";
+        open (INP_QUALS, "${cmd} |") || die "Failed to open ${cmd}: $!";
+
+        for (my $i=0; $i<$counter; $i++)
+          {
+            my $readId=<INP_READ_IDS>;
+            my $qual=<INP_QUALS>;
+            print OUT $readId, $bases[$i], "\n+\n", $qual;
+          }
+        close (INP_READ_IDS);
+        close (INP_QUALS);
+
+        $counter = 0;
+        $readNums = "";
+        @bases = ();
+      }
+      last if (!defined($line));
+    }
+    if ($line =~ /^(.*)\t(.*)$/)
+    {
+      $readNums .= " $1";
+      push @bases, $2;
+      $counter++;
+    }
+  }
+  close (INP1);
+}
+
+  close (OUT);
+  $cmd="rm -f ${intermediateFile1} ${intermediateFile1}.2 ${intermediateFile2} ${intermediateFile2}.2 ${intermediateFile2}.0 ${intermediateFile2}.3 ${intermediateFile2}.4 ${intermediateFile2}.5 ${intermediateFile2}.6";
+  launchCommandAndWait( ${cmd} );
+}
+
+else
+{
+  print "Invalid mode\n";
+  die "$usage";
+}
+
+print "Done\n";
+
+
+
+
+sub launchCommandAndWait
+{
+  my ($cmd) = @_;
+  if ($PARAMS{verbose}) {
+    print "launchCommandAndWait: $cmd\n";
+  }
+
+  system( $cmd );
+  if ($? != 0) { die "Process terminated unexpectedly: $?"; }
+}
+
+sub launchCommand
+{
+  my ($cmd) = @_;
+  if ($PARAMS{verbose}) {
+    print "launchCommand: $cmd\n";
+  }
+
+  # Using forks to be able to wait for child completion downstream
+  my $pid = fork();
+  if ($pid == -1) {
+    die;
+  }
+  elsif ($pid == 0) {
+    exec ${cmd} or die;
+  }
+}
+
+sub waitForChildrenToExitCleanly
+{
+  # Wait for child processes to complete
+  while (wait() != -1) {
+    if ($? != 0) { die "Process terminated unexpectedly: $?"; }
+  }
+}

@@ -62,7 +62,7 @@ TransposeFasta::~TransposeFasta()
 }
 
 
-bool TransposeFasta::convert( const string &input, const string &output, bool generatedFilesAreTemporary )
+bool TransposeFasta::convert( /*const string &input,*/ const string &output, bool generatedFilesAreTemporary )
 {
     vector<vector<uchar> > bufQual;
     vector<FILE *> outputFilesQual;
@@ -141,18 +141,19 @@ bool TransposeFasta::convert( const string &input, const string &output, bool ge
         if ( charsBuffered == BUFFERSIZE )
         {
             // write buffers to the files, clear buffers
+            #pragma omp parallel for num_threads(4)
             for ( SequenceLength i = 0; i < cycleNum_; i++ )
             {
                 //cerr << "writing to " << i << " : " << buf_[i] << endl;
-                num_write = fwrite ( buf_[i].data(), sizeof( char ), charsBuffered, outputFiles_[i] );
-                lengthTexts += num_write;
+                size_t num_write_bases = fwrite ( buf_[i].data(), sizeof( char ), charsBuffered, outputFiles_[i] );
+                checkIfEqual( num_write_bases, charsBuffered ); // we should always read/write the same number of characters
                 if ( processQualities_ )
                 {
                     size_t num_write_qual = fwrite ( bufQual[i].data(), sizeof( char ), charsBuffered, outputFilesQual[i] );
-                    checkIfEqual( num_write, num_write_qual );
+                    checkIfEqual( num_write_bases, num_write_qual );
                 }
             }
-            checkIfEqual( num_write, charsBuffered ); // we should always read/write the same number of characters
+            lengthTexts += ( num_write * cycleNum_ );
 
 
             charsBuffered = 0;

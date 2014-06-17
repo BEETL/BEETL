@@ -111,10 +111,10 @@ char BwtWriterASCII::getLastChar()
 
 
 //
-// BwtWriterRunLength member function definitions
+// BwtWriterRunLengthBase member function definitions
 //
 
-BwtWriterRunLength::~BwtWriterRunLength()
+BwtWriterRunLengthBase::~BwtWriterRunLengthBase()
 {
     if ( runLength_ != 0 ) encodeRun( lastChar_, runLength_ );
 
@@ -137,17 +137,22 @@ BwtWriterRunLength::~BwtWriterRunLength()
 
 #ifdef REPORT_COMPRESSION_RATIO
     Logger_if( LOG_FOR_DEBUGGING ) Logger::out()
-            << "BwtWriterRunLength: received "
+            << "BwtWriterRunLengthBase: received "
             << charsReceived_ << " chars, sent "
             << bytesWritten_ << " bytes, compression "
             << ( ( double )8 * bytesWritten_ ) / ( charsReceived_ )
             << " bits per char " << std::endl;
 #endif
 
-
+#ifdef GENERATE_RLE_HISTOGRAM
+    for ( auto & kv : histogram_ )
+    {
+        cout << "histogram:\t" << kv.first.first << "\t" << kv.first.second << "\t" << kv.second << endl;
+    }
+#endif
 }
 
-void BwtWriterRunLength::operator()( const char *p, LetterNumber numChars )
+void BwtWriterRunLengthBase::operator()( const char *p, LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BW RL () - " << *p << " " << numChars << " state: " << lastChar_ << " " << runLength_ << endl;
@@ -173,7 +178,7 @@ void BwtWriterRunLength::operator()( const char *p, LetterNumber numChars )
     //    assert(fwrite( p, sizeof(char), numChars, pFile_ )==numChars);
 } // ~operator()
 
-void BwtWriterRunLength::flushBuffer()
+void BwtWriterRunLengthBase::flushBuffer()
 {
     size_t bufLength = pBuf_ - buf_;
 #ifdef REPORT_COMPRESSION_RATIO
@@ -190,23 +195,26 @@ void BwtWriterRunLength::flushBuffer()
     pBuf_ = buf_;
 }
 
-void BwtWriterRunLength::sendChar( char c )
+void BwtWriterRunLengthBase::sendChar( char c )
 {
     *pBuf_ = c;
     if ( ++pBuf_ == pBufMax_ )
         flushBuffer();
 }
 
-void BwtWriterRunLength::encodeRun( char c, LetterNumber runLength )
+void BwtWriterRunLengthBase::encodeRun( char c, LetterNumber runLength )
 {
 #ifdef DEBUG
     std::cout << "BW RL encodeRun - sending run " << c << " " << runLength << " " << pFile_
               << std::endl;
 #endif
+#ifdef GENERATE_RLE_HISTOGRAM
+    ++histogram_[ make_pair( c, runLength ) ];
+#endif
 #ifdef REPORT_COMPRESSION_RATIO
     charsReceived_ += runLength;
 #endif
-    int charIndex( whichPile[( int )c] );
+    const unsigned char charIndex( whichPile[( int )c] );
 
     if ( charIndex == nv )
     {
@@ -214,26 +222,25 @@ void BwtWriterRunLength::encodeRun( char c, LetterNumber runLength )
         exit( EXIT_FAILURE );
     }
 
-    uchar outCode( 0xF0 | ( ( uchar )charIndex ) );
+    assert( charIndex >> baseFieldWidthInBits_ == 0 );
+    uchar outCode = charIndex | lengthFieldMask_;
     runLength--;
-    const LetterNumber numMaxChars( runLength >> 4 );
+    const LetterNumber numMaxChars( runLength >> lengthFieldWidthInBits_ );
     for ( LetterNumber i( 0 ); i < numMaxChars; i++ )
     {
         sendChar( outCode );
     }
-    runLength &= ( LetterNumber )0xF;
+    runLength -= numMaxChars << lengthFieldWidthInBits_;
+    assert( runLength >> lengthFieldWidthInBits_ == 0 );
+    outCode = charIndex | ( static_cast<uchar>( runLength ) << baseFieldWidthInBits_ );
 
-    outCode = ( ( ( uchar )runLength ) << 4 );
-    outCode |= charIndex;
-    //    assert(((unsigned int)outCode)<256);
-    //    assert(fwrite( &outCode, sizeof(char), 1, pFile_ )==1);
     sendChar( outCode );
 #ifdef DEBUG
     std::cout << "B sending " << ( unsigned int )outCode << " " << pFile_ << std::endl;
 #endif
 } // ~encodeRun
 
-void BwtWriterRunLength::sendRun( char c, LetterNumber runLength )
+void BwtWriterRunLengthBase::sendRun( char c, LetterNumber runLength )
 {
 #ifdef DEBUG
     std::cout << "BW RL sendRun - sending run " << c << " " << runLength << " " << endl;
@@ -254,36 +261,12 @@ void BwtWriterRunLength::sendRun( char c, LetterNumber runLength )
 } // ~sendRun
 
 
-
-#ifdef ORIG
-void BwtWriterRunLength::sendRun( char c, LetterNumber runLength )
-{
-#ifdef DEBUG
-    std::cout << "BW RL sendRun - sending run " << c << " " << runLength << " " << endl;
-#endif
-    if ( c == lastChar_ )
-    {
-        runLength_ += runLength;
-    }
-    else
-    {
-        if ( runLength_ != 0 )
-        {
-            encodeRun( lastChar_, runLength_ );
-            lastChar_ = c;
-            runLength_ = runLength;
-        }
-    }
-} // ~sendRun
-#endif
-
-
-char BwtWriterRunLength::getLastChar()
+char BwtWriterRunLengthBase::getLastChar()
 {
     return lastChar_;
 }
 
-void BwtWriterRunLength::flush()
+void BwtWriterRunLengthBase::flush()
 {
     if ( runLength_ != 0 )
     {
@@ -294,6 +277,122 @@ void BwtWriterRunLength::flush()
     flushBuffer();
 
     fflush( pFile_ );
+}
+
+
+//
+// BwtWriterRunLengthDynamic member function definitions
+//
+BwtWriterRunLengthDynamic::BwtWriterRunLengthDynamic( const string &fileName )
+    : BwtWriterRunLengthBase( fileName, 3 )
+{
+    symbolForRunLength1ForPile_.resize( alphabetSize );
+    maxEncodedRunLengthForPile_.resize( alphabetSize );
+
+    LetterNumber bytecode = 0;
+    symbolForRunLength1ForPile_[ whichPile['A'] ] = bytecode;
+    bytecode += ( maxEncodedRunLengthForPile_[ whichPile['A'] ] = 63 );
+
+    symbolForRunLength1ForPile_[ whichPile['C'] ] = bytecode;
+    bytecode += ( maxEncodedRunLengthForPile_[ whichPile['C'] ] = 63 );
+
+    symbolForRunLength1ForPile_[ whichPile['G'] ] = bytecode;
+    bytecode += ( maxEncodedRunLengthForPile_[ whichPile['G'] ] = 63 );
+
+    symbolForRunLength1ForPile_[ whichPile['T'] ] = bytecode;
+    bytecode += ( maxEncodedRunLengthForPile_[ whichPile['T'] ] = 63 );
+
+    symbolForRunLength1ForPile_[ whichPile['N'] ] = bytecode;
+    bytecode += ( maxEncodedRunLengthForPile_[ whichPile['N'] ] = 1 );
+
+    symbolForRunLength1ForPile_[ whichPile['$'] ] = bytecode;
+    bytecode += ( maxEncodedRunLengthForPile_[ whichPile['$'] ] = 3 );
+
+    assert( bytecode == 256 );
+
+    // Send file header (inspired by the PNG format)
+    fputc( 137, pFile_ ); // non-ASCII to avoid confusion with text files
+    fputc( 'B', pFile_ );
+    fputc( 'W', pFile_ );
+    fputc( 'T', pFile_ );
+    fputc( 13, pFile_ ); // \r\n sequence to check for invalid dos/unix format conversions
+    fputc( 10, pFile_ );
+    fputc( 26, pFile_ ); // Ctrl-Z, making some text viewers stop here
+
+    fputc( 1, pFile_ ); // Format version number
+
+    /*
+        // Send conversion table: 256 entries with { base: 1 char, run length: 1 byte }
+        for (int i=1; i<=63; ++i)
+        {
+            fputc( 'A', pFile_ );
+            fputc( i, pFile_ );
+        }
+        for (int i=1; i<=63; ++i)
+        {
+            fputc( 'C', pFile_ );
+            fputc( i, pFile_ );
+        }
+        for (int i=1; i<=63; ++i)
+        {
+            fputc( 'G', pFile_ );
+            fputc( i, pFile_ );
+        }
+        for (int i=1; i<=63; ++i)
+        {
+            fputc( 'T', pFile_ );
+            fputc( i, pFile_ );
+        }
+        for (int i=1; i<=1; ++i)
+        {
+            fputc( 'N', pFile_ );
+            fputc( i, pFile_ );
+        }
+        for (int i=1; i<=3; ++i)
+        {
+            fputc( '$', pFile_ );
+            fputc( i, pFile_ );
+        }
+    */
+}
+
+void BwtWriterRunLengthDynamic::encodeRun( char c, LetterNumber runLength )
+{
+    assert( runLength > 0 );
+#ifdef DEBUG
+    std::cout << "BW RL encodeRun - sending run " << c << " " << runLength << " " << pFile_
+              << std::endl;
+#endif
+#ifdef GENERATE_RLE_HISTOGRAM
+    ++histogram_[ make_pair( c, runLength ) ];
+#endif
+#ifdef REPORT_COMPRESSION_RATIO
+    charsReceived_ += runLength;
+#endif
+    const unsigned char charIndex( whichPile[( int )c] );
+
+    if ( charIndex == nv )
+    {
+        cerr << "Char |" << c << "| is not part of the alphabet. Aborting." << endl;
+        exit( EXIT_FAILURE );
+    }
+
+    const uchar symbolForRunLength1 = symbolForRunLength1ForPile_[charIndex];
+    const LetterNumber maxEncodedRunLength = maxEncodedRunLengthForPile_[charIndex];
+
+    uchar outCode = symbolForRunLength1 + maxEncodedRunLength - 1;
+    LetterNumber countAtFullLength = runLength / maxEncodedRunLength;
+    for ( LetterNumber i = 0; i < countAtFullLength; ++i )
+    {
+        sendChar( outCode );
+    }
+
+    runLength %= maxEncodedRunLength;
+    if ( runLength > 0 )
+    {
+        outCode = symbolForRunLength1 + runLength - 1;
+        sendChar( outCode );
+    }
 }
 
 

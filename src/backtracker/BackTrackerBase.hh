@@ -19,6 +19,7 @@
 #define INCLUDED_BACKTRACKER_BASE_HH
 
 #include "BwtReader.hh"
+#include "EndPosFile.hh"
 #include "IntervalHandlerBase.hh"
 #include "LetterCount.hh"
 #include "RangeStore.hh"
@@ -35,7 +36,7 @@ using namespace std;
 // branch of the search tree
 struct BackTrackerBase
 {
-    BackTrackerBase( const string &subset, const int cycle, const bool noComparisonSkip );
+    BackTrackerBase( const string &subset, const int cycle, const bool noComparisonSkip, const bool propagateSequence );
 
     void skipIfNecessary( const Range &thisRange,
                           LetterNumber &currentPos,
@@ -65,6 +66,7 @@ struct BackTrackerBase
         , string &thisWord
         , const bool doesPropagateToEnd
         , IntervalHandler_FoundCallbackPtr foundCallbackPtr
+        , EndPosFile &endPosFile
         , int sampleId
     );
 
@@ -81,6 +83,7 @@ struct BackTrackerBase
     void updatePropagatedSuffixWord( bool &hasChild, const Range &thisRange, string &thisWord, const AlphabetSymbol l );
 
     vector<char> bwtSubstringStore_;
+    const bool propagateSequence_;
 };
 
 #endif

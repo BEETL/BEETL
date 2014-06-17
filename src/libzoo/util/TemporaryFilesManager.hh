@@ -66,8 +66,10 @@ static const int TempFileBufSize( 32768 );
 class TemporaryFile
 {
 public:
-    TemporaryFile( ) : f_( NULL )
+    TemporaryFile( )
+        : f_( NULL )
 #ifdef BUFFERED_WRITE_TEST_VERSION
+        , buf_( TempFileBufSize )
         , p_( &buf_[0] )
         , pBufMax_( p_ + TempFileBufSize )
 #endif
@@ -103,7 +105,7 @@ public:
 #ifdef BUFFERED_WRITE_TEST_VERSION
     void flushBuffer( void )
     {
-        ::fwrite( buf_, 1, p_ - &buf_[0], f_ );
+        ::fwrite( &buf_[0], 1, p_ - &buf_[0], f_ );
         p_ = &buf_[0];
     }
 
@@ -207,7 +209,7 @@ protected:
 
     FILE *f_;
 #ifdef BUFFERED_WRITE_TEST_VERSION
-    char buf_[TempFileBufSize];
+    vector<char> buf_;
     char *p_;
     char *pBufMax_;
 #endif //ifdef BUFFERED_WRITE_TEST_VERSION

@@ -33,14 +33,14 @@ IntervalWriter::IntervalWriter( std::ostream &file ): file_( file )
     assert( file_.good() );
 }
 
-void IntervalWriter::write( const IntervalRecord &ir )
+void IntervalWriter::write( const IntervalRecord &ir ) const
 {
     file_ << ir.kmer;
     file_ << ' ' << ir.position;
     file_ << ' ' << ir.count << endl;
 }
 
-void IntervalWriter::writeV2( const IntervalRecord &ir )
+void IntervalWriter::writeV2( const IntervalRecord &ir ) const
 {
     file_ << ir.kmer;
     file_ << ' ' << ir.position;

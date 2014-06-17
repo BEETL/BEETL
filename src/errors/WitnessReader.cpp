@@ -53,11 +53,11 @@ LetterCount WitnessReader::TotalCountSoFar()
 {
     return totalCountSoFar_;
 }
-int WitnessReader::currentWitnessCount()
+int WitnessReader::currentWitnessCount() const
 {
     return lastLcpBlockSupport_;
 }
-int WitnessReader::currentWitnessBlockStart()
+int WitnessReader::currentWitnessBlockStart() const
 {
     return filePos_ - filledTo_ + at_ - lastLcpBlockSupport_;
 }

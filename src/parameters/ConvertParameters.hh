@@ -41,6 +41,7 @@ enum InputFormat
     INPUT_FORMAT_RUNFOLDER,
     INPUT_FORMAT_BWT_ASCII,
     INPUT_FORMAT_BWT_RLE,
+    INPUT_FORMAT_BWT_RLE53,
     INPUT_FORMAT_COUNT
 };
 
@@ -55,6 +56,7 @@ static const string inputFormatLabels[] =
     "runFolder",
     "bwt_ascii",
     "bwt_rle",
+    "bwt_rle53",
     "" // end marker
 };
 
@@ -70,6 +72,8 @@ enum OutputFormat
     OUTPUT_FORMAT_BCL,
     OUTPUT_FORMAT_BWT_ASCII,
     OUTPUT_FORMAT_BWT_RLE,
+    OUTPUT_FORMAT_BWT_RLE53,
+    OUTPUT_FORMAT_BWT_RLE_DYNAMIC,
     OUTPUT_FORMAT_COUNT
 };
 
@@ -82,6 +86,8 @@ static const string outputFormatLabels[] =
     "bcl",
     "bwt_ascii",
     "bwt_rle",
+    "bwt_rle53",
+    "bwt_rle_dynamic",
     "" // end marker
 };
 

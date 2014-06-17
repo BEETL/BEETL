@@ -34,7 +34,7 @@ namespace SXSI
  *
  * See BCRexternalBWT.h for more details.
  */
-BWTCollection *BWTCollection::InitBWTCollection( char *file1, char *fileOut, int mode, CompressionFormatType outputCompression )
+BWTCollection *BWTCollection::InitBWTCollection( const string &file1, const string &fileOut, const int mode, const CompressionFormatType outputCompression )
 {
     BWTCollection *result =
         new BCRexternalBWT( file1, fileOut, mode, outputCompression );

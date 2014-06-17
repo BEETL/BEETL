@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.65)
 
-AC_INIT(BEETL, 0.9.0, acox@illumina.com)
+AC_INIT(BEETL, 0.10, acox@illumina.com)
 AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_CONFIG_SRCDIR([src/frontends/BeetlBwt.cpp])
@@ -93,7 +93,9 @@ AC_CONFIG_FILES([Makefile
                  src/frontends/beetl
                  src/metagenomics/Makefile
                  scripts/Makefile
+                 scripts/lcp/Makefile
                  scripts/tumourNormalFiltering/Makefile
+                 scripts/BEETL-fastq/Makefile
                  tests/Makefile
                 ])
 AC_OUTPUT

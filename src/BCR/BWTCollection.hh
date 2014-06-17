@@ -26,6 +26,9 @@
 #include "parameters/UnbwtParameters.hh"
 
 #include <iostream>
+#include <string>
+
+using std::string;
 
 
 // by Tobias, small class interface to call from beetl executable
@@ -33,16 +36,14 @@
 class BCR : public Algorithm
 {
     int mode_;
-    char *inFile_;
-    char *outFile_;
+    string inFile_;
+    string outFile_;
     CompressionFormatType outputCompression_;
 public:
-    BCR( int mode, string in, string out,
-         CompressionFormatType outputCompression );
+    BCR( const int mode, const string &in, const string &out,
+         const CompressionFormatType outputCompression );
     ~BCR()
     {
-        delete[] inFile_;
-        delete outFile_;
     }
     void run( void );
 };
@@ -74,7 +75,7 @@ public:
     LetterNumber lengthTot_plus_eof; //length of the BWT
     LetterNumber **tableOcc; //contains the number of occurrences of each symbol
     LetterCountEachPile tableOcc_; // replace tableOcc
-    AlphabetSymbol alpha[256]; //Corresponding between the alphabet, the piles and tableOcc
+    vector<AlphabetSymbol> alpha; //Corresponding between the alphabet, the piles and tableOcc
     AlphabetSymbol sizeAlpha;  //number of the different symbols in the input texts
     AlphabetSymbol *alphaInverse;  //Corresponding between alpha[i] and the symbol as char
 
@@ -93,19 +94,19 @@ public:
     * Returns a pointer to an object implementing this interface.
     */
     static BWTCollection *InitBWTCollection
-    ( char *file1, char *fileOut, int mode,
-      CompressionFormatType outputCompression );
+    ( const string &file1, const string &fileOut, const int mode,
+      const CompressionFormatType outputCompression );
 
     /**
      * Virtual destructor
      */
-    virtual ~BWTCollection() { };
+    virtual ~BWTCollection() {}
     /**
      *
      * The i'th text insertion gets an identifier value i-1.
      * In other words, document identifiers start from 0.
      */
-    virtual int buildBCR( char const *, char const *, const BwtParameters *bwtParams ) = 0;
+    virtual int buildBCR( const string &, const string &, const BwtParameters *bwtParams ) = 0;
     virtual int unbuildBCR( char const *, char const *, char const *, char const * ) = 0;
     virtual int backwardSearchBCR( char const * , char const * , char const * , char const * ) = 0;
     virtual int decodeBCRnaiveForward( char const *, char const *, char const * ) = 0; //Inverse BWT by Forward direction of nText sequences, one sequence at a time, in lexicographic order.
@@ -117,12 +118,12 @@ public:
     virtual vector <int> recoverNSequenceForward( char const * , char const *, SequenceNumber ) = 0;
     virtual int recoverNSequenceForwardSequentially( char const * , char const *, SequenceNumber ) = 0;
     virtual void storeBWT( uchar const *, uchar const *qual = NULL ) = 0;
-    virtual void storeEntireBWT( const char * ) = 0;
+    virtual void storeEntireBWT( const string & ) = 0;
     virtual void storeSA( SequenceLength ) = 0;
     virtual void storeEntirePairSA( const char * ) = 0;
     virtual void storeEntireSAfromPairSA( const char * ) = 0;
     virtual void storeBWTandLCP( uchar const * ) = 0;
-    virtual void storeEntireLCP( const char * ) = 0;
+    virtual void storeEntireLCP( const string & ) = 0;
     virtual LetterNumber rankManySymbols( FILE &, LetterNumber *, LetterNumber, uchar * ) = 0;
     virtual LetterNumber rankManySymbolsByVector( FILE & , LetterNumber *, LetterNumber, uchar *, uchar *foundQual = 0, FILE *InFileBWTQual = 0 ) = 0;
     virtual LetterNumber findRankInBWT ( char const *, char const *, AlphabetSymbol, LetterNumber, uchar ) = 0;
@@ -144,7 +145,7 @@ private:
     virtual int findBlockToRead( LetterNumber *, AlphabetSymbol , LetterNumber *, LetterNumber * ) = 0;
 protected:
     // Protected constructor; call the static function InitBWTCollection().
-    BWTCollection() : tableOcc( NULL ), sizeAlpha( 0 ), alphaInverse( NULL ) { }
+    BWTCollection() : tableOcc( NULL ), alpha( 256 ), sizeAlpha( 0 ), alphaInverse( NULL ), outputCompression_( compressionASCII ) { }
 
     // No copy constructor or assignment
     BWTCollection( BWTCollection const & );

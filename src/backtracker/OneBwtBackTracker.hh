@@ -20,6 +20,7 @@
 
 #include "BackTrackerBase.hh"
 #include "BwtReader.hh"
+#include "EndPosFile.hh"
 #include "IntervalHandlerBase.hh"
 #include "LetterCount.hh"
 #include "RangeStore.hh"
@@ -45,7 +46,9 @@ public:
         const string &subset,
         const int cycle,
         const bool doesPropagateBkptToSeqNumInSet,
-        const bool noComparisonSkip
+        const bool noComparisonSkip,
+        const bool propagateSequence,
+        EndPosFile &endPosFile
     );
 
     void skipIfNecessary( const Range &thisRange,
@@ -76,6 +79,7 @@ public:
 
     const bool doesPropagateBkptToSeqNumInSet_;
     //    const bool noComparisonSkip_;
+    EndPosFile &endPosFile_;
 };
 
 #endif

@@ -25,7 +25,7 @@ bool ErrorInfo::SortByRead( ErrorInfo a, ErrorInfo b )
 }
 
 
-void ErrorInfo::print()
+void ErrorInfo::print() const
 {
     cout << "Error info: " << endl;
     cout << "   " << "First cycle:" << firstCycle << endl; //first cycle the error is noticed

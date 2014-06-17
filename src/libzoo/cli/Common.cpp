@@ -49,6 +49,10 @@ string detectFileFormat( const string &inputFilename )
     {
         return fileFormatLabels[FILE_FORMAT_FASTQ];
     }
+    else if ( endsWith( inputFilename, ".fq" ) )
+    {
+        return fileFormatLabels[FILE_FORMAT_FASTQ];
+    }
     else if ( endsWith( inputFilename, ".seq" ) )
     {
         return fileFormatLabels[FILE_FORMAT_SEQ];
@@ -57,7 +61,7 @@ string detectFileFormat( const string &inputFilename )
     {
         return fileFormatLabels[FILE_FORMAT_BCL];
     }
-    else if ( endsWith( inputFilename, ".cyc" ) || endsWith( inputFilename, ".cyc." ) || beginsWith( inputFilename, "cyc." ) )
+    else if ( endsWith( inputFilename, ".cyc" ) || endsWith( inputFilename, "cyc." ) || beginsWith( inputFilename, "cyc." ) )
     {
         return fileFormatLabels[FILE_FORMAT_CYC];
     }
@@ -68,7 +72,7 @@ void checkFileFormat( const string &inputFilename, const string &fileFormat )
 {
     if ( fileFormat.empty() )
     {
-        cerr << "Error: file format not recognised for " << inputFilename << endl;
+        cerr << "Error: filename suffix not recognised for " << inputFilename << ". (You may try to run with --help, as we usually provide options such as --input-format to specify the file format)" << endl;
         exit( EXIT_FAILURE );
     }
 }

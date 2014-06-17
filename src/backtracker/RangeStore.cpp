@@ -19,6 +19,7 @@
 
 #include "libzoo/util/Logger.hh"
 
+#include <algorithm>
 #include <cstring>
 #include <inttypes.h>
 #include <sstream>
@@ -69,15 +70,18 @@ bool RangeStore::isSubsetValid( const string &subset, const int cycle, const int
 // RangeStoreExternal
 //
 
-RangeStoreExternal::RangeStoreExternal( const string fileStem ) :
-    fileStem_( fileStem ), stateIn_()
+RangeStoreExternal::RangeStoreExternal( const bool propagateSequence, const string fileStem )
+    : fileStem_( fileStem )
+    , stateIn_( propagateSequence )
+    , stateOut_( alphabetSize, vector< RangeState >( alphabetSize, RangeState( propagateSequence ) ) )
+    , stateInForComparison_( alphabetSize, vector< RangeState >( alphabetSize, RangeState( propagateSequence ) ) )
 {
     setCycleNum( 0 );
 
     string fileName;
-    for ( int i( 1 ); i < alphabetSize; ++i )
+    for ( int i( 0 ); i < alphabetSize; ++i )
     {
-        for ( int j( 1 ); j < alphabetSize; ++j )
+        for ( int j( 0 ); j < alphabetSize; ++j )
         {
             stateOut_[i][j].clear();
             getFileName( fileStemIn_, i, j, fileName );
@@ -245,9 +249,7 @@ void RangeStoreExternal::addRange( const Range &r, const int pileNum, const int 
     Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
     {
         Logger::out() << "set range: " << fileStemOut_ << " " << alphabet[pileNum] << " " << alphabet[portionNum]
-#ifdef PROPAGATE_SEQUENCE
                       << " " << r.word_
-#endif
                       << " ";
         r.prettyPrint( Logger::out() );
         Logger::out() << endl;
@@ -265,20 +267,42 @@ void RangeStoreExternal::addRange( const Range &r, const int pileNum, const int 
         stateOut_[pileNum][portionNum].pFile_ = LOCAL_DEF__TEMPORARY_FILE__WRITE_MODE::fopen( fileName.c_str(), "wb" );
 #endif
 
-#ifdef PROPAGATE_SEQUENCE
+        //#ifdef PROPAGATE_SEQUENCE
         stateOut_[pileNum][portionNum].lastProcessedPos_ = 0;
-#endif
+        //#endif
     }
 
     stateOut_[pileNum][portionNum] << r;
 }
 
 
+void RangeStoreExternal::addOutOfOrderRange( const Range &r, const int pileNum, const AlphabetSymbol portionNum, const string &subset, const int cycle )
+{
+    assert( pileNum == 0 && "only used for reordering $ pile after using end-pos file permutation" );
+    assert( subset.empty() && "todo: implement with subset" );
+    outOfOrderRangesForPile0_.push_back( make_pair( r, portionNum ) );
+}
+
+
 void RangeStoreExternal::clear( bool doDeleteFiles )
 {
-    for ( int i( 1 ); i < alphabetSize; ++i )
+    // Flush out-of-order ranges if necessary
+    if ( !outOfOrderRangesForPile0_.empty() )
     {
-        for ( int j( 1 ); j < alphabetSize; ++j )
+        std::sort( outOfOrderRangesForPile0_.begin(), outOfOrderRangesForPile0_.end(), compareRangeByPosInPair );
+        for ( pair< Range, AlphabetSymbol > &rp : outOfOrderRangesForPile0_ )
+        {
+            Range &r = rp.first;
+            //            AlphabetSymbol portionNum = rp.second;
+            addRange( r, 0, 0/*portionNum*/, "", 0 ); //subset_, cycle_ ); // subset not implemented, cycle only used with subset
+        }
+        outOfOrderRangesForPile0_.clear();
+    }
+
+    // Clean up
+    for ( int i( 0 ); i < alphabetSize; ++i )
+    {
+        for ( int j( 0 ); j < alphabetSize; ++j )
         {
             stateOut_[i][j].clear();
             stateInForComparison_[i][j].clear();

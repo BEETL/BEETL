@@ -56,7 +56,7 @@ int main( const int argc, const char **argv )
     if ( !params.parseArgv( argc, argv ) || params["help"] == 1 || !params.chechRequiredParameters() )
     {
         params.printUsage();
-        exit( 1 );
+        exit( params["help"] == 0 );
     }
 
     // Use default parameter values where needed
@@ -72,7 +72,7 @@ int main( const int argc, const char **argv )
     BwtReaderBase *dollarPile;
     detectInputBwtProperties( indexPrefix, pileNames, compressed, dummyStr );
     if ( compressed == true )
-        dollarPile = new BwtReaderRunLengthIndex( pileNames[0] );
+        dollarPile = new BwtReaderRunLengthIndex( pileNames[0], params.getStringValue( "use shm" ) );
     else
         dollarPile = new BwtReaderASCII( pileNames[0] );
 
@@ -118,6 +118,7 @@ int main( const int argc, const char **argv )
         genomeLength,
         minWitnessLength,
         params.getStringValue( "subset" ),
+        &params,
         minSupport
     );
 

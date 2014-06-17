@@ -18,13 +18,14 @@
 #ifndef EXTENDER_INTERVAL_HANDLER_HH
 #define EXTENDER_INTERVAL_HANDLER_HH
 
+#include "EndPosFile.hh"
 #include "IntervalHandlerBase.hh"
 #include "RangeStore.hh"
 
 
 struct ExtenderIntervalHandler : public IntervalHandlerBase
 {
-    ExtenderIntervalHandler();
+    ExtenderIntervalHandler( EndPosFile &endPosFile );
 
     virtual ~ExtenderIntervalHandler() {}
 
@@ -81,6 +82,8 @@ struct ExtenderIntervalHandler : public IntervalHandlerBase
         return r;
     }
 
+private:
+    EndPosFile &endPosFile_;
 };
 
 #endif // EXTENDER_INTERVAL_HANDLER_HH

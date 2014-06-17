@@ -32,6 +32,8 @@ liball_a_SOURCES = \
 	shared/Algorithm.hh \
 	shared/Alphabet.hh \
 	shared/Config.hh \
+	shared/EndPosFile.cpp \
+	shared/EndPosFile.hh \
 	shared/FragmentedVector.hh \
 	shared/LetterCount.hh \
 	shared/Types.hh \
@@ -128,7 +130,9 @@ libzoo_a_SOURCES = \
 	libzoo/util/Logger.hh \
 	libzoo/util/TemporaryFilesManager.cpp \
 	libzoo/util/TemporaryFilesManager.hh \
-	libzoo/util/AutoGrowVector.hh
+	libzoo/util/AutoGrowVector.hh \
+	libzoo/util/ColorText.cpp \
+	libzoo/util/ColorText.hh
 
 libzoo_a_CXXFLAGS = -I$(srcdir) ${BOOST_CXXFLAGS} ${OPENMP_CXXFLAGS}
 

@@ -26,6 +26,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -63,8 +64,8 @@ void getFileName( const string &stem, const char code, const int pile,
 bool isValidFastaFile( const char *filename );
 
 bool isValidReadFile( const char *filename );
-
 bool readWriteCheck( const char *fileName, const bool readWrite, const bool failIfError = true );
+int isDirectoryEmpty( const string &dirname ); // return: -1=directory doesn't exist, 0=not empty, 1=empty
 
 void checkIfEqual( const int arg1, const int arg2 );
 
@@ -79,5 +80,11 @@ void detectInputBwtProperties( const string &prefix, vector<string> &filenames, 
 int safeRename( const string &from, const string &to );
 void pauseBetweenCycles();
 void readProcSelfStat( int &out_pid, int &out_num_threads, int &out_processor );
+
+struct emptyDeleter
+{
+    void operator()( ... ) const {}
+};
+std::shared_ptr<std::istream> openInputFileOrDashAsCin( const string &filename );
 
 #endif
