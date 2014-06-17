@@ -509,6 +509,6 @@ sub waitForChildrenToExitCleanly
 {
   # Wait for child processes to complete
   while (wait() != -1) {
-    if ($? != 0) { die "Process terminated unexpectedly: $?"; }
+    if ($? != 0) { print "Process terminated unexpectedly: $?"; }
   }
 }

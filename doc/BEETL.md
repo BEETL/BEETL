@@ -107,7 +107,7 @@ Examples
     beetl-fastq --mode=init -i myFile.fastq -o myIndexedFile
 
     # K-mer search + extraction of the FastQ lines
-    beetl-fastq --mode=search -i myIndexFile -k ACGT
+    beetl-fastq --mode=search -i myIndexedFile -k ACGT -o ACGT.fastq
 
 
 ### Error correction using BWT
