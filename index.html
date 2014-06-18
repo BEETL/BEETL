@@ -48,6 +48,19 @@ querying of BWTs.</p>
 
 <h2>Release History</h2>
 
+<h3>Version 0.10.0 (17th June 2014)</h3>
+<ul>
+<li>New beetl-fastq tool to convert FASTQ files into a set of smaller and searchable files (including quality scores and read ids)</li>
+<li>Added RLE53 class (run length encoding: 3 bits for base, 5 bits for run length), but RLE44 is still our default BWT format</li>
+<li>Beetl-convert handles BWT44 -> BWT53 conversions</li>
+<li>Integrated LCP code with main BCR, making it faster</li>
+<li>Beetl-extend can now rebuild the whole reads' bases with --propagate-sequence (instead of stopping at the $ signs)</li>
+<li>Replaced compile-time PROPAGATE_SEQUENCE with runtime --propagate-sequence in beetl-compare</li>
+<li>Beetl-compare output now correctly goes into the directory specified by --output</li>
+<li>Beetl-search/beetl-extend --use-shm stores pre-parsed index files in shared memory for faster tool startup when doing many small searches</li>
+<li>Thanks to <em>Shaun Jackman</em> and <em>Rayan Chikhi</em> for compilation patches</li>
+</ul>
+
 <h3>Version 0.9.0 (9th December 2013)</h3>
 <ul>
 <li>New K-mer search and propagation tools (see example with beetl-search/beetl-extend in doc/BEETL.md)</li>
