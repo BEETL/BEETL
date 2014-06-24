@@ -21,6 +21,7 @@
 #include "libzoo/util/Logger.hh"
 
 #include <algorithm>
+#include <numeric>
 
 using namespace std;
 

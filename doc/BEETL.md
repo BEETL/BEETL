@@ -40,6 +40,9 @@ Assuming the following paths:
     export PATH=$PATH:/installPath/bin
 
 
+Note: On Mac with LLVM (although unsupported), you may need to define `export CXX=c++; export CXXFLAGS="-stdlib=libc++"` before the configure step
+
+
 Tools
 -----
 

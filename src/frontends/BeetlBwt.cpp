@@ -39,9 +39,6 @@ using namespace BeetlBwtParameters;
 
 BwtParameters params;
 
-struct ResourceEstimate;
-typedef pair< BwtParameters, ResourceEstimate > BwtParamsAndEstimate;
-vector< BwtParamsAndEstimate > allEstimates;
 
 
 class HardwareConstraints
@@ -126,6 +123,9 @@ struct ResourceEstimate
     uint32_t ramVszMBytes;
     uint64_t timeSeconds;
 };
+
+typedef pair< BwtParameters, ResourceEstimate > BwtParamsAndEstimate;
+vector< BwtParamsAndEstimate > allEstimates;
 
 std::ostream &operator<<( std::ostream &os, const ResourceEstimate &obj )
 {
