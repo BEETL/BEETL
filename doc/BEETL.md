@@ -25,6 +25,11 @@ On a clean Amazon Ubuntu instance, you would need:
     sudo apt-get install unzip g++ zlib1g-dev make
 
 
+On Mac with LLVM-clang (although unsupported), you may need to define `export CXX=c++; export CXXFLAGS="-stdlib=libc++"` before the configure step
+
+On Mac with a proper g++ (try macports) installed in /opt/local (warning: it may be in /usr/local!), you may need to define (adjust for your gcc version and path): `export LDFLAGS="-L/opt/local/lib/gcc49"; export CPPFLAGS="-I/opt/local/include/gcc49"`
+
+
 Installation
 ------------
 
@@ -38,9 +43,6 @@ Assuming the following paths:
     make
     make install
     export PATH=$PATH:/installPath/bin
-
-
-Note: On Mac with LLVM-clang (although unsupported), you may need to define `export CXX=c++; export CXXFLAGS="-stdlib=libc++"` before the configure step
 
 
 Tools
