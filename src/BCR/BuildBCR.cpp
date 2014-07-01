@@ -2117,7 +2117,7 @@ void BCRexternalBWT::storeEntirePairSA( const char *fn )
     LetterNumber numcharWrite, numcharRead;
     ElementType *buffer = new ElementType[SIZEBUFFER];
 
-    TmpFilename fnSA( fn, ".pairSA" );
+    Filename fnSA( fn, ".pairSA" );
 
     FILE *OutFileSA = fopen( fnSA, "wb" );
     if ( OutFileSA == NULL )
@@ -2247,8 +2247,8 @@ void BCRexternalBWT::storeEntireSAfromPairSA( const char *fn )
         }
         fclose(InFileLen);
     */
-    TmpFilename fnSA    ( fn, ".sa" );
-    TmpFilename fnPairSA( fn, ".pairSA" );
+    Filename fnSA    ( fn, ".sa" );
+    Filename fnPairSA( fn, ".pairSA" );
 
     FILE *InFilePairSA = fopen( fnPairSA, "rb" );
     if ( InFilePairSA == NULL )

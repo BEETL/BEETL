@@ -20,6 +20,7 @@
 
 #include "Alphabet.hh"
 #include "Types.hh"
+#include "Tools.hh"
 
 #include <vector>
 
