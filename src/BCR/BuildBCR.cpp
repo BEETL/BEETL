@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -68,7 +63,7 @@ void dumpRamFiles()
     }
 }
 
-void debugRamFile( char *filenameIn, size_t n, char *filenameOut = "tmp.debug" )
+void debugRamFile( const string &filenameIn, size_t n, const string &filenameOut = "tmp.debug" )
 {
     BwtReaderIncrementalRunLength pReader( filenameIn );
 
@@ -198,14 +193,16 @@ BwtReaderBase *BCRexternalBWT::instantiateBwtReaderForIntermediateCycle( const c
             pReader = new BwtReaderASCII( filenameIn );
             break;
         case INTERMEDIATE_FORMAT_RLE:
-            pReader = new BwtReaderRunLength( filenameIn );
+            pReader = new BwtReaderRunLengthV3( filenameIn );
             break;
         case INTERMEDIATE_FORMAT_MULTIRLE:
             pReader = new BwtReaderIncrementalRunLength( filenameIn );
             break;
+#ifdef ACTIVATE_HUFFMAN
         case INTERMEDIATE_FORMAT_HUFFMAN:
             pReader = new BwtReaderHuffman( filenameIn );
             break;
+#endif
         default:
             cerr << "Error in BCRexternalBWT::instantiateBwtReaderForIntermediateCycle: unknown intermediate format: " << intermediateFormat << endl;
             exit ( EXIT_FAILURE );
@@ -261,14 +258,16 @@ BwtWriterBase *BCRexternalBWT::instantiateBwtWriterForIntermediateCycle( const c
             pWriter = new BwtWriterASCII( filenameOut );
             break;
         case INTERMEDIATE_FORMAT_RLE:
-            pWriter = new BwtWriterRunLength( filenameOut );
+            pWriter = new BwtWriterRunLengthV3( filenameOut );
             break;
         case INTERMEDIATE_FORMAT_MULTIRLE:
             pWriter = new BwtWriterIncrementalRunLength( filenameOut );
             break;
+#ifdef ACTIVATE_HUFFMAN
         case INTERMEDIATE_FORMAT_HUFFMAN:
             pWriter = new BwtWriterHuffman( filenameOut );
             break;
+#endif
         default:
             cerr << "Error in BCRexternalBWT::instantiateBwtWriterForIntermediateCycle: unknown intermediate format: " << intermediateFormat << endl;
             exit ( EXIT_FAILURE );
@@ -287,11 +286,13 @@ BwtWriterBase *BCRexternalBWT::instantiateBwtWriterForLastCycle( const char *fil
             pWriter = new BwtWriterASCII( filenameOut );
             break;
         case OUTPUT_FORMAT_RLE:
-            pWriter = new BwtWriterRunLength( filenameOut );
+            pWriter = new BwtWriterRunLengthV3( filenameOut );
             break;
+#ifdef ACTIVATE_HUFFMAN
         case OUTPUT_FORMAT_HUFFMAN:
             pWriter = new BwtWriterHuffman( filenameOut );
             break;
+#endif
         default:
             cerr << "Error in BCRexternalBWT::instantiateBwtWriterForLastCycle: unknown output format: " << outputFormat << endl;
             exit ( EXIT_FAILURE );
@@ -310,11 +311,13 @@ BwtReaderBase *BCRexternalBWT::instantiateBwtReaderForLastCycle( const char *fil
             pReader = new BwtReaderASCII( filenameOut );
             break;
         case OUTPUT_FORMAT_RLE:
-            pReader = new BwtReaderRunLength( filenameOut );
+            pReader = new BwtReaderRunLengthV3( filenameOut );
             break;
+#ifdef ACTIVATE_HUFFMAN
         case OUTPUT_FORMAT_HUFFMAN:
             pReader = new BwtReaderHuffman( filenameOut );
             break;
+#endif
         default:
             cerr << "Error in BCRexternalBWT::instantiateBwtReaderForLastCycle: unknown output format: " << outputFormat << endl;
             exit ( EXIT_FAILURE );
@@ -431,7 +434,13 @@ int BCRexternalBWT::buildBCR( const string &file1, const string &fileOut, const 
     // Reverse-complemented reads
     if ( bwtParams_->getValue( PARAMETER_ADD_REV_COMP ) == 1 )
     {
-        nText *= 2;
+        SequenceNumber newNText = nText * 2;
+        if (newNText < nText)
+        {
+            Logger::error() << "Error: Too many sequences. This version of BEETL was compiled for a maximum of " << maxSequenceNumber << " sequences, but this input has " << (static_cast<uint64_t>(nText)*2) << " sequences. You can increase this limit by changing the type definition of 'SequenceNumber' in Types.hh and recompiling BEETL." << endl;
+            exit( -1 );
+        }
+        nText = newNText;
     }
 
     // Prepare reset point between multiple reads
@@ -625,6 +634,7 @@ int BCRexternalBWT::buildBCR( const string &file1, const string &fileOut, const 
                 if ( ( int )currentIteration == nextIterationReset )
                 {
                     Logger::out() << "Resetting counters" << endl;
+                    nextIterationReset += ( *bwtParams_ )[ PARAMETER_SUB_SEQUENCE_LENGTH ];
 
                     Logger_if( LOG_SHOW_IF_VERBOSE )
                     {
@@ -646,7 +656,8 @@ int BCRexternalBWT::buildBCR( const string &file1, const string &fileOut, const 
                         Logger::out() << "Continuing iteration " << currentIteration << ", time now: " << timer.timeNow();
                         Logger::out() << "Continuing iteration " << currentIteration << ", usage: " << timer << endl;
                     }
-                    InsertFirstsymbols( newSymb, newQual, currentIteration );
+                    int subSequenceCount = currentIteration / ( *bwtParams_ )[ PARAMETER_SUB_SEQUENCE_LENGTH ];
+                    InsertFirstsymbols( newSymb, newQual, subSequenceCount );
                 }
                 else
                 {
@@ -823,13 +834,7 @@ void BCRexternalBWT::InitialiseTmpFiles()
         }
         else
         {
-            FILE *OutFileBWT = fopen( filenameOut, "wb" );
-            if ( OutFileBWT == NULL )
-            {
-                cerr << "BWT file " << ( int )i << " : Error opening " << endl;
-                exit ( EXIT_FAILURE );
-            }
-            fclose( OutFileBWT );
+            unique_ptr<BwtWriterBase> emptyPileFile( instantiateBwtWriterForIntermediateCycle( filenameOut ) );
         }
 
         const bool permuteQualities = ( bwtParams_->getValue( PARAMETER_PROCESS_QUALITIES ) == PROCESS_QUALITIES_PERMUTE );
@@ -873,19 +878,12 @@ void BCRexternalBWT::InitialiseTmpFiles()
 
 }
 
-void BCRexternalBWT::InsertFirstsymbols( uchar const *newSymb, uchar const *newSymbQual, const int cycle )
+void BCRexternalBWT::InsertFirstsymbols( uchar const *newSymb, uchar const *newSymbQual, const int subSequenceNum )
 {
-    if ( cycle == 0 )
-        for ( SequenceNumber j = 0 ; j < nText; j++ )
-        {
-            vectTriple[j] = sortElement( 0, j + 1, j );
-        }
-    else
-        for ( SequenceNumber j = 0 ; j < nText; j++ )
-        {
-            //            vectTriple[j] = sortElement( 0, 0, 0 );
-            vectTriple[j] = sortElement( 0, nText + j + 1, j );
-        }
+    for ( SequenceNumber j = 0 ; j < nText; j++ )
+    {
+        vectTriple[j] = sortElement( 0, nText * subSequenceNum + j + 1, j );
+    }
     if ( verboseEncode == 1 )
     {
         cerr << "First step" << endl;
@@ -1008,10 +1006,10 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, SequenceLength iterat
     LetterNumber numchar = 0;
 
     // We first calculate at which index each pile starts
-    vector<SequenceNumber> pileStarts( alphabetSize );
+    vector<SequenceNumber> pileStarts( alphabetSize + 1 );
     pileStarts[0] = 0;
     SequenceNumber index = 0;
-    for ( int pile = 1; pile < alphabetSize; ++pile )
+    for ( int pile = 1; pile < alphabetSize + 1; ++pile )
     {
         while ( index < nText && vectTriple[index].pileN < pile )
             ++index;
@@ -1028,7 +1026,7 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, SequenceLength iterat
     int parallelPile;
     //    for (int parallelPile = alphabetSize-2; parallelPile >= 0; --parallelPile)
     #pragma omp parallel for
-    for ( parallelPile = 0; parallelPile < alphabetSize - 1; ++parallelPile )
+    for ( parallelPile = 0; parallelPile < alphabetSize; ++parallelPile )
     {
         InsertNsymbols_parallelPile( newSymb, iterationNum, newQual, parallelPile, pileStarts[parallelPile], pileStarts[parallelPile + 1], parallelVectTriplePerNewPile[parallelPile] );
     }
@@ -1118,9 +1116,9 @@ void BCRexternalBWT::InsertNsymbols( uchar const *newSymb, SequenceLength iterat
 
     //    quickSort(vectTriple);
     vectTriple.clear();
-    for ( uint newPile = 0; newPile < alphabetSize - 1; ++newPile )
+    for ( uint newPile = 0; newPile < alphabetSize; ++newPile )
     {
-        for ( uint prevPile = 0; prevPile < alphabetSize - 1; ++prevPile )
+        for ( uint prevPile = 0; prevPile < alphabetSize; ++prevPile )
         {
             if ( !parallelVectTriplePerNewPile[prevPile][newPile].empty() )
             {
@@ -1350,7 +1348,7 @@ void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, Sequence
     }
     //    clog << "---------- " << (int)vectTriple[j].pileN << "|" << parallelPile << endl;
     AlphabetSymbol currentPile = parallelPile; //vectTriple[j].pileN;
-    assert ( currentPile < alphabetSize - 1 );
+    assert ( currentPile < alphabetSize );
     TmpFilename filename( "", currentPile, "" );
     //printf("===Current BWT-partial= %d\n",currentPile);
 
@@ -1416,7 +1414,7 @@ void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, Sequence
                     }
                 }
                 assert( ( *pReader )( ( char * )&foundSymbol, 1 ) == 1 );
-                if ( whichPile[( int )foundSymbol] < alphabetSize - 1 ) {}
+                if ( whichPile[( int )foundSymbol] < alphabetSize ) {}
                 else
                 {
                     cout << ( int )foundSymbol << " " << foundSymbol << endl;
@@ -1459,7 +1457,7 @@ void BCRexternalBWT::InsertNsymbols_parallelPile( uchar const *newSymb, Sequence
 
             }
             //I have to insert the new symbol in the symbol-pile
-            assert( whichPile[( int )foundSymbol] < alphabetSize - 1 );
+            assert( whichPile[( int )foundSymbol] < alphabetSize );
             //            vectTriple[k].pileN=whichPile[(int)foundSymbol];
             newVectTripleItem.pileN = whichPile[( int )foundSymbol];
             //cerr << "New posN[k]=" << (int)posN[k] << " New pileN[k]=" << (int)pileN[k] << endl;
@@ -1491,10 +1489,10 @@ void BCRexternalBWT::storeBWT( uchar const *newSymb, uchar const *newQual )
     //Now I have to update the BWT in each file.
 
     // We first calculate at which index each pile starts
-    vector<SequenceNumber> pileStarts( alphabetSize );
+    vector<SequenceNumber> pileStarts( alphabetSize + 1 );
     pileStarts[0] = 0;
     SequenceNumber index = 0;
-    for ( int pile = 1; pile < alphabetSize; ++pile )
+    for ( int pile = 1; pile < alphabetSize + 1; ++pile )
     {
         while ( index < nText && vectTriple[index].pileN < pile )
             ++index;
@@ -1505,14 +1503,14 @@ void BCRexternalBWT::storeBWT( uchar const *newSymb, uchar const *newQual )
     int parallelPile;
     //    for (int parallelPile = alphabetSize-2; parallelPile >= 0; --parallelPile)
     #pragma omp parallel for
-    for ( parallelPile = 0; parallelPile < alphabetSize - 1; ++parallelPile )
+    for ( parallelPile = 0; parallelPile < alphabetSize; ++parallelPile )
     {
         storeBWT_parallelPile( newSymb, newQual, parallelPile, pileStarts[parallelPile], pileStarts[parallelPile + 1] );
     }
 
 
     //Renaming new to old
-    for ( AlphabetSymbol g = 0 ; g < alphabetSize - 1; g++ )
+    for ( AlphabetSymbol g = 0 ; g < alphabetSize; g++ )
     {
         TmpFilename filenameIn( g );
         TmpFilename filenameOut( "new_", g );
@@ -2117,7 +2115,7 @@ void BCRexternalBWT::storeEntirePairSA( const char *fn )
     LetterNumber numcharWrite, numcharRead;
     ElementType *buffer = new ElementType[SIZEBUFFER];
 
-    Filename fnSA( fn, ".pairSA" );
+    TmpFilename fnSA( fn, ".pairSA" );
 
     FILE *OutFileSA = fopen( fnSA, "wb" );
     if ( OutFileSA == NULL )
@@ -2247,8 +2245,8 @@ void BCRexternalBWT::storeEntireSAfromPairSA( const char *fn )
         }
         fclose(InFileLen);
     */
-    Filename fnSA    ( fn, ".sa" );
-    Filename fnPairSA( fn, ".pairSA" );
+    TmpFilename fnSA    ( fn, ".sa" );
+    TmpFilename fnPairSA( fn, ".pairSA" );
 
     FILE *InFilePairSA = fopen( fnPairSA, "rb" );
     if ( InFilePairSA == NULL )
@@ -2357,7 +2355,7 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
             minLCPsucText[g] = 0;   //denotes the number of the text associated with the symbol g
             minLCPsucToFind[g] = 0;
         }
-        assert( currentPile <= alphabetSize );
+        assert( currentPile < alphabetSize );
         TmpFilename filenameIn( currentPile );
         FILE *InFileBWT = fopen( filenameIn, "rb" );
         if ( InFileBWT == NULL )

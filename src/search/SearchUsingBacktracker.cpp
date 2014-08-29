@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -52,8 +47,6 @@ SearchUsingBacktracker::SearchUsingBacktracker(
 void SearchUsingBacktracker::run()
 {
     Timer  timer;
-    bool compressIntermediateBwts = true;
-
     vector <BwtReaderBase *> inBwt( alphabetSize );
 
     LetterCountEachPile countsPerPile, countsCumulative;
@@ -101,34 +94,17 @@ void SearchUsingBacktracker::run()
             Logger::out() << "  " << kmerItem.kmer << endl;
     }
 
+    inBwt = instantiateBwtPileReaders( bwtPrefix, searchParams_.getStringValue( "use shm" ) );
+
     for ( int i( 0 ); i < alphabetSize; i++ )
     {
-        stringstream fileNameSS;
-        fileNameSS << bwtPrefix << "-B0" << i;
-        string fileName = fileNameSS.str().c_str();
-        if ( compressIntermediateBwts == true )
-        {
-            if ( searchParams_["use indexing"].isSet() )
-            {
-                Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Using indexed BWT file" << endl;
-                inBwt[i] = new BwtReaderRunLengthIndex( fileName, searchParams_.getStringValue( "use shm" ) );
-            }
-            else
-            {
-                Logger_if( LOG_SHOW_IF_VERBOSE ) Logger::out() << "Using non-indexed BWT file" << endl;
-                inBwt[i] = new BwtReaderRunLength( fileName );
-            }
-        }
-
-        else
-            inBwt[i] = new BwtReaderASCII( fileName );
         inBwt[i]->readAndCount( countsPerPile[i] );
     }
-
     countsCumulative = countsPerPile;
-
     for ( int i( 1 ); i < alphabetSize; i++ )
+    {
         countsCumulative[i] += countsCumulative[i - 1];
+    }
 
     Logger_if( LOG_SHOW_IF_VERBOSE )
     {

@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -64,7 +59,7 @@ void getFileName( const string &stem, const char code, const int pile,
 bool isValidFastaFile( const char *filename );
 
 bool isValidReadFile( const char *filename );
-bool readWriteCheck( const char *fileName, const bool readWrite, const bool failIfError = true );
+bool readWriteCheck( const char *fileName, const bool checkWrite, const bool failIfError = true );
 int isDirectoryEmpty( const string &dirname ); // return: -1=directory doesn't exist, 0=not empty, 1=empty
 
 void checkIfEqual( const int arg1, const int arg2 );

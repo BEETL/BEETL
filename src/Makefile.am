@@ -58,6 +58,8 @@ liball_a_SOURCES = \
 	BCRext/BwtReader.hh \
 	BCRext/BwtWriter.cpp \
 	BCRext/BwtWriter.hh \
+	BCRext/BwtIndex.cpp \
+	BCRext/BwtIndex.hh \
 	BCRext/ReadBuffer.cpp \
 	BCRext/ReadBuffer.hh \
 	BCRext/BCRext.cpp \
@@ -117,7 +119,6 @@ liball_a_CXXFLAGS = -I$(srcdir) -I$(srcdir)/shared -I$(srcdir)/BCR -I$(srcdir)/B
 
 
 libzoo_a_SOURCES = \
-	../redist/gzstream.hh \
 	libzoo/cli/Common.cpp \
 	libzoo/cli/Common.hh \
 	libzoo/cli/ToolParameters.cpp \

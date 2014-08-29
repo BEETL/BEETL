@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -85,7 +80,9 @@ bool TransposeFasta::convert( /*const string &input,*/ const string &output, boo
     freq[int( 'N' )] = 1;
     freq[int( 'T' )] = 1;
     //GIOVANNA: ADDED THE SYMBOL Z IN THE ALPHABET, SO sizeAlpha = alphabetSize
+#ifdef USE_EXTRA_CHARACTER_Z
     freq[int( 'Z' )] = 1;
+#endif
 
     // create output files
     for ( SequenceLength i = 0; i < cycleNum_; i++ )
@@ -243,7 +240,9 @@ bool TransposeFasta::inputCycFile( const string &cycPrefix )
     freq[int( 'N' )] = 1;
     freq[int( 'T' )] = 1;
     //GIOVANNA: ADDED THE SYMBOL Z IN THE ALPHABET, SO sizeAlpha = alphabetSize
+#ifdef USE_EXTRA_CHARACTER_Z
     freq[int( 'Z' )] = 1;
+#endif
 
     //2) Number of sequences
     string cyc1Filename = cycPrefix + "1";
@@ -255,6 +254,11 @@ bool TransposeFasta::inputCycFile( const string &cycPrefix )
     }
     fseek( f, 0, SEEK_END );
     nSeq = ftell( f );
+    if (nSeq != ftell( f))
+    {
+        Logger::error() << "Error: Too many sequences. This version of BEETL was compiled for a maximum of " << maxSequenceNumber << " sequences, but this input has " << ftell(f) << " sequences. You can increase this limit by changing the type definition of 'SequenceNumber' in Types.hh and recompiling BEETL." << endl;
+        exit( -1 );
+    }
     fclose( f );
 
     //3) Length of the longest sequence

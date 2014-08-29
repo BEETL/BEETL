@@ -1,17 +1,26 @@
 BEETL: Burrows-Wheeler Extended Tool Library
 
-Copyright (c) 2013 Illumina, Inc.
+Copyright (c) 2011-2014 Illumina, Inc.
 
-This software is covered by the "Illumina Non-Commercial Use Software
-and Source Code License Agreement" and any user of this software or
-source file is bound by the terms therein
+This software is covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
+and any user of this software or source file is bound by the terms therein.
 
+
+Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
+Lightweight BWT Construction for Very Large String Collections.
+Proceedings of CPM 2011, pp.219-231
 
 
 Documentation in: doc/BEETL.md
 
 
 *** Release notes ***
+
+Version 1.0 (29th August 2014)
+
+- BEETL is now released under the BSD 2-Clause license, enjoy!
+- New "bwt_v3" Run Length Encoding format for BWT files, set as default (and described in doc/FileFormats.md)
+
 
 Version 0.10.0 (17th June 2014)
 

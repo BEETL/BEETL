@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -119,7 +114,6 @@ public:
         addEntry( -1, "no comparison skip", "--no-comparison-skip", "", "Don't skip already processed comparisons (slower, but smoother output)", "", TYPE_SWITCH );
         addEntry( -1, "pause between cycles", "--pause-between-cycles", "", "Wait for a key press after each cycle", "", TYPE_SWITCH );
         addEntry( -1, "BWT in RAM", "--bwt-in-ram", "", "Keep BWT in RAM for faster processing", "", TYPE_SWITCH );
-        addEntry( -1, "use indexing", "--use-indexing", "-ui", "Use indexing of BWT files to speed up accesses", "", TYPE_SWITCH );
         addEntry( -1, "propagate sequence", "--propagate-sequence", "", "Propagate and output sequence with each BWT range (slower)", "", TYPE_SWITCH );
 
         //        addEntry( -1, "setB metadata", "--genome-metadata", "-c", "For Metagenomics mode only: Input filename \"extended\" prefix for Set B's metadata (for files \"prefix[0-6]\")", "${inputB}-C0", TYPE_STRING );

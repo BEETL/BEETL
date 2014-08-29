@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -36,7 +31,8 @@ class BwtWriterBase;
 class BwtReaderBase
 {
 public:
-    BwtReaderBase( const string &fileName );
+    BwtReaderBase( const string &filename );
+    BwtReaderBase( const BwtReaderBase &obj );
     virtual ~BwtReaderBase();
     virtual BwtReaderBase *clone() const = 0;
 
@@ -47,19 +43,19 @@ public:
     virtual LetterNumber operator()( char *p, LetterNumber numChars ) = 0;
     virtual void rewindFile( void ) = 0;
     virtual LetterNumber tellg( void ) const = 0;
+    virtual int seek( const LetterNumber posInFile, const LetterNumber baseNumber ) = 0;
 
+    const string filename_;
 protected:
     FILE *pFile_;
-    const string fileName_;
-
-    char buf_[ReadBufferSize];
+    vector<uchar> buf_;
 }; // ~class BwtReaderBase
 
 class BwtReaderASCII : public BwtReaderBase
 {
 public:
-    BwtReaderASCII( const string &fileName ) :
-        BwtReaderBase( fileName ),
+    BwtReaderASCII( const string &filename ) :
+        BwtReaderBase( filename ),
         currentPos_( 0 ),
         lastChar_( notInAlphabet ),
         runLength_( 0 )
@@ -67,10 +63,10 @@ public:
     }
 
     BwtReaderASCII( const BwtReaderASCII &obj ) :
-        BwtReaderBase( obj.fileName_ ),
-        currentPos_( 0 ),
-        lastChar_( notInAlphabet ),
-        runLength_( 0 )
+        BwtReaderBase( obj ),
+        currentPos_( obj.currentPos_ ),
+        lastChar_( obj.lastChar_ ),
+        runLength_( obj.runLength_ )
     {
     }
 
@@ -87,8 +83,8 @@ public:
     virtual LetterNumber operator()( char *p, LetterNumber numChars );
 
     virtual void rewindFile( void );
-
     virtual LetterNumber tellg( void ) const;
+    virtual int seek( const LetterNumber posInFile, const LetterNumber baseNumber );
 
 protected:
     LetterNumber currentPos_;
@@ -97,17 +93,13 @@ protected:
 }; // ~class BwtReaderASCII
 
 
-class BwtReaderRunLength : public BwtReaderBase
+class BwtReaderRunLengthBase : public BwtReaderBase
 {
 public:
-    BwtReaderRunLength( const string &fileName );
-    BwtReaderRunLength( const BwtReaderRunLength &obj );
+    BwtReaderRunLengthBase( const string &filename );
+    BwtReaderRunLengthBase( const BwtReaderRunLengthBase &obj );
 
-    virtual ~BwtReaderRunLength() {}
-    virtual BwtReaderRunLength *clone() const
-    {
-        return new BwtReaderRunLength( *this );
-    };
+    virtual ~BwtReaderRunLengthBase() {}
 
     virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
 
@@ -116,96 +108,74 @@ public:
     virtual LetterNumber operator()( char *p, LetterNumber numChars );
 
     virtual void rewindFile( void );
-
     virtual LetterNumber tellg( void ) const;
+    virtual int seek( const LetterNumber posInFile, const LetterNumber baseNumber );
 
-    bool getRun( void );
+    virtual bool getRun( void ) = 0;
 
 protected:
-    uint lengths_[256];
-    uchar codes_[256];
-    uchar buf_[ReadBufferSize];
-    uint runLength_;
+    vector<uint> lengths_;
+    vector<uchar> codes_;
     uchar *pBuf_;
     uchar *pBufMax_;
-    uchar lastChar_;
     bool finished_;
+
+public: // exposed for buildIndex. TODO: make private again
+    uchar lastChar_;
+    uint runLength_;
     LetterNumber currentPos_;
+    LetterNumber currentPosInFile_;
+};
 
-}; // class ~BwtReaderRunLength
-
-class BwtReaderRunLengthIndex : public BwtReaderRunLength
+class BwtReaderRunLength : public BwtReaderRunLengthBase
 {
 public:
-    BwtReaderRunLengthIndex( const string &fileName, const string &optionalSharedMemoryPath );
-    //    BwtReaderRunLengthIndex( const BwtReaderRunLengthIndex & );
+    BwtReaderRunLength( const string &filename );
+    BwtReaderRunLength( const BwtReaderRunLength &obj );
 
-    BwtReaderRunLengthIndex( const BwtReaderRunLengthIndex &obj ) :
-        BwtReaderRunLength( obj ),
-        indexFileName_( obj.indexFileName_ ),
-        pIndexFile_( obj.pIndexFile_ ),
-        indexPosBwt_( obj.indexPosBwt_ ),
-        indexPosFile_( obj.indexPosFile_ ),
-        indexCount_( obj.indexCount_ ),
-        indexNext_( obj.indexNext_ )
+    virtual ~BwtReaderRunLength() {}
+    virtual BwtReaderRunLength *clone() const
     {
-        assert( pIndexFile_ == NULL ); // If it's not NULL, we may try to fclose it multiple times
-    }
-
-
-    virtual ~BwtReaderRunLengthIndex() {}
-    virtual BwtReaderRunLengthIndex *clone() const
-    {
-        return new BwtReaderRunLengthIndex( *this );
+        return new BwtReaderRunLength( *this );
     };
 
-    virtual LetterNumber readAndCount( LetterCount &c, const LetterNumber numChars );
+    virtual bool getRun( void );
+};
 
-    virtual LetterNumber readAndSend( BwtWriterBase &writer, const LetterNumber numChars )
+const vector<char> rleV3Header = { 'B', 'W', 'T', 13, 10, 26, 3, 0 };
+class BwtReaderRunLengthV3 : public BwtReaderRunLengthBase
+{
+public:
+    BwtReaderRunLengthV3( const string &filename );
+    BwtReaderRunLengthV3( const BwtReaderRunLengthV3 &obj );
+
+    virtual ~BwtReaderRunLengthV3() {}
+    virtual BwtReaderRunLengthV3 *clone() const
     {
-        assert( 1 == 0 );
-    }
+        return new BwtReaderRunLengthV3( *this );
+    };
 
-    virtual LetterNumber operator()( char *p, LetterNumber numChars )
-    {
-        return BwtReaderRunLength::operator()( p, numChars );
-        //        assert( 1 == 0 );
-    }
-
+    virtual bool getRun( void );
     virtual void rewindFile( void );
+    virtual LetterNumber tellg( void ) const;
+    virtual int seek( const LetterNumber posInFile, const LetterNumber baseNumber );
 
-    //  virtual LetterNumber tellg( void ) const;
-
-    void buildIndex( FILE *pFile, const int indexBinSize );
-
-    void initIndex( const string &optionalSharedMemoryPath );
-
-    //  bool getRun(void);
 protected:
+    vector<uchar> symbolForRunLength1ForPile_;
+    vector<LetterNumber> maxEncodedRunLengthForPile_;
+    uchar firstContinuationSymbol_;
+    LetterNumber maxEncodedRunLengthMultiplierForContinuationSymbol_;
+    long firstDataByteInFile_;
 
+    void prefetchNextByte();
+    int prefetchedByte_;
+};
 
-    string indexFileName_;
-
-
-    FILE *pIndexFile_;
-
-    vector<LetterNumber> indexPosBwt0_;
-    vector<LetterNumber> indexPosFile0_;
-    vector<LetterCountCompact> indexCount0_;
-
-    LetterNumber *indexPosBwt_;
-    LetterNumber *indexPosFile_;
-    LetterCountCompact *indexCount_;
-    uint32_t indexSize_;
-
-    uint32_t indexNext_;
-
-}; // class ~BwtReaderRunLengthIndex
 
 class BwtReaderIncrementalRunLength : public BwtReaderBase
 {
 public:
-    BwtReaderIncrementalRunLength( const string &fileName );
+    BwtReaderIncrementalRunLength( const string &filename );
 
     virtual ~BwtReaderIncrementalRunLength() {}
     virtual BwtReaderIncrementalRunLength *clone() const
@@ -220,9 +190,8 @@ public:
     virtual LetterNumber operator()( char *p, LetterNumber numChars );
 
     virtual void rewindFile( void );
-
     virtual LetterNumber tellg( void ) const;
-
+    virtual int seek( const LetterNumber posInFile, const LetterNumber baseNumber ) { assert(false && "todo"); }
 
     bool getRun( void );
     void defragment();
@@ -230,7 +199,6 @@ public:
 protected:
     uint lengths_[256];
     uchar codes_[256];
-    uchar buf_[ReadBufferSize];
     uint runLength_;
     uchar *pBuf_;
     uchar *pBufMax_;
@@ -246,6 +214,9 @@ protected:
 
 }; // class ~BwtReaderIncrementalRunLength
 
+
+#ifdef ACTIVATE_HUFFMAN
+
 // new input module to support Huffman encoded input
 // migrated & adapted from compression.cpp in Tony's Misc CVS tree
 // Tobias, 28/11/11
@@ -253,7 +224,7 @@ protected:
 class BwtReaderHuffman : public BwtReaderBase
 {
 public:
-    BwtReaderHuffman( const string &fileName );
+    BwtReaderHuffman( const string &filename );
     virtual BwtReaderHuffman *clone() const
     {
         assert( false && "todo" );
@@ -267,8 +238,8 @@ public:
     virtual LetterNumber operator()( char *p, LetterNumber numChars );
 
     virtual void rewindFile( void );
-
     virtual LetterNumber tellg( void ) const;
+    virtual int seek( const LetterNumber posInFile, const LetterNumber baseNumber ) { assert(false && "todo"); }
 
     uint getNum( int &i );
 
@@ -297,12 +268,13 @@ protected:
 
 }; // class ~BwtReaderHuffman
 
+#endif //ifdef ACTIVATE_HUFFMAN
 
 
 class BwtReaderRunLengthRam : public BwtReaderBase
 {
 public:
-    BwtReaderRunLengthRam( const string &fileName );
+    BwtReaderRunLengthRam( const string &filename );
     BwtReaderRunLengthRam( const BwtReaderRunLengthRam & );
 
     virtual ~BwtReaderRunLengthRam();
@@ -318,8 +290,8 @@ public:
     virtual LetterNumber operator()( char *p, LetterNumber numChars );
 
     virtual void rewindFile( void );
-
     virtual LetterNumber tellg( void ) const;
+    virtual int seek( const LetterNumber posInFile, const LetterNumber baseNumber ) { assert(false && "todo"); }
 
     bool getRun( void );
 
@@ -341,5 +313,9 @@ protected:
 private:
     bool isClonedObject_;
 }; // class ~BwtReaderRunLengthRam
+
+
+BwtReaderBase* instantiateBwtPileReader( const string &pileFilename, const string &useShm = "", const bool keepBwtInRam = false, const bool forceNotUseIndexClass = false );
+vector <BwtReaderBase *> instantiateBwtPileReaders( const string &bwtPrefix, const string &useShm = "" );
 
 #endif

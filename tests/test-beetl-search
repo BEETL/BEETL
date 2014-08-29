@@ -1,13 +1,14 @@
 #!/bin/bash
 
-## Copyright (c) 2013 Illumina, Inc.
+## Copyright (c) 2011-2014 Illumina, Inc.
 ##
-## 
-## This software is covered by the "Illumina Non-Commercial Use Software
-## and Source Code License Agreement" and any user of this software or
-## source file is bound by the terms therein (see accompanying file
-## Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
+## This file is part of the BEETL software package,
+## covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
 ##
+## Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
+## Lightweight BWT Construction for Very Large String Collections.
+## Proceedings of CPM 2011, pp.219-231
+
 
 ## test-beetl-search
 ## Regression tests for beetl-search
@@ -36,8 +37,6 @@ BEETL_CONVERT_OUTPUT=${OUTPUT_DIR}/beetlConvertOutput.fastq
 
 
 # BWT creation
-if [ ! -r ${OUTPUT_DIR}/bwt-B00 ] # remove after hackathon: only generates BWT the first time
-then
           rm -rf ${OUTPUT_DIR}
           mkdir -p ${OUTPUT_DIR}
           # Removed --input-format=${inputFormat} to check the format autodetection
@@ -50,7 +49,7 @@ then
               echo "Error detected."
               exit 1
           fi
-fi
+
 
 # Search
           COMMAND="${BEETL_SEARCH} -i ${OUTPUT_DIR}/bwt -j ${KMERS_TO_SEARCH} -o ${BEETL_SEARCH_OUTPUT}"

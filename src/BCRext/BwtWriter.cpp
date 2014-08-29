@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -281,9 +276,9 @@ void BwtWriterRunLengthBase::flush()
 
 
 //
-// BwtWriterRunLengthDynamic member function definitions
+// BwtWriterRunLengthV2 member function definitions
 //
-BwtWriterRunLengthDynamic::BwtWriterRunLengthDynamic( const string &fileName )
+BwtWriterRunLengthV2::BwtWriterRunLengthV2( const string &fileName )
     : BwtWriterRunLengthBase( fileName, 3 )
 {
     symbolForRunLength1ForPile_.resize( alphabetSize );
@@ -319,7 +314,7 @@ BwtWriterRunLengthDynamic::BwtWriterRunLengthDynamic( const string &fileName )
     fputc( 10, pFile_ );
     fputc( 26, pFile_ ); // Ctrl-Z, making some text viewers stop here
 
-    fputc( 1, pFile_ ); // Format version number
+    fputc( 2, pFile_ ); // Format version number
 
     /*
         // Send conversion table: 256 entries with { base: 1 char, run length: 1 byte }
@@ -356,7 +351,17 @@ BwtWriterRunLengthDynamic::BwtWriterRunLengthDynamic( const string &fileName )
     */
 }
 
-void BwtWriterRunLengthDynamic::encodeRun( char c, LetterNumber runLength )
+BwtWriterRunLengthV2::~BwtWriterRunLengthV2()
+{
+    // We need to override this call from the base class' destructor, in order to use our own encodeRun
+    if ( runLength_ != 0 )
+    {
+        encodeRun( lastChar_, runLength_ );
+        runLength_ = 0;
+    }
+}
+
+void BwtWriterRunLengthV2::encodeRun( char c, LetterNumber runLength )
 {
     assert( runLength > 0 );
 #ifdef DEBUG
@@ -392,6 +397,112 @@ void BwtWriterRunLengthDynamic::encodeRun( char c, LetterNumber runLength )
     {
         outCode = symbolForRunLength1 + runLength - 1;
         sendChar( outCode );
+    }
+}
+
+
+//
+// BwtWriterRunLengthV3 member function definitions
+//
+BwtWriterRunLengthV3::BwtWriterRunLengthV3( const string &fileName )
+    : BwtWriterRunLengthBase( fileName, 3 )
+{
+    symbolForRunLength1ForPile_.resize( alphabetSize );
+    maxEncodedRunLengthForPile_.resize( alphabetSize );
+
+    // Send file header (inspired by the PNG format)
+    fputc( 'B', pFile_ );
+    fputc( 'W', pFile_ );
+    fputc( 'T', pFile_ );
+    fputc( 13, pFile_ ); // \r\n sequence to check for invalid dos/unix format conversions
+    fputc( 10, pFile_ );
+    fputc( 26, pFile_ ); // Ctrl-Z, making some text viewers stop here and being non-ASCII to avoid confusion with text files
+
+    // Format version number, on 2 bytes to help identify endianness problems
+    uint16_t formatVersion = 3;
+    assert( fwrite( &formatVersion, sizeof( formatVersion ), 1, pFile_ ) == 1 );
+
+    // Initialise conversion table: enough ranges to cover 256 entries, following the format { base: 1 char, range length: 1 byte, first run length: 2 bytes }
+    uint16_t bytecode = 0;
+    bytecode = initialiseCodeRange( 'A', 58, 1, bytecode );
+    bytecode = initialiseCodeRange( 'C', 58, 1, bytecode );
+    bytecode = initialiseCodeRange( 'G', 58, 1, bytecode );
+    bytecode = initialiseCodeRange( 'T', 58, 1, bytecode );
+    bytecode = initialiseCodeRange( 'N', 4, 1, bytecode );
+    bytecode = initialiseCodeRange( '$', 4, 1, bytecode );
+    bytecode = initialiseCodeRange( '+', 16, 0, bytecode );
+    assert( bytecode == 256 );
+}
+
+uint16_t BwtWriterRunLengthV3::initialiseCodeRange( const uint8_t base, const uint8_t rangeLength, const uint16_t firstRunLength, const uint8_t firstBytecode )
+// returns next available bytecode, as uint16 to reach value 256
+{
+    assert( fwrite( &base, sizeof( base ), 1, pFile_ ) == 1 );
+    assert( fwrite( &rangeLength, sizeof( rangeLength ), 1, pFile_ ) == 1 );
+    assert( fwrite( &firstRunLength, sizeof( firstRunLength ), 1, pFile_ ) == 1 );
+
+    if (base != '+')
+    { // Common case for "normal" bases
+        symbolForRunLength1ForPile_[ whichPile[base] ] = firstBytecode;
+        maxEncodedRunLengthForPile_[ whichPile[base] ] = rangeLength;
+    }
+    else
+    { // Special case for continuation symbol
+        firstContinuationSymbol_ = firstBytecode;
+        maxEncodedRunLengthMultiplierForContinuationSymbol_ = rangeLength;
+    }
+
+    return (uint16_t)firstBytecode + rangeLength;
+}
+
+BwtWriterRunLengthV3::~BwtWriterRunLengthV3()
+{
+    // We need to override this call from the base class' destructor, in order to use our own encodeRun
+    if ( runLength_ != 0 )
+    {
+        encodeRun( lastChar_, runLength_ );
+        runLength_ = 0;
+    }
+}
+
+void BwtWriterRunLengthV3::encodeRun( char c, LetterNumber runLength )
+{
+    assert( runLength > 0 );
+    LetterNumber runLengthMinus1 = runLength - 1;
+#ifdef DEBUG
+    std::cout << "BW RL encodeRun - sending run " << c << " " << runLength << " " << pFile_
+              << std::endl;
+#endif
+#ifdef GENERATE_RLE_HISTOGRAM
+    ++histogram_[ make_pair( c, runLength ) ];
+#endif
+#ifdef REPORT_COMPRESSION_RATIO
+    charsReceived_ += runLength;
+#endif
+    const unsigned char charIndex( whichPile[( int )c] );
+
+    if ( charIndex == nv )
+    {
+        cerr << "Char |" << c << "| is not part of the alphabet. Aborting." << endl;
+        exit( EXIT_FAILURE );
+    }
+
+    const uchar symbolForRunLength1 = symbolForRunLength1ForPile_[charIndex];
+    const LetterNumber maxEncodedRunLength = maxEncodedRunLengthForPile_[charIndex];
+
+    // First char, encoded according to table
+    LetterNumber symbolOffset = runLengthMinus1 % maxEncodedRunLength;
+    uchar outCode = symbolForRunLength1 + symbolOffset;
+    sendChar( outCode );
+    runLengthMinus1 /= maxEncodedRunLength;
+
+    // Subsequent chars, encoded in base `maxEncodedRunLengthMultiplierForContinuationSymbol_`, little endian
+    while (runLengthMinus1 > 0)
+    {
+        symbolOffset = runLengthMinus1 % maxEncodedRunLengthMultiplierForContinuationSymbol_;
+        outCode = firstContinuationSymbol_ + symbolOffset;
+        sendChar( outCode );
+        runLengthMinus1 /= maxEncodedRunLengthMultiplierForContinuationSymbol_;
     }
 }
 
@@ -446,7 +557,7 @@ BwtWriterIncrementalRunLength::BwtWriterIncrementalRunLength( const string &file
         }
     */
     //    ramFileLengths.resize( ramFiles.size() );
-    fileNumInReader_ = fileNum_ % ( finalCharCode - 1 ); // todo: improve this modulo
+    fileNumInReader_ = fileNum_ % ( alphabetSize - 1 ); // todo: improve this modulo
     filePosInReader_ = 0;
 }
 
@@ -934,6 +1045,8 @@ void BwtWriterIncrementalRunLength::sendRunOfPreExistingData( char c, LetterNumb
 
 // Huffman implementation
 
+#ifdef ACTIVATE_HUFFMAN
+
 BwtWriterHuffman::~BwtWriterHuffman() // destructor
 {
     sendRun( lastChar_, runLength_ ); //gets last normal chars from buffer
@@ -1133,6 +1246,9 @@ void BwtWriterHuffman::sendNum( LetterNumber runLength )
         while ( runLength != 0 );
     } // ~else
 } // sendNum
+
+#endif //ifdef ACTIVATE_HUFFMAN
+
 
 //
 // BwtWriterImplicit member function definitions

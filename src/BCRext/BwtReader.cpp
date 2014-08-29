@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -17,6 +12,7 @@
 
 #include "BwtReader.hh"
 
+#include "BwtIndex.hh"
 #include "BwtWriter.hh"
 #include "CountWords.hh"
 #include "LetterCount.hh"
@@ -43,19 +39,38 @@ using namespace std;
 // BwtReaderBase member function definitions
 //
 
-BwtReaderBase::BwtReaderBase( const string &fileName ) :
-    pFile_( fopen( fileName.c_str(), "r" ) )
-    , fileName_( fileName )
+BwtReaderBase::BwtReaderBase( const string &filename ) :
+    filename_( filename )
+    , pFile_( fopen( filename.c_str(), "r" ) )
+    , buf_( ReadBufferSize )
 {
     if ( pFile_ == NULL )
     {
-        cerr << "!! BwtReaderBase: failed to open file " << fileName << endl;
+        cerr << "!! BwtReaderBase: failed to open file " << filename << endl;
         exit( EXIT_FAILURE );
     }
 #ifdef DEBUG
-    cout << "BwtReaderBase: opened file " << fileName << " " << pFile_ << endl;
+    cout << "BwtReaderBase: opened file " << filename << " " << pFile_ << endl;
 #endif
 }
+
+BwtReaderBase::BwtReaderBase( const BwtReaderBase &obj ):
+    filename_( obj.filename_ )
+    , pFile_( fopen( obj.filename_.c_str(), "r" ) )
+    , buf_( obj.buf_ )
+{
+    if ( pFile_ == NULL )
+    {
+        cerr << "!! BwtReaderBase: failed to re-open file " << filename_ << endl;
+        exit( EXIT_FAILURE );
+    }
+#ifdef DEBUG
+    cout << "BwtReaderBase: re-opened file " << filename_ << " " << pFile_ << endl;
+#endif
+
+    // Restore file to same position as before
+    fseek( pFile_, ftell( obj.pFile_ ), SEEK_SET );
+} // ~ctor
 
 BwtReaderBase::~BwtReaderBase()
 {
@@ -96,6 +111,12 @@ LetterNumber BwtReaderASCII::tellg( void ) const
     return currentPos_;
 } // ~tellg
 
+int BwtReaderASCII::seek( const LetterNumber posInFile, const LetterNumber baseNumber )
+{
+    assert( posInFile == baseNumber );
+    currentPos_ = baseNumber;
+    return fseek( pFile_, posInFile, SEEK_SET );
+}
 
 
 LetterNumber BwtReaderASCII::readAndCount( LetterCount &c, const LetterNumber numChars )
@@ -107,7 +128,7 @@ LetterNumber BwtReaderASCII::readAndCount( LetterCount &c, const LetterNumber nu
     while ( charsLeft > 0 )
     {
         charsToRead = ( ( charsLeft > ReadBufferSize ) ? ReadBufferSize : charsLeft );
-        charsRead = fread( buf_, sizeof( char ), charsToRead, pFile_ );
+        charsRead = fread( buf_.data(), sizeof( char ), charsToRead, pFile_ );
 #ifdef DEBUG
         std::cout << "Reading " << charsRead << " chars ";
 #endif
@@ -154,7 +175,7 @@ LetterNumber BwtReaderASCII::readAndSend( BwtWriterBase &writer, const LetterNum
         LetterNumber numRead = 0;
 
         // try to read buffersize byte from file
-        numRead = fread( buf_, sizeof ( uchar ), readNextPass, pFile_ );
+        numRead = fread( buf_.data(), sizeof ( uchar ), readNextPass, pFile_ );
         totalRead += numRead;
         if ( numRead == 0 ) break;
 
@@ -206,32 +227,20 @@ LetterNumber BwtReaderASCII::operator()( char *p, LetterNumber numChars )
 
 
 //
-// BwtReaderRunLength member function definitions
+// BwtReaderRunLengthBase member function definitions
 //
 
-BwtReaderRunLength::BwtReaderRunLength( const string &fileName ):
-    BwtReaderBase( fileName ), runLength_( 0 ),
-    pBuf_( buf_ + ReadBufferSize ), pBufMax_( buf_ + ReadBufferSize ),
-    lastChar_( notInAlphabet ),
+BwtReaderRunLengthBase::BwtReaderRunLengthBase( const string &filename ):
+    BwtReaderBase( filename ),
+    lengths_( 256 ),
+    codes_( 256 ),
+    pBuf_( buf_.data() + ReadBufferSize ),
+    pBufMax_( buf_.data() + ReadBufferSize ),
     finished_( false ),
-    currentPos_( 0 )
-{
-    for ( unsigned int i( 0 ); i < 256; i++ )
-    {
-        lengths_[i] = 1 + ( i >> 4 );
-        uint j = ( i & 0xF );
-        codes_[i] = ( j < alphabetSize ) ? alphabet[j] : notInAlphabet;
-    } // ~for i
-} // ~ctor
-
-BwtReaderRunLength::BwtReaderRunLength( const BwtReaderRunLength &obj ):
-    BwtReaderBase( obj.fileName_ ),
+    lastChar_( notInAlphabet ),
     runLength_( 0 ),
-    pBuf_( buf_ + ReadBufferSize ),
-    pBufMax_( buf_ + ReadBufferSize ),
-    lastChar_( notInAlphabet ),
-    finished_( false ),
-    currentPos_( 0 )
+    currentPos_( 0 ),
+    currentPosInFile_( 0 )
 {
     for ( unsigned int i( 0 ); i < 256; i++ )
     {
@@ -241,26 +250,55 @@ BwtReaderRunLength::BwtReaderRunLength( const BwtReaderRunLength &obj ):
     } // ~for i
 } // ~ctor
 
+BwtReaderRunLengthBase::BwtReaderRunLengthBase( const BwtReaderRunLengthBase &obj ):
+    BwtReaderBase( obj ),
+    lengths_( obj.lengths_ ),
+    codes_( obj.codes_ ),
+    pBuf_( obj.pBuf_ ),
+    pBufMax_( obj.pBufMax_ ),
+    finished_( obj.finished_ ),
+    lastChar_( obj.lastChar_ ),
+    runLength_( obj.runLength_ ),
+    currentPos_( obj.currentPos_ ),
+    currentPosInFile_( obj.currentPosInFile_ )
+{
+} // ~ctor
 
-void BwtReaderRunLength::rewindFile( void )
+
+void BwtReaderRunLengthBase::rewindFile( void )
 {
     // rewind file and set all vars as per constructor
     rewind( pFile_ );
     runLength_ = 0;
-    pBuf_ = buf_ + ReadBufferSize;
-    pBufMax_ = buf_ + ReadBufferSize;
+    pBuf_ = buf_.data() + ReadBufferSize;
+    pBufMax_ = buf_.data() + ReadBufferSize;
     lastChar_ = notInAlphabet;
     currentPos_ = 0;
+    currentPosInFile_ = 0;
     finished_ = false;
 } // ~rewindFile
 
-LetterNumber BwtReaderRunLength::tellg( void ) const
+LetterNumber BwtReaderRunLengthBase::tellg( void ) const
 {
-    return currentPos_;
+    return currentPosInFile_;
 } // ~tellg
 
+int BwtReaderRunLengthBase::seek( const LetterNumber posInFile, const LetterNumber baseNumber )
+{
+    currentPos_ = baseNumber;
+    currentPosInFile_ = posInFile;
 
-LetterNumber BwtReaderRunLength::readAndCount( LetterCount &c, const LetterNumber numChars )
+    runLength_ = 0;
+    pBuf_ = buf_.data() + ReadBufferSize;
+    pBufMax_ = buf_.data() + ReadBufferSize;
+    lastChar_ = notInAlphabet;
+    finished_ = false;
+
+    return fseek( pFile_, posInFile, SEEK_SET );
+}
+
+
+LetterNumber BwtReaderRunLengthBase::readAndCount( LetterCount &c, const LetterNumber numChars )
 {
 #ifdef DEBUG_RAC
     std::cout << "BR RL readAndCount " << numChars << " chars " << endl;
@@ -271,10 +309,11 @@ LetterNumber BwtReaderRunLength::readAndCount( LetterCount &c, const LetterNumbe
     LetterNumber charsLeft( numChars );
     while ( charsLeft > runLength_ )
     {
-        // Below is not great design, at first call of this function it accesses an
-        // out-of-range array element. Fortunately it always adds zero to it! :)
-        c.count_[whichPile[lastChar_]] += runLength_;
-        charsLeft -= runLength_;
+        if (runLength_)
+        {
+            c.count_[whichPile[lastChar_]] += runLength_;
+            charsLeft -= runLength_;
+        }
 #ifdef DEBUG_RAC
         std::cout << "R&C: " << currentPos_ << " " << ftell( pFile_ ) << " " << charsLeft << " " << runLength_ << " " << lastChar_ << " " << c << endl;
 #endif
@@ -299,10 +338,10 @@ LetterNumber BwtReaderRunLength::readAndCount( LetterCount &c, const LetterNumbe
 #endif
 
     return numChars;
-} // ~BwtReaderRunLength::readAndCount( LetterCount& c, const LetterNumber numChars )
+} // ~BwtReaderRunLengthBase::readAndCount( LetterCount& c, const LetterNumber numChars )
 
 
-LetterNumber BwtReaderRunLength::readAndSend( BwtWriterBase &writer, const LetterNumber numChars )
+LetterNumber BwtReaderRunLengthBase::readAndSend( BwtWriterBase &writer, const LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR RL readAndSend " << numChars << " chars " << endl;
@@ -327,9 +366,9 @@ LetterNumber BwtReaderRunLength::readAndSend( BwtWriterBase &writer, const Lette
     runLength_ -= charsLeft;
     currentPos_ += numChars;
     return numChars;
-} //~BwtReaderRunLength::readAndSend(BwtWriterBase& writer, const LetterNumber numChars)
+} //~BwtReaderRunLengthBase::readAndSend(BwtWriterBase& writer, const LetterNumber numChars)
 
-LetterNumber BwtReaderRunLength::operator()( char *p, LetterNumber numChars )
+LetterNumber BwtReaderRunLengthBase::operator()( char *p, LetterNumber numChars )
 {
 #ifdef DEBUG
     std::cout << "BR RL () :  asked for " << numChars << " " << lastChar_ << " "
@@ -381,6 +420,22 @@ LetterNumber BwtReaderRunLength::operator()( char *p, LetterNumber numChars )
     return numChars;
 } // ~operator()
 
+
+
+//
+// BwtReaderRunLength member function definitions
+//
+
+BwtReaderRunLength::BwtReaderRunLength( const string &filename ):
+    BwtReaderRunLengthBase( filename )
+{
+} // ~ctor
+
+BwtReaderRunLength::BwtReaderRunLength( const BwtReaderRunLength &obj ):
+    BwtReaderRunLengthBase( obj )
+{
+} // ~ctor
+
 bool BwtReaderRunLength::getRun( void )
 {
     if ( pBuf_ == pBufMax_ )
@@ -392,8 +447,7 @@ bool BwtReaderRunLength::getRun( void )
         }
         else
         {
-            LetterNumber numRead( fread( buf_, sizeof( uchar ),
-                                         ReadBufferSize, pFile_ ) );
+            LetterNumber numRead( fread( buf_.data(), sizeof( uchar ), ReadBufferSize, pFile_ ) );
             if ( numRead == 0 )
             {
                 runLength_ = 0;
@@ -402,9 +456,9 @@ bool BwtReaderRunLength::getRun( void )
             else if ( numRead < ReadBufferSize )
             {
                 finished_ = true;
-                pBufMax_ = buf_ + numRead;
+                pBufMax_ = buf_.data() + numRead;
             }
-            pBuf_ = buf_;
+            pBuf_ = buf_.data();
         } // ~else
     } // ~if
     runLength_ = lengths_[*pBuf_];
@@ -412,338 +466,202 @@ bool BwtReaderRunLength::getRun( void )
 #ifdef DEBUG
     cout << "Got run: " << runLength_ << " of " << lastChar_ << endl;
 #endif
-    pBuf_++;
+    ++pBuf_;
+    ++currentPosInFile_;
 
     return true;
 
 } // ~getRun
 
+
+
 //
-// BwtReaderRunLengthIndex member function definitions
+// BwtReaderRunLengthV3 member function definitions
 //
 
-BwtReaderRunLengthIndex::BwtReaderRunLengthIndex( const string &fileName, const string &optionalSharedMemoryPath ):
-    BwtReaderRunLength( fileName ),
-    indexFileName_( fileName + ".idx" ),
-    //    isNextIndex_( false ),
-    pIndexFile_( NULL )
+BwtReaderRunLengthV3::BwtReaderRunLengthV3( const string &filename ):
+    BwtReaderRunLengthBase( filename ),
+    symbolForRunLength1ForPile_( 0 ),
+    maxEncodedRunLengthForPile_( 0 ),
+    firstContinuationSymbol_( 0 ),
+    maxEncodedRunLengthMultiplierForContinuationSymbol_( 0 ),
+    firstDataByteInFile_( 0 ),
+    prefetchedByte_( 0 )
 {
-    //    current_.clear();
-    initIndex( optionalSharedMemoryPath );
+    // Check file header
+    uchar c;
+    c = fgetc( pFile_ );
+    assert( c == 'B' );
+    c = fgetc( pFile_ );
+    assert( c == 'W' );
+    c = fgetc( pFile_ );
+    assert( c == 'T' );
+    c = fgetc( pFile_ ); // \r\n sequence to check for invalid dos/unix format conversions
+    assert( c == 13 );
+    c = fgetc( pFile_ );
+    assert( c == 10 );
+    c = fgetc( pFile_ ); // Ctrl-Z, making some text viewers stop here and being non-ASCII to avoid confusion with text files
+    assert( c == 26 );
+
+    // Format version number, on 2 bytes to help identify endianness problems
+    uint16_t formatVersion;
+    assert( fread( &formatVersion, sizeof( formatVersion ), 1, pFile_ ) == 1 );
+    assert( formatVersion == 3 );
+
+
+    symbolForRunLength1ForPile_.resize( alphabetSize );
+    maxEncodedRunLengthForPile_.resize( alphabetSize );
+    firstContinuationSymbol_ = 0;
+    maxEncodedRunLengthMultiplierForContinuationSymbol_ = -1;
+
+    uint8_t base, rangeLength;
+    uint16_t firstRunLength;
+    uint16_t firstBytecode = 0;
+
+    while (firstBytecode < 256 )
+    {
+        assert( fread( &base, sizeof( base ), 1, pFile_ ) == 1 );
+        assert( fread( &rangeLength, sizeof( rangeLength ), 1, pFile_ ) == 1 );
+        assert( fread( &firstRunLength, sizeof( firstRunLength ), 1, pFile_ ) == 1 );
+
+        for (int i=0; i<rangeLength; ++i)
+        {
+            lengths_[ firstBytecode+i ] = firstRunLength+i;
+            codes_[ firstBytecode+i ] = base;
+        }
+
+        if (base != '+')
+        {
+            assert( firstRunLength == 1 ); // current restriction
+            symbolForRunLength1ForPile_[ whichPile[base] ] = firstBytecode;
+            maxEncodedRunLengthForPile_[ whichPile[base] ] = firstRunLength + rangeLength - 1;
+        }
+        else
+        {
+            assert( firstRunLength == 0 ); // current restriction
+            firstContinuationSymbol_ = firstBytecode;
+            maxEncodedRunLengthMultiplierForContinuationSymbol_ = firstRunLength + rangeLength - 1;
+        }
+
+        firstBytecode += rangeLength;
+    }
+    assert (firstBytecode == 256 );
+
+    currentPosInFile_ = firstDataByteInFile_ = ftell( pFile_ );
+    prefetchNextByte();
+} // ~ctor
+
+BwtReaderRunLengthV3::BwtReaderRunLengthV3( const BwtReaderRunLengthV3 &obj ):
+    BwtReaderRunLengthBase( obj ),
+    symbolForRunLength1ForPile_( obj.symbolForRunLength1ForPile_ ),
+    maxEncodedRunLengthForPile_( obj.maxEncodedRunLengthForPile_ ),
+    firstContinuationSymbol_( obj.firstContinuationSymbol_ ),
+    maxEncodedRunLengthMultiplierForContinuationSymbol_( obj.maxEncodedRunLengthMultiplierForContinuationSymbol_ ),
+    firstDataByteInFile_( obj.firstDataByteInFile_ ),
+    prefetchedByte_( obj.prefetchedByte_ )
+{
+} // ~ctor
+
+bool BwtReaderRunLengthV3::getRun( void )
+{
+    if ( prefetchedByte_ == EOF )
+    {
+        lastChar_ = notInAlphabet;
+        runLength_ = 0;
+        return false;
+    }
+
+    LetterNumber currentContinuationMultiplier = 0;
+    do
+    {
+        if (codes_[prefetchedByte_] != '+') // continuation code
+        {
+            lastChar_ = codes_[prefetchedByte_];
+            runLength_ = lengths_[prefetchedByte_];
+            currentContinuationMultiplier = maxEncodedRunLengthForPile_[ whichPile[lastChar_] ];
+        }
+        else
+        {
+            assert( currentContinuationMultiplier != 0 );
+            runLength_ += lengths_[prefetchedByte_] * currentContinuationMultiplier;
+            currentContinuationMultiplier *= maxEncodedRunLengthMultiplierForContinuationSymbol_ + 1;
+        }
+
+        ++currentPosInFile_;
+        prefetchNextByte();
+    }
+    while (prefetchedByte_ != EOF && codes_[prefetchedByte_] == '+'); // continuation code
+
+#ifdef DEBUG
+    cout << "Got run: " << runLength_ << " of " << lastChar_ << endl;
+#endif
+
+    return true;
 }
 
-#ifdef DUPLICATED_VERSION_OF_COPY_CONSTRUCTOR
-// ... ended up with 2 versions after merge
-BwtReaderRunLengthIndex::BwtReaderRunLengthIndex( const BwtReaderRunLengthIndex &obj ):
-    BwtReaderRunLength( obj.fileName_ ),
-    indexFileName_( obj.indexFileName_ ),
-    pIndexFile_( NULL ),
-    indexPosBwt_( obj.indexPosBwt_ ),
-    indexPosFile_( obj.indexPosFile_ ),
-    indexCount_( obj.indexCount_ ),
-    indexNext_( 0 )
+void BwtReaderRunLengthV3::prefetchNextByte()
 {
-} // ~copy ctor
-#endif
+    if (prefetchedByte_ == EOF)
+        return;
 
-
-void BwtReaderRunLengthIndex::rewindFile( void )
-{
-    // rewind file and set all vars as per constructor
-    //    current_.clear();
-    indexNext_ = 0;
-    //    initIndex();
-    BwtReaderRunLength::rewindFile();
-} // ~rewindFile
-
-
-
-
-LetterNumber BwtReaderRunLengthIndex::readAndCount( LetterCount &c, const LetterNumber numChars )
-{
-#ifdef DEBUG_RAC
-    std::cout << "BR RLI readAndCount " << numChars << " chars " << endl;
-    std::cout << "Before: " << currentPos_ << " " << ftell( pFile_ ) << " ";
-    std::cout << c << endl;;
-#endif
-
-    LetterNumber charsLeft( numChars );
-    uint32_t indexLast;
-
-#ifdef DEBUG_RAC
-    if ( indexNext_ != indexSize_ )
-        assert( currentPos_ <= indexPosBwt_[indexNext_] );
-#endif
-
-    // gotcha: numChars can be set to maxLetterNumber so no expressions should
-    // add to it - wraparound issues!
-
-    // if indexLast==indexPosBwtSize we know we have gone past last index point
-    // or that none are present at all
-    if ( ( indexNext_ != indexSize_ )
-         && ( numChars > ( indexPosBwt_[indexNext_] - currentPos_ ) ) )
+    if ( pBuf_ == pBufMax_ )
     {
-        // count interval spans at least one index point
-
-        // how many index points does the count interval span?
-        indexLast = indexNext_;
-        while ( ( indexLast != indexSize_ )
-                && ( numChars > ( indexPosBwt_[indexLast] - currentPos_ ) ) )
+        LetterNumber numRead = fread( buf_.data(), sizeof( uchar ), ReadBufferSize, pFile_ );
+        if ( numRead < ReadBufferSize )
         {
-            indexLast++;
+            pBufMax_ = buf_.data() + numRead;
+
+            if ( numRead == 0 )
+            {
+                prefetchedByte_ = EOF;
+                return;
+            }
         }
-        indexLast--;
-
-        if ( indexNext_ <= indexLast )
-        {
-            // more than one index point in count interval - can use index
-            if ( ! ( currentPos_ == 0 && charsLeft >= indexPosBwt_[indexNext_] ) )
-                charsLeft -= BwtReaderRunLength::readAndCount( c, indexPosBwt_[indexNext_] - currentPos_ );
-            else
-            {
-                charsLeft -= indexPosBwt_[0];
-                c += indexCount_[0];
-                currentPos_ = indexPosBwt_[0];
-                fseek( pFile_, indexPosFile_[0], SEEK_SET );
-            }
-            //            assert(currentPos_==indexNext_);
-
-            if ( indexNext_ != indexLast )
-            {
-                charsLeft -= ( indexPosBwt_[indexLast] - indexPosBwt_[indexNext_] );
-
-                // update counts and also indexNext_
-                while ( ++indexNext_ <= indexLast )
-                {
-                    c += indexCount_[indexNext_];
-#ifdef DEBUG_RAC_VERBOSE
-                    std::cout << indexNext_ << " " << indexPosBwt_[indexNext_] << " " << indexPosFile_[indexNext_] <<  " " << indexCount_[indexNext_] << endl;
-#endif
-                } //
-
-                // skip to last index point and reset buffers
-                fseek( pFile_, indexPosFile_[indexLast], SEEK_SET );
-                currentPos_ = indexPosBwt_[indexLast];
-            }
-            else
-            {
-                assert( currentPos_ == indexPosBwt_[indexLast] );
-                ++indexNext_;
-            }
-            runLength_ = 0;
-            pBuf_ = buf_ + ReadBufferSize;
-            pBufMax_ = buf_ + ReadBufferSize;
-
-        } // if more than one index point
-        // if we're in this clause we've gone past at least one index
-        indexLast++;
-        assert( indexLast <= indexSize_ );
-    }
-#ifdef DEBUG_RAC
-    std::cout << "After (RLI) skip: " << currentPos_ << " " << ftell( pFile_ ) << " " << c << endl;
-#endif
-    // now read as normal until done
-    charsLeft -= BwtReaderRunLength::readAndCount( c, charsLeft );
-    //    assert(currentPos_==desiredPos);
-#ifdef DEBUG_RAC
-    std::cout << "After (RLI) final read: " << currentPos_ << " " << ftell( pFile_ ) << " " << c << endl;
-#endif
-    return ( numChars - charsLeft );
-
-} // ~BwtReaderRunLengthIndex::readAndCount
-
-
-
-
-void BwtReaderRunLengthIndex::buildIndex
-( FILE *pIndexFile, const int indexBinSize )
-{
-    const int runsPerChunk( indexBinSize );
-    int runsThisChunk( 0 );
-    LetterCountCompact countsThisChunk;
-    LetterNumber runsSoFar( 0 ), chunksSoFar( 0 );
-    currentPos_ = 0;
-
-
-    while ( 1 )
-    {
-        if ( getRun() == false ) break;
-        runsSoFar++;
-        runsThisChunk++;
-
-        countsThisChunk.count_[whichPile[lastChar_]] += runLength_;
-        currentPos_ += runLength_;
-        if ( runsThisChunk == runsPerChunk )
-        {
-#ifdef DEBUG_RAC
-            cout << currentPos_ << " " << runsSoFar << " " << countsThisChunk << endl;
-#endif
-
-            // don't bother writing this as can deduce by summing countsThisChunk
-            //            assert
-            //            ( fwrite( &currentPos_, sizeof( LetterNumber ), 1, pIndexFile ) == 1 );
-
-            //            runsSoFar=pFile_.tellg();
-
-            assert
-            ( fwrite( &runsSoFar, sizeof( LetterNumber ), 1, pIndexFile ) == 1 );
-
-            assert
-            ( fwrite( &countsThisChunk, sizeof( LetterCountCompact ), 1, pIndexFile ) == 1 );
-
-            chunksSoFar++;
-            runsThisChunk = 0;
-            countsThisChunk.clear();
-        }
-    }
-    cout << "buildIndex: read " << currentPos_ << " bases compressed into " << runsSoFar << " byte tokens." << endl;
-    cout << "buildIndex: generated " << chunksSoFar << " index points." << endl;
-} // ~buildIndex
-
-void BwtReaderRunLengthIndex::initIndex( const string &optionalSharedMemoryPath )
-{
-    indexNext_ = 0;
-
-    bool useSharedMemory = !optionalSharedMemoryPath.empty();
-    string shmFilename1, shmFilename2, shmFilename3;
-    if ( useSharedMemory )
-    {
-        string fileNameWithoutSlash = fileName_;
-        std::replace( fileNameWithoutSlash.begin(), fileNameWithoutSlash.end(), '/', '_' );
-        shmFilename1 = optionalSharedMemoryPath + "/BeetlIndexPosFile_" + fileNameWithoutSlash;
-        shmFilename2 = optionalSharedMemoryPath + "/BeetlIndexCount_" + fileNameWithoutSlash;
-        shmFilename3 = optionalSharedMemoryPath + "/BeetlIndexPosBwt_" + fileNameWithoutSlash;
-        if ( readWriteCheck( shmFilename1.c_str(), false, false ) )
-        {
-            // Load vectors from shared memory
-            {
-                cerr << "Info: Using mmap'ed index " << shmFilename1 << endl;
-                int fd = open( shmFilename1.c_str(), O_RDONLY );
-                assert( fd >= 0 );
-                off_t fileSize = lseek( fd, 0, SEEK_END );
-                lseek( fd, 0, SEEK_SET );
-
-                char *mmappedFile = ( char * )mmap( NULL, fileSize, PROT_READ, MAP_SHARED /*| MAP_LOCKED | MAP_POPULATE*/, fd, 0 );
-                if ( mmappedFile == ( void * ) - 1 )
-                {
-                    perror( "Error: Map failed" );
-                    assert( false );
-                }
-                indexSize_ = *reinterpret_cast<uint32_t *>( mmappedFile );
-                indexPosFile_ = reinterpret_cast<LetterNumber *>( mmappedFile + sizeof( indexSize_ ) );
-                close( fd );
-            }
-
-            {
-                int fd = open( shmFilename2.c_str(), O_RDONLY );
-                assert( fd >= 0 );
-                off_t fileSize = lseek( fd, 0, SEEK_END );
-                lseek( fd, 0, SEEK_SET );
-
-                char *mmappedFile = ( char * )mmap( NULL, fileSize, PROT_READ, MAP_SHARED /*| MAP_LOCKED | MAP_POPULATE*/, fd, 0 );
-                if ( mmappedFile == ( void * ) - 1 )
-                {
-                    perror( "Error: Map failed" );
-                    assert( false );
-                }
-                assert( indexSize_ == *reinterpret_cast<uint32_t *>( mmappedFile ) );
-                indexCount_ = reinterpret_cast<LetterCountCompact *>( mmappedFile + sizeof( indexSize_ ) );
-                close( fd );
-            }
-            {
-                int fd = open( shmFilename3.c_str(), O_RDONLY );
-                assert( fd >= 0 );
-                off_t fileSize = lseek( fd, 0, SEEK_END );
-                lseek( fd, 0, SEEK_SET );
-
-                char *mmappedFile = ( char * )mmap( NULL, fileSize, PROT_READ, MAP_SHARED /*| MAP_LOCKED | MAP_POPULATE*/, fd, 0 );
-                if ( mmappedFile == ( void * ) - 1 )
-                {
-                    perror( "Error: Map failed" );
-                    assert( false );
-                }
-                assert( indexSize_ == *reinterpret_cast<uint32_t *>( mmappedFile ) );
-                indexPosBwt_ = reinterpret_cast<LetterNumber *>( mmappedFile + sizeof( indexSize_ ) );
-                close( fd );
-            }
-            return;
-        }
+        pBuf_ = buf_.data();
     }
 
-    LetterNumber currentPosBwt( 0 );
+    prefetchedByte_ = *pBuf_;
+    ++pBuf_;
+//    ++currentPosInFile_;
+}
 
-    if ( pIndexFile_ != NULL ) fclose( pIndexFile_ );
-    pIndexFile_ = fopen( indexFileName_.c_str(), "r" );
+void BwtReaderRunLengthV3::rewindFile( void )
+{
+    seek( firstDataByteInFile_, 0 );
+}
 
-    if ( pIndexFile_ != NULL )
-    {
-        indexPosFile0_.push_back( 0 );
-        while ( fread( &indexPosFile0_.back(), sizeof( LetterNumber ), 1, pIndexFile_ ) == 1 )
-        {
-            indexCount0_.push_back( LetterCountCompact() );
-            assert ( fread( &indexCount0_.back(), sizeof( LetterCountCompact ), 1, pIndexFile_ ) == 1 );
-            for ( int i( 0 ); i < alphabetSize; i++ )
-                currentPosBwt += indexCount0_.back().count_[i];
-            indexPosBwt0_.push_back( currentPosBwt );
-#ifdef DEBUG_RAC_VERBOSE
-            cout << indexPosBwt0_.back() << " " << indexPosFile0_.back() << " " << indexCount0_.back() << endl;
-#endif
-            indexPosFile0_.push_back( 0 );
-        } // ~while
-        indexPosFile0_.pop_back();
-        fclose( pIndexFile_ );
-        pIndexFile_ = NULL;
-    } // ~if
-    indexSize_ = indexPosBwt0_.size();
-    assert( indexSize_ == indexPosFile0_.size() );
-    assert( indexSize_ == indexCount0_.size() );
-    //  rewindFile();
+LetterNumber BwtReaderRunLengthV3::tellg( void ) const
+{
+    return currentPosInFile_;
+}
 
-    indexPosBwt_ = indexPosBwt0_.data();
-    indexPosFile_ = indexPosFile0_.data();
-    indexCount_ = indexCount0_.data();
+int BwtReaderRunLengthV3::seek( const LetterNumber posInFile, const LetterNumber baseNumber )
+{
+    Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "seek filename=" << filename_ << " posInFile=" << posInFile << " baseNumber=" << baseNumber << endl;
 
-    // Save vectors to shared memory
-    if ( useSharedMemory && !indexPosBwt0_.empty() )
-    {
-        {
-            ofstream os( shmFilename1 );
-            if ( !os.good() )
-            {
-                cerr << "Error creating " << shmFilename1 << endl;
-                exit( -1 );
-            }
-            os.write( reinterpret_cast<const char *>( &indexSize_ ), sizeof( indexSize_ ) );
-            os.write( reinterpret_cast<const char *>( indexPosFile0_.data() ), indexSize_ * sizeof( indexPosFile0_[0] ) );
-        }
-        {
-            ofstream os( shmFilename2 );
-            os.write( reinterpret_cast<const char *>( &indexSize_ ), sizeof( indexSize_ ) );
-            os.write( reinterpret_cast<const char *>( indexCount0_.data() ), indexSize_ * sizeof( indexCount0_[0] ) );
-        }
-        {
-            ofstream os( shmFilename3 );
-            os.write( reinterpret_cast<const char *>( &indexSize_ ), sizeof( indexSize_ ) );
-            os.write( reinterpret_cast<const char *>( indexPosBwt0_.data() ), indexSize_ * sizeof( indexPosBwt0_[0] ) );
-        }
-    }
-} // ~initIndex
+    int ret = BwtReaderRunLengthBase::seek( posInFile, baseNumber );
+    prefetchedByte_ = 0;
+    prefetchNextByte();
+    return ret;
+}
+
+
 
 // BwtReaderIncrementalRunLength member function definitions
 //
 
 extern vector< vector<unsigned char> > ramFiles; // declared in BwtWriter; todo: move those to another a new header file
 
-BwtReaderIncrementalRunLength::BwtReaderIncrementalRunLength( const string &fileName ):
-    BwtReaderBase( fileName ), runLength_( 0 ),
-    pBuf_( buf_ + ReadBufferSize ), pBufMax_( buf_ + ReadBufferSize ),
+BwtReaderIncrementalRunLength::BwtReaderIncrementalRunLength( const string &filename ):
+    BwtReaderBase( filename ), runLength_( 0 ),
+    pBuf_( buf_.data() + ReadBufferSize ), pBufMax_( buf_.data() + ReadBufferSize ),
     lastChar_( notInAlphabet ),
     lastMetadata_( 0 ),
     finished_( false ),
     currentPos_ ( 0 ),
     posInRamFile_ ( 0 )
 {
-    //    cout << "BwtReaderIncrementalRunLength: Opening " << fileName << endl;
+    //    cout << "BwtReaderIncrementalRunLength: Opening " << filename << endl;
     if ( fread( &fileNum_, sizeof( fileNum_ ), 1, pFile_ ) != 1 )
     {
         fileNum_ = -1;
@@ -767,8 +685,8 @@ void BwtReaderIncrementalRunLength::rewindFile( void )
     // rewind file and set all vars as per constructor
     rewind( pFile_ );
     runLength_ = 0;
-    pBuf_ = buf_ + ReadBufferSize;
-    pBufMax_ = buf_ + ReadBufferSize;
+    pBuf_ = buf_.data() + ReadBufferSize;
+    pBufMax_ = buf_.data() + ReadBufferSize;
     lastChar_ = notInAlphabet;
     currentPos_ = 0;
     finished_ = false;
@@ -952,7 +870,7 @@ again:
         }
         else
         {
-            LetterNumber numRead( fread( buf_, sizeof( uchar ),
+            LetterNumber numRead( fread( buf_.data(), sizeof( uchar ),
                                          ReadBufferSize, pFile_ ) );
             if ( numRead == 0 )
             {
@@ -962,9 +880,9 @@ again:
             else if ( numRead < ReadBufferSize )
             {
                 //                finished_=true;
-                pBufMax_ = buf_ + numRead;
+                pBufMax_ = buf_.data() + numRead;
             }
-            pBuf_ = buf_;
+            pBuf_ = buf_.data();
         } // ~else
     } // ~if
     assert( c == *pBuf_ );
@@ -1061,8 +979,10 @@ void BwtReaderIncrementalRunLength::defragment( void )
 // BwtReaderHuffman member function definitions
 //
 
-BwtReaderHuffman::BwtReaderHuffman( const string &fileName ):
-    BwtReaderBase( fileName ),
+#ifdef ACTIVATE_HUFFMAN
+
+BwtReaderHuffman::BwtReaderHuffman( const string &filename ):
+    BwtReaderBase( filename ),
     runLength_( 0 ),
     lastChar_( notInAlphabet ),
     bitsUsed_( 0 ),
@@ -1081,7 +1001,7 @@ BwtReaderHuffman::BwtReaderHuffman( const string &fileName ):
     // kill everything if file size is not a multiple of 4byte (~32 bit)
     assert( ( fileSize % sizeof( unsigned int ) ) == 0 ); // read with == 4 byte
     numInts_ = fileSize / sizeof( unsigned int ); // how many ints to read from file
-    //cerr << fileName << ": " << fileSize << " bytes/"<< numInts_ << " blocks" << endl;
+    //cerr << filename << ": " << fileSize << " bytes/"<< numInts_ << " blocks" << endl;
     fseek( pFile_, 0, SEEK_SET );
     //init arrays
 
@@ -1406,14 +1326,16 @@ LetterNumber BwtReaderHuffman::operator()( char *p, LetterNumber numChars )
     return -1;
 } // ~operator()
 
+#endif //ifdef ACTIVATE_HUFFMAN
+
 
 
 //
 // BwtReaderRunLengthRam member function definitions
 //
 
-BwtReaderRunLengthRam::BwtReaderRunLengthRam( const string &fileName ):
-    BwtReaderBase( fileName ),
+BwtReaderRunLengthRam::BwtReaderRunLengthRam( const string &filename ):
+    BwtReaderBase( filename ),
     runLength_( 0 ),
     lastChar_( notInAlphabet ),
     currentPos_( 0 ),
@@ -1437,7 +1359,7 @@ BwtReaderRunLengthRam::BwtReaderRunLengthRam( const string &fileName ):
 #else
         #pragma omp critical (IO)
         cerr << "Info: Using mmap'ed BWT" << endl;
-        int fd = open( fileName.c_str(), O_RDONLY );
+        int fd = open( filename.c_str(), O_RDONLY );
         assert( fd >= 0 );
         fullFileBuf_ = ( char * )mmap( NULL, fileSize, PROT_READ, MAP_SHARED /*| MAP_LOCKED | MAP_POPULATE*/, fd, 0 );
         if ( fullFileBuf_ == ( void * ) - 1 )
@@ -1451,7 +1373,7 @@ BwtReaderRunLengthRam::BwtReaderRunLengthRam( const string &fileName ):
         if ( mlock( fullFileBuf_, fileSize ) != 0 )
         {
             ostringstream oss;
-            oss << "Error: Mlock failed for file " << fileName << " with code " << errno;
+            oss << "Error: Mlock failed for file " << filename << " with code " << errno;
             #pragma omp critical (IO)
             perror( oss.str().c_str() );
         }
@@ -1478,7 +1400,7 @@ BwtReaderRunLengthRam::BwtReaderRunLengthRam( const string &fileName ):
 } // ~ctor
 
 BwtReaderRunLengthRam::BwtReaderRunLengthRam( const BwtReaderRunLengthRam &obj ):
-    BwtReaderBase( obj.fileName_ ),
+    BwtReaderBase( obj.filename_ ),
     runLength_( 0 ),
     lastChar_( notInAlphabet ),
     currentPos_( 0 ),
@@ -1674,3 +1596,89 @@ bool BwtReaderRunLengthRam::getRun( void )
 
 } // ~getRun
 
+
+BwtReaderBase* instantiateBwtPileReader( const string &pileFilename, const string &useShm, const bool keepBwtInRam, const bool forceNotUseIndexClass )
+{
+    if ( keepBwtInRam )
+    {
+        Logger::out() << "Info: the option to keep BWT in RAM has been temporarily de-activated" << endl;
+    }
+
+    // Detect BWT file type (ASCII/RLE, and which RLE version)
+    ifstream bwtFile( pileFilename.c_str() );
+    vector<char> buf( 8, 'A' ); // initialised with 'A's to default to ASCII if not enough data
+    bwtFile.read( buf.data(), 8 );
+
+    if ( equal( buf.begin(), buf.end(), rleV3Header.begin() ) )
+    {
+        // RLE_v3 detected
+        Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "BWT file " << pileFilename << " detected as RLE version 3" << endl;
+        if ( readWriteCheck( (pileFilename+".idx").c_str(), false, false ) && !forceNotUseIndexClass )
+        {
+            Logger::out() << "Using indexed BWT file for " << pileFilename << endl;
+            return new BwtReaderIndex<BwtReaderRunLengthV3>( pileFilename, useShm );
+        }
+        else
+        {
+            return new BwtReaderRunLengthV3( pileFilename );
+        }
+    }
+    else
+    {
+        bool allAscii = true;
+        for ( const char c: buf )
+        { 
+            switch ( toupper( c ) )
+            {
+            case 'A':
+            case 'C':
+            case 'G':
+            case 'T':
+            case 'N':
+            case '$':
+                break;
+            default:
+                allAscii = false;
+            }
+        }
+
+        if (allAscii)
+        {
+            // ASCII detected
+            Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "BWT file " << pileFilename << " detected as ASCII" << endl;
+            return new BwtReaderASCII( pileFilename );
+        }
+        else
+        {
+            // old RLE detected
+            Logger_if( LOG_SHOW_IF_VERY_VERBOSE ) Logger::out() << "BWT file " << pileFilename << " detected as RLE" << endl;
+            if ( readWriteCheck( (pileFilename+".idx").c_str(), false, false ) && !forceNotUseIndexClass )
+            {
+                Logger::out() << "Using indexed BWT file for " << pileFilename << endl;
+                return new BwtReaderIndex<BwtReaderRunLength>( pileFilename, useShm );
+            }
+            else
+            {
+                return new BwtReaderRunLength( pileFilename );
+            }
+        }
+    }
+
+    assert( false && "unreachable code" );
+    return NULL;
+}
+
+vector <BwtReaderBase *> instantiateBwtPileReaders( const string &bwtPrefix, const string &useShm )
+{
+    vector <BwtReaderBase *> inBwt( alphabetSize );
+
+    for ( int i( 0 ); i < alphabetSize; i++ )
+    {
+        stringstream filenameSS;
+        filenameSS << bwtPrefix << "-B0" << i;
+        string pileFilename = filenameSS.str().c_str();
+        inBwt[i] = instantiateBwtPileReader( pileFilename, useShm, false );
+    }
+
+    return inBwt;
+}

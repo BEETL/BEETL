@@ -2,15 +2,10 @@
 
 =head1 LICENSE
 
-Copyright (c) 2014 Illumina, Inc.
+Copyright (c) 2011-2014 Illumina, Inc.
 
-
-This software is covered by the "Illumina Non-Commercial Use Software
-and Source Code License Agreement" and any user of this software or
-source file is bound by the terms therein (see accompanying file
-Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
-
-This file is part of the BEETL software package.
+This file is part of the BEETL software package,
+covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
 
 Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
 Lightweight BWT Construction for Very Large String Collections.
@@ -76,7 +71,7 @@ my $programName = (File::Spec->splitpath(abs_path($0)))[2];
 my $programPath = (File::Spec->splitpath(abs_path($0)))[1];
 my $Version_text =
     "$programName $VERSION\n"
-  . "Copyright (c) 2014 Illumina\n"
+  . "Copyright (c) 2011-2014 Illumina\n"
   . "This source file is covered by the \"Illumina Non-Commercial Use Software and\n"
   . "Source Code License Agreement\" and bound by the terms therein.\n";
 
@@ -123,7 +118,7 @@ $dependencyCheck |= system("beetl-search -h > /dev/null 2> /dev/null");
 #print "which: $? $dependencyCheck\n";
 $dependencyCheck |= system("beetl-extend -h > /dev/null");
 #print "which: $? $dependencyCheck\n";
-$dependencyCheck |= system("${programPath}/index_lines.pl -h > /dev/null");
+$dependencyCheck |= system("${programPath}/../libexec/beetl-fastq-index-lines.pl -h > /dev/null");
 #print "which: $? $dependencyCheck\n";
 $dependencyCheck |= system("rm --help > /dev/null");
 #print "which: $? $dependencyCheck\n";
@@ -250,10 +245,10 @@ if ($PARAMS{mode} eq "init")
   $cmd="rm -rf ${qualsFilename} ${readIdsFilename} cyc";
   launchCommand( ${cmd} );
 
-  $cmd="${programPath}/index_lines.pl ${qualsFilename}.rz";
+  $cmd="${programPath}/../libexec/beetl-fastq-index-lines.pl ${qualsFilename}.rz";
   launchCommand( ${cmd} );
 
-  $cmd="${programPath}/index_lines.pl ${readIdsFilename}.rz";
+  $cmd="${programPath}/../libexec/beetl-fastq-index-lines.pl ${readIdsFilename}.rz";
   launchCommand( ${cmd} );
 
   $cmd="beetl-index -i $PARAMS{output}";
@@ -290,7 +285,7 @@ elsif ($PARAMS{mode} eq "search")
   # Open output file early to detect missing write permissions
   open (OUT, ">$PARAMS{output}") || die "Failed to open $PARAMS{output}: $!";
 
-  my $cmd="beetl-search -i $PARAMS{input} -ui -o ${intermediateFile1}";
+  my $cmd="beetl-search -i $PARAMS{input} -o ${intermediateFile1}";
   if (defined($PARAMS{inputKmerFile})) {
     $cmd .= " -j $PARAMS{inputKmerFile}";
   }
@@ -330,7 +325,7 @@ elsif ($PARAMS{mode} eq "search")
 
   if (${matchCount} > 0) {
 
-  $cmd="beetl-extend -i ${intermediateFile1}.2 -b $PARAMS{input} -ui --propagate-sequence -o ${intermediateFile2}.0";
+  $cmd="beetl-extend -i ${intermediateFile1}.2 -b $PARAMS{input} --propagate-sequence -o ${intermediateFile2}.0";
   if ($PARAMS{verbose}) {
     $cmd .= " | tee ${intermediateFile2}";
   } else {
@@ -401,7 +396,7 @@ elsif ($PARAMS{mode} eq "search")
     close (OUT3);
 
 
-    $cmd="beetl-extend -i ${intermediateFile2}.3 -b $PARAMS{input} -ui --propagate-sequence -o ${intermediateFile2}.4";
+    $cmd="beetl-extend -i ${intermediateFile2}.3 -b $PARAMS{input} --propagate-sequence -o ${intermediateFile2}.4";
     if ($PARAMS{verbose}) {
       $cmd .= " | tee ${intermediateFile2}.5";
     } else {
@@ -431,9 +426,9 @@ elsif ($PARAMS{mode} eq "search")
       print "Extracting ${counter} reads...\n";
       if ($counter > 0)
       {
-        $cmd="${programPath}/index_lines.pl ${readIdsFilename}.rz ${readNums}";
+        $cmd="${programPath}/../libexec/beetl-fastq-index-lines.pl ${readIdsFilename}.rz ${readNums}";
         open (INP_READ_IDS, "${cmd} |") || die "Failed to open ${cmd}: $!";
-        $cmd="${programPath}/index_lines.pl ${qualsFilename}.rz ${readNums}";
+        $cmd="${programPath}/../libexec/beetl-fastq-index-lines.pl ${qualsFilename}.rz ${readNums}";
         open (INP_QUALS, "${cmd} |") || die "Failed to open ${cmd}: $!";
 
         for (my $i=0; $i<$counter; $i++)

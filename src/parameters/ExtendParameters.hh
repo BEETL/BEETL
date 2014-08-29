@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -37,7 +32,6 @@ public:
         addEntry( -1, "bwt filename prefix", "--bwt-prefix", "-b", "Input BWT index files prefix", "", TYPE_STRING | REQUIRED );
         addEntry( -1, "sequence numbers output filename", "--output-seqnum", "-o", "Destination file to output sequence numbers", "", TYPE_STRING );
         addEntry( -1, "dollar positions output filename", "--output-dollar-pos", "-p", "Destination file to output BWT positions of dollar signs", "", TYPE_STRING );
-        addEntry( -1, "use indexing", "--use-indexing", "-ui", "Use indexing of BWT files to speed up searching", "", TYPE_SWITCH );
         addEntry( -1, "propagate sequence", "--propagate-sequence", "", "Propagate and output sequence with each BWT range (slower)", "", TYPE_SWITCH );
 
         addDefaultVerbosityAndHelpEntries();

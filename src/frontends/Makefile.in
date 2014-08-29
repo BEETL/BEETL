@@ -81,15 +81,14 @@ POST_UNINSTALL = :
 bin_PROGRAMS = beetl-bwt$(EXEEXT) beetl-unbwt$(EXEEXT) \
 	beetl-convert$(EXEEXT) beetl-search$(EXEEXT) \
 	beetl-compare$(EXEEXT) beetl-correct$(EXEEXT) \
-	align-corrector-strings$(EXEEXT) beetl-index$(EXEEXT) \
+	beetl-correct-apply-corrections$(EXEEXT) beetl-index$(EXEEXT) \
 	beetl-extend$(EXEEXT)
 subdir = src/frontends
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(srcdir)/beetl.in $(top_srcdir)/depcomp $(noinst_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
-	$(top_srcdir)/m4/openmp.m4 $(top_srcdir)/m4/ax_check_zlib.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/openmp.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -98,19 +97,10 @@ CONFIG_CLEAN_FILES = beetl
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_align_corrector_strings_OBJECTS =  \
-	align_corrector_strings-AlignCorrectorStrings.$(OBJEXT)
-align_corrector_strings_OBJECTS =  \
-	$(am_align_corrector_strings_OBJECTS)
-am__DEPENDENCIES_1 =
-align_corrector_strings_DEPENDENCIES = ../liball.a ../libzoo.a \
-	$(am__DEPENDENCIES_1)
-align_corrector_strings_LINK = $(CXXLD) \
-	$(align_corrector_strings_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
 am_beetl_bwt_OBJECTS = beetl_bwt-BeetlBwt.$(OBJEXT) \
 	beetl_bwt-Common.$(OBJEXT) beetl_bwt-DatasetMetadata.$(OBJEXT)
 beetl_bwt_OBJECTS = $(am_beetl_bwt_OBJECTS)
+am__DEPENDENCIES_1 =
 beetl_bwt_DEPENDENCIES = ../liball.a ../libzoo.a $(am__DEPENDENCIES_1)
 beetl_bwt_LINK = $(CXXLD) $(beetl_bwt_CXXFLAGS) $(CXXFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -132,6 +122,14 @@ beetl_correct_OBJECTS = $(am_beetl_correct_OBJECTS)
 beetl_correct_DEPENDENCIES = ../liball.a ../libzoo.a \
 	$(am__DEPENDENCIES_1)
 beetl_correct_LINK = $(CXXLD) $(beetl_correct_CXXFLAGS) $(CXXFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_beetl_correct_apply_corrections_OBJECTS = beetl_correct_apply_corrections-AlignCorrectorStrings.$(OBJEXT)
+beetl_correct_apply_corrections_OBJECTS =  \
+	$(am_beetl_correct_apply_corrections_OBJECTS)
+beetl_correct_apply_corrections_DEPENDENCIES = ../liball.a ../libzoo.a \
+	$(am__DEPENDENCIES_1)
+beetl_correct_apply_corrections_LINK = $(CXXLD) \
+	$(beetl_correct_apply_corrections_CXXFLAGS) $(CXXFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_beetl_extend_OBJECTS = beetl_extend-BeetlExtend.$(OBJEXT)
 beetl_extend_OBJECTS = $(am_beetl_extend_OBJECTS)
@@ -230,16 +228,16 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(align_corrector_strings_SOURCES) $(beetl_bwt_SOURCES) \
-	$(beetl_compare_SOURCES) $(beetl_convert_SOURCES) \
-	$(beetl_correct_SOURCES) $(beetl_extend_SOURCES) \
-	$(beetl_index_SOURCES) $(beetl_search_SOURCES) \
-	$(beetl_unbwt_SOURCES)
-DIST_SOURCES = $(align_corrector_strings_SOURCES) $(beetl_bwt_SOURCES) \
-	$(beetl_compare_SOURCES) $(beetl_convert_SOURCES) \
-	$(beetl_correct_SOURCES) $(beetl_extend_SOURCES) \
-	$(beetl_index_SOURCES) $(beetl_search_SOURCES) \
-	$(beetl_unbwt_SOURCES)
+SOURCES = $(beetl_bwt_SOURCES) $(beetl_compare_SOURCES) \
+	$(beetl_convert_SOURCES) $(beetl_correct_SOURCES) \
+	$(beetl_correct_apply_corrections_SOURCES) \
+	$(beetl_extend_SOURCES) $(beetl_index_SOURCES) \
+	$(beetl_search_SOURCES) $(beetl_unbwt_SOURCES)
+DIST_SOURCES = $(beetl_bwt_SOURCES) $(beetl_compare_SOURCES) \
+	$(beetl_convert_SOURCES) $(beetl_correct_SOURCES) \
+	$(beetl_correct_apply_corrections_SOURCES) \
+	$(beetl_extend_SOURCES) $(beetl_index_SOURCES) \
+	$(beetl_search_SOURCES) $(beetl_unbwt_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -280,7 +278,6 @@ BOOST_PATH = @BOOST_PATH@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
 CXXCPP = @CXXCPP@
@@ -378,7 +375,7 @@ beetl_unbwt_SOURCES = BeetlUnbwt.cpp BeetlUnbwt.hh
 beetl_unbwt_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_unbwt_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
 beetl_convert_SOURCES = BeetlConvert.cpp BeetlConvert.hh
-beetl_convert_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD} -lz
+beetl_convert_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_convert_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
 beetl_search_SOURCES = BeetlSearch.cpp BeetlSearch.hh
 beetl_search_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
@@ -389,9 +386,9 @@ beetl_compare_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR
 beetl_correct_SOURCES = BeetlCorrect.cpp BeetlCorrect.hh
 beetl_correct_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_correct_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext -I$(srcdir)/../backtracker ${OPENMP_CXXFLAGS}
-align_corrector_strings_SOURCES = AlignCorrectorStrings.cpp AlignCorrectorStrings.hh
-align_corrector_strings_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
-align_corrector_strings_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext -I$(srcdir)/../backtracker ${OPENMP_CXXFLAGS}
+beetl_correct_apply_corrections_SOURCES = AlignCorrectorStrings.cpp AlignCorrectorStrings.hh
+beetl_correct_apply_corrections_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
+beetl_correct_apply_corrections_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext -I$(srcdir)/../backtracker ${OPENMP_CXXFLAGS}
 beetl_index_SOURCES = BeetlIndex.cpp BeetlIndex.hh
 beetl_index_LDADD = ../liball.a ../libzoo.a ${BOOST_LDADD}
 beetl_index_CXXFLAGS = -I$(srcdir)/.. -I$(srcdir)/../shared -I$(srcdir)/../BCR -I$(srcdir)/../BCRext ${OPENMP_CXXFLAGS}
@@ -478,10 +475,6 @@ uninstall-binPROGRAMS:
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
-align-corrector-strings$(EXEEXT): $(align_corrector_strings_OBJECTS) $(align_corrector_strings_DEPENDENCIES) $(EXTRA_align_corrector_strings_DEPENDENCIES) 
-	@rm -f align-corrector-strings$(EXEEXT)
-	$(AM_V_CXXLD)$(align_corrector_strings_LINK) $(align_corrector_strings_OBJECTS) $(align_corrector_strings_LDADD) $(LIBS)
-
 beetl-bwt$(EXEEXT): $(beetl_bwt_OBJECTS) $(beetl_bwt_DEPENDENCIES) $(EXTRA_beetl_bwt_DEPENDENCIES) 
 	@rm -f beetl-bwt$(EXEEXT)
 	$(AM_V_CXXLD)$(beetl_bwt_LINK) $(beetl_bwt_OBJECTS) $(beetl_bwt_LDADD) $(LIBS)
@@ -497,6 +490,10 @@ beetl-convert$(EXEEXT): $(beetl_convert_OBJECTS) $(beetl_convert_DEPENDENCIES) $
 beetl-correct$(EXEEXT): $(beetl_correct_OBJECTS) $(beetl_correct_DEPENDENCIES) $(EXTRA_beetl_correct_DEPENDENCIES) 
 	@rm -f beetl-correct$(EXEEXT)
 	$(AM_V_CXXLD)$(beetl_correct_LINK) $(beetl_correct_OBJECTS) $(beetl_correct_LDADD) $(LIBS)
+
+beetl-correct-apply-corrections$(EXEEXT): $(beetl_correct_apply_corrections_OBJECTS) $(beetl_correct_apply_corrections_DEPENDENCIES) $(EXTRA_beetl_correct_apply_corrections_DEPENDENCIES) 
+	@rm -f beetl-correct-apply-corrections$(EXEEXT)
+	$(AM_V_CXXLD)$(beetl_correct_apply_corrections_LINK) $(beetl_correct_apply_corrections_OBJECTS) $(beetl_correct_apply_corrections_LDADD) $(LIBS)
 
 beetl-extend$(EXEEXT): $(beetl_extend_OBJECTS) $(beetl_extend_DEPENDENCIES) $(EXTRA_beetl_extend_DEPENDENCIES) 
 	@rm -f beetl-extend$(EXEEXT)
@@ -555,7 +552,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_bwt-BeetlBwt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_bwt-Common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_bwt-DatasetMetadata.Po@am__quote@
@@ -563,6 +559,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_compare-Common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_convert-BeetlConvert.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_correct-BeetlCorrect.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_correct_apply_corrections-AlignCorrectorStrings.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_extend-BeetlExtend.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_index-BeetlIndex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beetl_search-BeetlSearch.Po@am__quote@
@@ -583,20 +580,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
-
-align_corrector_strings-AlignCorrectorStrings.o: AlignCorrectorStrings.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(align_corrector_strings_CXXFLAGS) $(CXXFLAGS) -MT align_corrector_strings-AlignCorrectorStrings.o -MD -MP -MF $(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo -c -o align_corrector_strings-AlignCorrectorStrings.o `test -f 'AlignCorrectorStrings.cpp' || echo '$(srcdir)/'`AlignCorrectorStrings.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo $(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='AlignCorrectorStrings.cpp' object='align_corrector_strings-AlignCorrectorStrings.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(align_corrector_strings_CXXFLAGS) $(CXXFLAGS) -c -o align_corrector_strings-AlignCorrectorStrings.o `test -f 'AlignCorrectorStrings.cpp' || echo '$(srcdir)/'`AlignCorrectorStrings.cpp
-
-align_corrector_strings-AlignCorrectorStrings.obj: AlignCorrectorStrings.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(align_corrector_strings_CXXFLAGS) $(CXXFLAGS) -MT align_corrector_strings-AlignCorrectorStrings.obj -MD -MP -MF $(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo -c -o align_corrector_strings-AlignCorrectorStrings.obj `if test -f 'AlignCorrectorStrings.cpp'; then $(CYGPATH_W) 'AlignCorrectorStrings.cpp'; else $(CYGPATH_W) '$(srcdir)/AlignCorrectorStrings.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Tpo $(DEPDIR)/align_corrector_strings-AlignCorrectorStrings.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='AlignCorrectorStrings.cpp' object='align_corrector_strings-AlignCorrectorStrings.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(align_corrector_strings_CXXFLAGS) $(CXXFLAGS) -c -o align_corrector_strings-AlignCorrectorStrings.obj `if test -f 'AlignCorrectorStrings.cpp'; then $(CYGPATH_W) 'AlignCorrectorStrings.cpp'; else $(CYGPATH_W) '$(srcdir)/AlignCorrectorStrings.cpp'; fi`
 
 beetl_bwt-BeetlBwt.o: BeetlBwt.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_bwt_CXXFLAGS) $(CXXFLAGS) -MT beetl_bwt-BeetlBwt.o -MD -MP -MF $(DEPDIR)/beetl_bwt-BeetlBwt.Tpo -c -o beetl_bwt-BeetlBwt.o `test -f 'BeetlBwt.cpp' || echo '$(srcdir)/'`BeetlBwt.cpp
@@ -695,6 +678,20 @@ beetl_correct-BeetlCorrect.obj: BeetlCorrect.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BeetlCorrect.cpp' object='beetl_correct-BeetlCorrect.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_correct_CXXFLAGS) $(CXXFLAGS) -c -o beetl_correct-BeetlCorrect.obj `if test -f 'BeetlCorrect.cpp'; then $(CYGPATH_W) 'BeetlCorrect.cpp'; else $(CYGPATH_W) '$(srcdir)/BeetlCorrect.cpp'; fi`
+
+beetl_correct_apply_corrections-AlignCorrectorStrings.o: AlignCorrectorStrings.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_correct_apply_corrections_CXXFLAGS) $(CXXFLAGS) -MT beetl_correct_apply_corrections-AlignCorrectorStrings.o -MD -MP -MF $(DEPDIR)/beetl_correct_apply_corrections-AlignCorrectorStrings.Tpo -c -o beetl_correct_apply_corrections-AlignCorrectorStrings.o `test -f 'AlignCorrectorStrings.cpp' || echo '$(srcdir)/'`AlignCorrectorStrings.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/beetl_correct_apply_corrections-AlignCorrectorStrings.Tpo $(DEPDIR)/beetl_correct_apply_corrections-AlignCorrectorStrings.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='AlignCorrectorStrings.cpp' object='beetl_correct_apply_corrections-AlignCorrectorStrings.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_correct_apply_corrections_CXXFLAGS) $(CXXFLAGS) -c -o beetl_correct_apply_corrections-AlignCorrectorStrings.o `test -f 'AlignCorrectorStrings.cpp' || echo '$(srcdir)/'`AlignCorrectorStrings.cpp
+
+beetl_correct_apply_corrections-AlignCorrectorStrings.obj: AlignCorrectorStrings.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_correct_apply_corrections_CXXFLAGS) $(CXXFLAGS) -MT beetl_correct_apply_corrections-AlignCorrectorStrings.obj -MD -MP -MF $(DEPDIR)/beetl_correct_apply_corrections-AlignCorrectorStrings.Tpo -c -o beetl_correct_apply_corrections-AlignCorrectorStrings.obj `if test -f 'AlignCorrectorStrings.cpp'; then $(CYGPATH_W) 'AlignCorrectorStrings.cpp'; else $(CYGPATH_W) '$(srcdir)/AlignCorrectorStrings.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/beetl_correct_apply_corrections-AlignCorrectorStrings.Tpo $(DEPDIR)/beetl_correct_apply_corrections-AlignCorrectorStrings.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='AlignCorrectorStrings.cpp' object='beetl_correct_apply_corrections-AlignCorrectorStrings.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_correct_apply_corrections_CXXFLAGS) $(CXXFLAGS) -c -o beetl_correct_apply_corrections-AlignCorrectorStrings.obj `if test -f 'AlignCorrectorStrings.cpp'; then $(CYGPATH_W) 'AlignCorrectorStrings.cpp'; else $(CYGPATH_W) '$(srcdir)/AlignCorrectorStrings.cpp'; fi`
 
 beetl_extend-BeetlExtend.o: BeetlExtend.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(beetl_extend_CXXFLAGS) $(CXXFLAGS) -MT beetl_extend-BeetlExtend.o -MD -MP -MF $(DEPDIR)/beetl_extend-BeetlExtend.Tpo -c -o beetl_extend-BeetlExtend.o `test -f 'BeetlExtend.cpp' || echo '$(srcdir)/'`BeetlExtend.cpp

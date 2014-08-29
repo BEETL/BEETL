@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -51,10 +46,6 @@
 
 const int maxSeqSize( 32 * 1024 ); // 32k to fit Moleculo reads
 const int bwtBufferSize( 16384 ); // 1<<20=1048576
-const int huffmanBufferSize( 128 );
-const int huffmanWriterBufferSize( 2097152 );
-
-
 
 // Read this many sequences into RAM at once
 static const unsigned int ReadBufferSize( 1024 );
@@ -66,6 +57,14 @@ static const unsigned int ReadBufferSize( 1024 );
 
 
 // ################## Huffman encoding parameters ###########################
+
+#define ACTIVATE_HUFFMAN
+#ifdef ACTIVATE_HUFFMAN
+
+//#define USE_EXTRA_CHARACTER_Z
+
+const int huffmanBufferSize( 128 );
+const int huffmanWriterBufferSize( 2097152 );
 
 // number of double codes used to introduce runs
 const unsigned int numDoubleCodes( 6 );
@@ -125,6 +124,8 @@ static const unsigned int doubleCharLength[numDoubleCodes]
 
 // position of the notinalphabet char in the baseNames array
 static const unsigned int finalCharCode( 6 );
+
+#endif //ifdef ACTIVATE_HUFFMAN
 
 // ################## END Huffman parameters ###########################
 

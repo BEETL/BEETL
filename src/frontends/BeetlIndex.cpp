@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -17,6 +12,7 @@
 
 #include "BeetlIndex.hh"
 
+#include "BwtIndex.hh"
 #include "BwtReader.hh"
 #include "Tools.hh"
 #include "config.h"
@@ -96,42 +92,36 @@ void launchBeetlIndex()
     //        exit( EXIT_FAILURE );
     //    }
 
-    string indexFileName;
-    FILE *pFile;
 
-
-    for ( vector<string>::iterator thisPile( pileNames.begin() );
-          thisPile != pileNames.end(); ++thisPile )
+#pragma omp parallel for
+    for ( unsigned int thisPile = 0; thisPile < pileNames.size(); ++thisPile )
     {
-        cerr << "Indexing file " << *thisPile << endl;
-        BwtReaderRunLengthIndex reader( thisPile->c_str(), params.getStringValue( "use shm" ) );
-        indexFileName = *thisPile;
-        indexFileName += ".idx";
-        //        continue;
+        const string pileName = pileNames[thisPile];
+#pragma omp critical (IO)
+        cerr << "Indexing file " << pileName << endl;
+//        BwtReaderIndex<BwtReaderRunLength> reader( pileName.c_str(), params.getStringValue( "use shm" ) );
+        unique_ptr<BwtReaderBase> reader( instantiateBwtPileReader( pileName.c_str(), params.getStringValue( "use shm" ), false, true ) );
+        string indexFileName = pileName + ".idx";
 
 
-        if ( !forceOverwrite )
+        FILE *pFile;
+        if ( !forceOverwrite && readWriteCheck( indexFileName.c_str(), false, false ) )
         {
-            pFile = fopen( indexFileName.c_str() , "r" );
-            if ( pFile != NULL )
-            {
-                cerr << "File " << indexFileName
-                     << " already exists! Rerun with --force to remove."
-                     << endl;
-                exit( EXIT_FAILURE );
-            }
+#pragma omp critical (IO)
+            cerr << "File " << indexFileName << " already exists! Rerun with --force to remove." << endl;
+            exit( EXIT_FAILURE );
             fclose( pFile );
-        } // ~if
+        }
 
         pFile = fopen( indexFileName.c_str() , "w" );
 
         if ( pFile == NULL )
         {
-            cerr << "Problem opening file " << indexFileName
-                 << " for writing" << endl;
+#pragma omp critical (IO)
+            cerr << "Problem opening file " << indexFileName << " for writing" << endl;
             exit( EXIT_FAILURE );
         }
-        reader.buildIndex( pFile, blockSize );
+        buildIndex( reader.get(), pFile, blockSize );
         fclose ( pFile );
     }
 }

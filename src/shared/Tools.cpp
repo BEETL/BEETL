@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -19,6 +14,7 @@
 
 #include "Tools.hh"
 
+#include "Alphabet.hh"
 #include "libzoo/util/Logger.hh"
 
 #include <cstdlib>
@@ -231,13 +227,13 @@ bool isValidReadFile( const char *fileName )
     return 1;
 }
 
-bool readWriteCheck( const char *fileName, const bool readWrite, const bool failIfError )
+bool readWriteCheck( const char *fileName, const bool checkWrite, const bool failIfError )
 {
     FILE *file;
-    file = fopen( fileName, readWrite ? "w" : "r" );
+    file = fopen( fileName, checkWrite ? "w" : "r" );
     if ( file == NULL && failIfError )
     {
-        string mode = readWrite ? "writing." : "reading.";
+        string mode = checkWrite ? "writing." : "reading.";
         cerr << "Could not open file " << fileName << " for "
              << mode << " Aborting." << endl;
         exit( EXIT_FAILURE );
@@ -337,7 +333,7 @@ bool isBwtFileCompressed( const string &filename )
 void detectInputBwtProperties( const string &prefix, vector<string> &filenames, bool &isBwtCompressed, string &availableFileLetters )
 {
     // Detect {prefix}-B0* files
-    for ( unsigned i = 0; i < 10; ++i )
+    for ( unsigned i = 0; i < alphabetSize; ++i )
     {
         stringstream filename;
         filename << prefix << "-B0" << i;

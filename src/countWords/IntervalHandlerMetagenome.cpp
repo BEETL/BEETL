@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -526,7 +521,7 @@ void IntervalHandlerMetagenome::foundInBoth
                                     << ' ' << sharedTaxa[i]
                                     << ' ';
                             if ( thisRangeB.word_.empty() )
-                                outFile_ << alphabet[pileNum] << string( cycle - 1, 'x' ); // No propagated sequence => Print what we know of the sequence, as downstream tool 'parseMetagenomeOutput' is just using first char and length of this string
+                                outFile_ << alphabet[pileNum] << string( cycle - 1, 'x' ); // No propagated sequence => Print what we know of the sequence, as downstream tool 'metabeetl-parseMetagenomeOutput' is just using first char and length of this string
                             else
                                 outFile_ << thisRangeB.word_;
                             outFile_

@@ -1,0 +1,3 @@
+Usage example:
+	./beetl-tool-launchPerSubset -j 4 -c "sleep 1; echo"
+

@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -152,20 +147,44 @@ struct BwtWriterRunLength_5_3 : public BwtWriterRunLengthBase
 };
 
 
-// New Bwt encoding.
-// First version has its encoding calculated offline, so not really dynamic
+// BWT Run Length encoding version 2: asymmetrical encoding, continuous ranges.
+// The encoding was calculated offline, optimised for Platinum Genome NA12877 50x:
 // A,C,G,T: 1-63
 // N: 1
 // $: 1, 2, 3
-struct BwtWriterRunLengthDynamic : public BwtWriterRunLengthBase
+struct BwtWriterRunLengthV2 : public BwtWriterRunLengthBase
 {
-    BwtWriterRunLengthDynamic( const string &fileName );
+    BwtWriterRunLengthV2( const string &fileName );
+    ~BwtWriterRunLengthV2();
 
     virtual void encodeRun( char c, LetterNumber runLength );
 
 protected:
     vector<uchar> symbolForRunLength1ForPile_;
     vector<LetterNumber> maxEncodedRunLengthForPile_;
+};
+
+
+// BWT Run Length encoding version 3, asymmetrical with continuation symbol, continuous ranges:
+// The encoding was taken from V2 and updated manually. We should do this more scientifically.
+// A,C,G,T: 1-58
+// N: 1-4
+// $: 1-4
+// cont: 1-16
+struct BwtWriterRunLengthV3 : public BwtWriterRunLengthBase
+{
+    BwtWriterRunLengthV3( const string &fileName );
+    ~BwtWriterRunLengthV3();
+
+    virtual void encodeRun( char c, LetterNumber runLength );
+
+protected:
+    uint16_t initialiseCodeRange( const uint8_t base, const uint8_t rangeLength, const uint16_t firstRunLength, const uint8_t firstBytecode );
+
+    vector<uchar> symbolForRunLength1ForPile_;
+    vector<LetterNumber> maxEncodedRunLengthForPile_;
+    uchar firstContinuationSymbol_;
+    LetterNumber maxEncodedRunLengthMultiplierForContinuationSymbol_;
 };
 
 
@@ -210,9 +229,12 @@ private:
     unsigned char onHoldUntilNextReturn_metadata_;
 }; // ~BwtWriterIncrementalRunLength
 
+
 // new output module to support huffman encoded output
 // migrated & adapted from compression.cpp in Tony's Misc CVS tree
 // Tobias, 28/11/11
+
+#ifdef ACTIVATE_HUFFMAN
 
 struct BwtWriterHuffman : public BwtWriterFile
 {
@@ -260,6 +282,9 @@ struct BwtWriterHuffman : public BwtWriterFile
     LetterNumber bytesWritten_;
 #endif
 }; // ~BwtWriterHuffman
+
+#endif //ifdef ACTIVATE_HUFFMAN
+
 
 struct BwtWriterImplicit : public BwtWriterBase
 {

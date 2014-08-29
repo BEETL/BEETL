@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -163,7 +158,9 @@ void CountWords::run( void )
         pileToThread[whichPile['G']] = 2; // pile 'G' processed by thread 2
         pileToThread[whichPile['T']] = 3; // pile 'T' processed by thread 3
         pileToThread[whichPile['N']] = 1; // pile 'N' processed by thread 1
+#ifdef USE_EXTRA_CHARACTER_Z
         pileToThread[whichPile['Z']] = 2; // pile 'Z' processed by thread 2
+#endif
     }
 
     //    cout << "OMP threadCount: " << omp_get_num_threads() << endl;
@@ -249,25 +246,7 @@ void CountWords::run( void )
 
             if ( datasetAorB == 0 )
             {
-                if ( inputACompressed_ == true )
-                {
-                    if ( bwtInRam_ )
-                        inBwtA_[i] = new BwtReaderRunLengthRam( setA_[i] );
-                    else
-                    {
-                        if ( ( *compareParams_ )["use indexing"].isSet() )
-                        {
-                            cout << "Using indexed BWT file for " << setA_[i] << endl;
-                            inBwtA_[i] = new BwtReaderRunLengthIndex( setA_[i], compareParams_->getStringValue( "use shm" ) );
-                        }
-                        else
-                        {
-                            inBwtA_[i] = new BwtReaderRunLength( setA_[i] );
-                        }
-                    }
-                }
-                else
-                    inBwtA_[i] = new BwtReaderASCII( setA_[i] );
+                inBwtA_[i] = instantiateBwtPileReader( setA_[i], compareParams_->getStringValue( "use shm" ), bwtInRam_ );
 #ifndef DEBUG__SKIP_ITERATION0
                 Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
                 {
@@ -283,25 +262,7 @@ void CountWords::run( void )
             }
             else
             {
-                if ( inputBCompressed_ == true )
-                {
-                    if ( bwtInRam_ )
-                        inBwtB_[i] = new BwtReaderRunLengthRam( setB_[i] );
-                    else
-                    {
-                        if ( ( *compareParams_ )["use indexing"].isSet() )
-                        {
-                            cout << "Using indexed BWT file for " << setB_[i] << endl;
-                            inBwtB_[i] = new BwtReaderRunLengthIndex( setB_[i], compareParams_->getStringValue( "use shm" ) );
-                        }
-                        else
-                        {
-                            inBwtB_[i] = new BwtReaderRunLength( setB_[i] );
-                        }
-                    }
-                }
-                else
-                    inBwtB_[i] = new BwtReaderASCII( setB_[i] );
+                inBwtB_[i] = instantiateBwtPileReader( setB_[i], compareParams_->getStringValue( "use shm" ), bwtInRam_ );
 #ifndef DEBUG__SKIP_ITERATION0
                 Logger_if( LOG_SHOW_IF_VERY_VERBOSE )
                 {
@@ -825,6 +786,8 @@ void CountWords::CountWords_parallelSubsetThread(
 void CountWords::loadFileNumToTaxIds( const string &taxIdNames )
 {
     ifstream taxas( taxIdNames.c_str(), ios::in );
+    assert( taxas.good() && "Error opening taxonomy file" );
+
     string line;
     //each line should contain the fileNumber followed by the taxIds split up with one space character
     while ( getline( taxas, line ) )

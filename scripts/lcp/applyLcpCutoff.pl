@@ -2,17 +2,15 @@
 
 =head1 LICENSE
 
-Copyright (c) 2012 Illumina, Inc.
+Copyright (c) 2011-2014 Illumina, Inc.
 
-This software is covered by the "Illumina Genome Analyzer Software
-License Agreement" and the "Illumina Source Code License Agreement",
-and certain third party copyright/licenses, and any user of this
-source file is bound by the terms therein (see accompanying files
-Illumina_Genome_Analyzer_Software_License_Agreement.pdf and
-Illumina_Source_Code_License_Agreement.pdf and third party
-copyright/license notices).
+This file is part of the BEETL software package,
+covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
 
-This file is part of the BEETL software package.
+Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
+Lightweight BWT Construction for Very Large String Collections.
+Proceedings of CPM 2011, pp.219-231
+
 
 =head1 NAME
 

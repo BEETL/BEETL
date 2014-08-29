@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -61,8 +56,6 @@ ErrorStore BwtCorrector::findErrors()
     ErrorStore result;
 
     Timer  timer;
-    bool compressIntermediateBwts = true;
-
     vector <BwtReaderBase *> inBwt( alphabetSize );
 
     LetterCountEachPile countsPerPile, countsCumulative;
@@ -72,20 +65,13 @@ ErrorStore BwtCorrector::findErrors()
     int numCycles( readLength_ );
     //    int minOcc( numberOfReads_ );
 
+    inBwt = instantiateBwtPileReaders( indexPrefix_, correctorParams_->getStringValue( "use shm" ) );
+
     for ( int i( 0 ); i < alphabetSize; i++ )
     {
-        stringstream fileNameSS;
-        fileNameSS << indexPrefix_ << "-B0" << i;
-        string fileName = fileNameSS.str().c_str();
-        if ( compressIntermediateBwts == true )
-            inBwt[i] = new BwtReaderRunLengthIndex( fileName, correctorParams_->getStringValue( "use shm" ) );
-        else
-            inBwt[i] = new BwtReaderASCII( fileName );
         inBwt[i]->  readAndCount( countsPerPile[i] );
     }
-
     countsCumulative = countsPerPile;
-
     for ( int i( 1 ); i < alphabetSize; i++ )
         countsCumulative[i] += countsCumulative[i - 1];
 

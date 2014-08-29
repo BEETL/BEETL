@@ -21,6 +21,13 @@ Available commands:
 
 View sub-commands with:
     beetl <COMMAND> --help
+
+
+Separately, some higher level tools:
+    beetl-fastq
+              Index and search FASTQ files
+    beetl-flow-tumour-normal-fastq-filter
+              Tumour-normal subtraction, filtering out uninteresting reads for faster downstream analysis
 "
 
 VERSION="BEETL v@PACKAGE_VERSION@"

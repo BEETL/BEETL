@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -57,15 +52,17 @@ enum OutputFormat
 {
     OUTPUT_FORMAT_ASCII,
     OUTPUT_FORMAT_RLE,
-    OUTPUT_FORMAT_HUFFMAN,
     OUTPUT_FORMAT_COUNT
+
+    // de-activated
+    ,OUTPUT_FORMAT_HUFFMAN
 };
 
 static const string outputFormatLabels[] =
 {
     "ASCII",
     "RLE",
-    "Huffman",
+//    "Huffman",
     "" // end marker
 };
 
@@ -93,17 +90,19 @@ enum IntermediateFormat
 {
     INTERMEDIATE_FORMAT_RLE,
     INTERMEDIATE_FORMAT_ASCII,
-    INTERMEDIATE_FORMAT_MULTIRLE,
-    INTERMEDIATE_FORMAT_HUFFMAN,
     INTERMEDIATE_FORMAT_COUNT
+
+    // de-activated
+    ,INTERMEDIATE_FORMAT_MULTIRLE
+    ,INTERMEDIATE_FORMAT_HUFFMAN
 };
 
 static const string intermediateFormatLabels[] =
 {
     "RLE",
     "ASCII",
-    "multiRLE",
-    "Huffman",
+//    "multiRLE",
+//    "Huffman",
     "" // end marker
 };
 

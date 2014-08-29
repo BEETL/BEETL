@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -137,7 +132,6 @@ void Extender::fillRangeStore( RangeStoreExternal &rangeStore, const LetterCount
 void Extender::run()
 {
     Timer  timer;
-    bool compressIntermediateBwts = true;
     EndPosFile endPosFile( extendParams_.getStringValue( "bwt filename prefix" ) );
     ColorText::init( extendParams_.getValue( "use color" ) );
 
@@ -147,27 +141,10 @@ void Extender::run()
 
     string subset_ = "";
 
+    inBwt = instantiateBwtPileReaders( extendParams_.getStringValue( "bwt filename prefix" ), extendParams_.getStringValue( "use shm" ) );
+
     for ( int i( 0 ); i < alphabetSize; i++ )
     {
-        stringstream fileNameSS;
-        fileNameSS << extendParams_.getStringValue( "bwt filename prefix" ) << "-B0" << i;
-        string fileName = fileNameSS.str().c_str();
-        if ( compressIntermediateBwts == true )
-        {
-            if ( extendParams_["use indexing"].isSet() )
-            {
-                cout << "Using indexed BWT file" << endl;
-                inBwt[i] = new BwtReaderRunLengthIndex( fileName, extendParams_.getStringValue( "use shm" ) );
-            }
-            else
-            {
-                cout << "Using non-indexed BWT file" << endl;
-                inBwt[i] = new BwtReaderRunLength( fileName );
-            }
-        }
-        else
-            inBwt[i] = new BwtReaderASCII( fileName );
-
         inBwt[i]->readAndCount( countsPerPile[i] );
     }
 

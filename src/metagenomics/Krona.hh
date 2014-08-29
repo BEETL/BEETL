@@ -5,9 +5,9 @@ void printKronaHeader( ofstream &output )
     output << "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">" << endl;
     output << "<head>" << endl;
     output << "  <meta charset=\"utf-8\"/>" << endl;
-    output << "  <base href=\"https://s3.amazonaws.com/metaBEETL-krona/\" target=\"_blank\"/>" << endl;
+    output << "  <base href=\"https://s3.amazonaws.com/metabeetl/krona/\" target=\"_blank\"/>" << endl;
     output << "  <link rel=\"shortcut icon\" href=\"favicon.ico\"/>" << endl;
-    output << "  <script id=\"notfound\">window.onload=function(){document.body.innerHTML=\"Could not get resources from \\\"http://krona.sourceforge.net\\\".\"}</script>" << endl;
+    output << "  <script id=\"notfound\">window.onload=function(){document.body.innerHTML=\"Could not get resources from \\\"https://s3.amazonaws.com/metabeetl/krona\\\".\"}</script>" << endl;
     output << "  <script src=\"krona-2.0.js\"></script>" << endl;
     output << " <title>Krona - all</title></head>" << endl;
     output << " <body style=\"padding:0;position:relative\">" << endl;

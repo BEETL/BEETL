@@ -1,3 +1,15 @@
+/**
+ ** Copyright (c) 2011-2014 Illumina, Inc.
+ **
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
+ **
+ ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
+ ** Lightweight BWT Construction for Very Large String Collections.
+ ** Proceedings of CPM 2011, pp.219-231
+ **
+ **/
+
 #include "../shared/Alphabet.hh"
 #include "../shared/Tools.hh"
 #include "../shared/Types.hh"
@@ -10,7 +22,7 @@
 #include <sstream>
 #include <vector>
 
-#define USE_MMAP
+//#define USE_MMAP // de-activated by default and controlled from Makefile.am
 #ifdef USE_MMAP
 # include <sys/types.h>
 # include <sys/stat.h>
@@ -31,6 +43,8 @@ using namespace std;
 TAXMAP taxInfo;
 map<int, uint64_t> lcaCounts;
 map< int, double > normalisationData;
+map< int, double > normalisationDataTotalCount;
+map< int, double > normalisationDataOccurrences;
 map< int, map< int, uint64_t > > normalisationData2;
 
 
@@ -259,10 +273,10 @@ void kronaOutput( const string &filename )
     output.close();
 }
 
-void normaliseLcaCounts()
+void parseNormalisationFile( const string &filename )
 {
     // File parsing
-    ifstream ifs( "/home/ljanin/normalisation.txt" );
+    ifstream ifs( filename );
     string line;
 
     while ( getline( ifs, line ) )
@@ -274,7 +288,9 @@ void normaliseLcaCounts()
         int taxId = stoi( lineSplit[2] );
         double count = stod( lineSplit[3] );
         double totalCount = stod( lineSplit[4] );
-        normalisationData[ taxId ] = totalCount ? count / totalCount : 0;
+        normalisationData[ taxId ] += totalCount ? count / totalCount : 0;
+        normalisationDataTotalCount[ taxId ] += totalCount;
+        normalisationDataOccurrences[ taxId ]++;
 
         assert( lineSplit[5] == "Counts:" );
         for ( uint i = 6; i < lineSplit.size(); ++i )
@@ -290,6 +306,11 @@ void normaliseLcaCounts()
         }
     }
     clog << "Parsed " << normalisationData.size() << " lines" << endl;
+}
+
+void normaliseLcaCounts( const string &normalisationFilename )
+{
+    parseNormalisationFile( normalisationFilename );
 
     // Normalisation: transfer of counts from ancestor to main
     cout << "Counts: ";
@@ -346,6 +367,10 @@ void normaliseLcaCounts()
 void normaliseLcaCounts_part2()
 {
     // Normalisation relatively to genome size
+    uint64_t countsBeforeScaling = 0;
+    uint64_t countsAfterScaling = 0;
+
+    // Normalisation of leaf entries + computation of average scaling factors for next step
     for ( auto & item : lcaCounts )
     {
         int taxId = item.first;
@@ -355,31 +380,90 @@ void normaliseLcaCounts_part2()
         {
             uint64_t &countInData = item.second;
             uint64_t countInDb = it->second[ taxId ];
-            if ( countInDb == 0 ) // TODO: use threshold instead of zero
+            uint64_t totalCountInDb = normalisationDataTotalCount[ taxId ] / normalisationDataOccurrences[ taxId ];
+            if ( countInDb == 0 && countInData != 0 ) // TODO: use threshold instead of zero, for countInDb
             {
                 clog << " Normalisation database entry for " << taxId << " has a value of 0, making it impossible to normalise this genome" << endl;
                 continue;
             }
-            clog << "countInData=" << countInData << ", countInDb=" << countInDb;
-            countInData /= countInDb;
+            clog << "countInData=" << countInData << ", countInDb=" << countInDb << ", totalCountInDb=" << totalCountInDb;
+            countsBeforeScaling += countInData;
+            countInData *= 1000; // rescaling
+            countInData /= totalCountInDb;
+            countsAfterScaling += countInData;
             clog << " => " << countInData << endl;
         }
         else
             cerr << "hmm2 " << item.first << endl;
+    }
+
+    clog << "countsBeforeScaling=" << countsBeforeScaling << endl;
+    clog << "countsAfterScaling=" << countsAfterScaling << endl;
+
+    // Normalisation of non-leaf entries (i.e. ancestors) using average scaling factors
+    for ( auto & item : lcaCounts )
+    {
+        int taxId = item.first;
+        clog << "Normalisation2: taxId=" << taxId << endl;
+        uint64_t &countInData = item.second;
+        auto it = normalisationData2.find( taxId );
+        if ( it != normalisationData2.end() )
+        {
+            uint64_t countInDb = it->second[ taxId ];
+            if ( countInDb == 0 && countInData != 0 ) // TODO: use threshold instead of zero, for countInDb
+            {
+            }
+            else
+            {
+                clog << " 2b: Not re-normalising database entry for " << taxId << ", as we already did it before" << endl;
+                continue;
+            }
+        }
+        clog << " 2b: Normalising database entry for " << taxId << " has a value of 0, making it impossible to normalise this genome" << endl;
+        clog << "countInData=" << countInData;
+        countInData *= countsAfterScaling;
+        countInData /= countsBeforeScaling;
+        clog << " => " << countInData << endl;
+    }
+}
+
+
+void pruneUnnormalisableCounts()
+{
+    // Remove counts for entries where the normalisation database has a zero count
+    // This should only affect leaf entries (real genomes), as ancestor entries shouldn't appear at all as normalisationData entries
+    for ( auto & item : lcaCounts )
+    {
+        int taxId = item.first;
+        clog << "Normalisation pruning: taxId=" << taxId << endl;
+        auto it = normalisationData2.find( taxId );
+        if ( it != normalisationData2.end() )
+        {
+            uint64_t &countInData = item.second;
+            uint64_t countInDb = it->second[ taxId ];
+            if ( countInDb == 0 ) // TODO: use threshold instead of zero
+            {
+                clog << " Pruning entry " << taxId << ", due to the database containing a count value of 0, making it impossible to normalise this genome" << endl;
+                countInData = 0;
+                continue;
+            }
+        }
+        else
+            cerr << "hmm3 " << item.first << endl;
     }
 }
 
 
 int main( int argc, char **argv )
 {
-    if ( argc != 7 )
+    if ( argc != 8 )
     {
-        cerr << "Usage: " << argv[0] << " fileNumToTaxTree databaseBwtPrefix names.dmp minKmerSize maxKmerSize mainInputFilename/-" << endl;
+        cerr << "Usage: " << argv[0] << " fileNumToTaxTree databaseBwtPrefix names.dmp normalisationMetadata.txt minKmerSize maxKmerSize mainInputFilename/-" << endl;
         exit( -1 );
     }
 
-    int minKmerSize = atoi( argv[4] );
-    int maxKmerSize = atoi( argv[5] );
+    int minKmerSize = atoi( argv[5] );
+    int maxKmerSize = atoi( argv[6] );
     assert( minKmerSize > 0 );
     assert( maxKmerSize >= minKmerSize );
 
@@ -390,7 +474,7 @@ int main( int argc, char **argv )
     vector<ShortInputLineWithId> shortInputLines[alphabetSize];
     uint32_t id = 0;
 
-    shared_ptr<istream> mainInputStream = openInputFileOrDashAsCin( string( argv[6] ) );
+    shared_ptr<istream> mainInputStream = openInputFileOrDashAsCin( string( argv[7] ) );
     while ( *mainInputStream >> inputLine )
     {
         //cout << inputLine << endl;
@@ -511,6 +595,7 @@ int main( int argc, char **argv )
 
     string taxInfoFilename = argv[1];
     string ncbiNames = argv[3];
+    string normalisationFilename = argv[4];
     taxInfo = loadTaxInformationForDatabase( taxInfoFilename, /*wordSize.size()*/1, ncbiNames );
 
     populateTaxInfoCountsUsingLcaCounts();
@@ -522,7 +607,8 @@ int main( int argc, char **argv )
     kronaOutput( "metaBeetl_krona.html" );
 
     clog << "Normalisation" << endl;
-    normaliseLcaCounts();
+    normaliseLcaCounts( normalisationFilename );
+    pruneUnnormalisableCounts();
     populateTaxInfoCountsUsingLcaCounts();
     /*
         cout << "Normalised counts: ";

@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -33,7 +28,7 @@
 #include <omp.h>
 #endif //ifdef _OPENMP
 
-#include "../redist/gzstream.hh"
+//Removed due to LGPL license: #include "../redist/gzstream.hh"
 
 using namespace std;
 
@@ -218,11 +213,14 @@ void BclRunFolder::initReader( const string &lane, const string &tile, const uns
 
         string filename = filenameBase.str();
         istream *newFile = new ifstream( filename.c_str(), ios_base::binary );
+/*
+        // Trying .bcl.gz files, removed due to igzstream's LGPL license
         if ( !newFile->good() )
         {
             filename += ".gz";
             newFile = new igzstream( filename.c_str() );
         }
+*/
         if ( !newFile->good() )
             #pragma omp critical (IO)
         {

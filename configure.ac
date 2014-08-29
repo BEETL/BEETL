@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.65)
 
-AC_INIT(BEETL, 0.10, acox@illumina.com)
+AC_INIT(BEETL, 1.0, acox@illumina.com)
 AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_CONFIG_SRCDIR([src/frontends/BeetlBwt.cpp])
@@ -33,9 +33,9 @@ AC_ARG_WITH([seqan],
 SEQAN_PATH="not found (Metagenomics tool 'makeBWTSkew' will be unavailable - download at www.seqan.de)"
 SEQAN_CXXFLAGS=
 AS_IF([test "x$with_seqan" != "x" -a "x$with_seqan" != "xno"],
-      [AC_CHECK_FILE([$with_seqan/seqan/index.h],
+      [AC_CHECK_FILE([$with_seqan/include/seqan/index.h],
         [AC_SUBST([SEQAN_PATH], ["$with_seqan"])
-         AC_SUBST([SEQAN_CXXFLAGS], ["-I$with_seqan -DHAVE_SEQAN"])
+         AC_SUBST([SEQAN_CXXFLAGS], ["-I$with_seqan/include -DHAVE_SEQAN"])
         ],
         [AC_MSG_ERROR([Seqan header file not found in $with_seqan])]
        )
@@ -63,11 +63,10 @@ AS_IF([test "x$with_boost" != "x" -a "x$with_boost" != "xno"],
      )
 
 # zlib
-m4_include([m4/ax_check_zlib.m4])
-AX_CHECK_ZLIB(
-    [],
-    [AC_MSG_ERROR(["Zlib not detected! Maybe try yum/apt-get install zlib1g-dev"])]
-)
+#AC_CHECK_LIB(zlib, zlib,
+#    [],
+#    [AC_MSG_ERROR(["Zlib not detected! Maybe try yum/apt-get install zlib1g-dev"])]
+#)
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -96,7 +95,10 @@ AC_CONFIG_FILES([Makefile
                  scripts/lcp/Makefile
                  scripts/tumourNormalFiltering/Makefile
                  scripts/BEETL-fastq/Makefile
+                 scripts/perSubsetDistributedLauncher/Makefile
+                 share/Makefile
                  tests/Makefile
+                 doc/Makefile
                 ])
 AC_OUTPUT
 

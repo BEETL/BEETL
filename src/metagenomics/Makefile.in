@@ -78,17 +78,19 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = genomesToSingleSeq$(EXEEXT) makeBWTSkew$(EXEEXT) \
-	mergeBacteria$(EXEEXT) findTaxa$(EXEEXT) \
-	parseMetagenomeOutput$(EXEEXT) \
-	convertMetagenomicRangesToTaxa$(EXEEXT)
+bin_PROGRAMS = metabeetl-db-genomesToSingleSeq$(EXEEXT) \
+	metabeetl-db-makeBWTSkew$(EXEEXT) \
+	metabeetl-db-mergeBacteria$(EXEEXT) \
+	metabeetl-db-findTaxa$(EXEEXT) \
+	metabeetl-parseMetagenomeOutput$(EXEEXT) \
+	metabeetl-convertMetagenomicRangesToTaxa$(EXEEXT) \
+	metabeetl-convertMetagenomicRangesToTaxa_withMmap$(EXEEXT)
 subdir = src/metagenomics
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(dist_bin_SCRIPTS) $(top_srcdir)/depcomp $(noinst_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
-	$(top_srcdir)/m4/openmp.m4 $(top_srcdir)/m4/ax_check_zlib.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/openmp.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -97,32 +99,49 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_convertMetagenomicRangesToTaxa_OBJECTS = convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.$(OBJEXT)
-convertMetagenomicRangesToTaxa_OBJECTS =  \
-	$(am_convertMetagenomicRangesToTaxa_OBJECTS)
-convertMetagenomicRangesToTaxa_DEPENDENCIES = ../liball.a ../libzoo.a
-convertMetagenomicRangesToTaxa_LINK = $(CXXLD) \
-	$(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) \
+am_metabeetl_convertMetagenomicRangesToTaxa_OBJECTS = metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.$(OBJEXT)
+metabeetl_convertMetagenomicRangesToTaxa_OBJECTS =  \
+	$(am_metabeetl_convertMetagenomicRangesToTaxa_OBJECTS)
+metabeetl_convertMetagenomicRangesToTaxa_DEPENDENCIES = ../liball.a \
+	../libzoo.a
+metabeetl_convertMetagenomicRangesToTaxa_LINK = $(CXXLD) \
+	$(metabeetl_convertMetagenomicRangesToTaxa_CXXFLAGS) \
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_metabeetl_convertMetagenomicRangesToTaxa_withMmap_OBJECTS = metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.$(OBJEXT)
+metabeetl_convertMetagenomicRangesToTaxa_withMmap_OBJECTS = $(am_metabeetl_convertMetagenomicRangesToTaxa_withMmap_OBJECTS)
+metabeetl_convertMetagenomicRangesToTaxa_withMmap_DEPENDENCIES =  \
+	../liball.a ../libzoo.a
+metabeetl_convertMetagenomicRangesToTaxa_withMmap_LINK = $(CXXLD) \
+	$(metabeetl_convertMetagenomicRangesToTaxa_withMmap_CXXFLAGS) \
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_metabeetl_db_findTaxa_OBJECTS = findCertainTaxLevel.$(OBJEXT)
+metabeetl_db_findTaxa_OBJECTS = $(am_metabeetl_db_findTaxa_OBJECTS)
+metabeetl_db_findTaxa_DEPENDENCIES = ../liball.a ../libzoo.a
+am_metabeetl_db_genomesToSingleSeq_OBJECTS =  \
+	GenomesToSingleSeq.$(OBJEXT)
+metabeetl_db_genomesToSingleSeq_OBJECTS =  \
+	$(am_metabeetl_db_genomesToSingleSeq_OBJECTS)
+metabeetl_db_genomesToSingleSeq_LDADD = $(LDADD)
+am_metabeetl_db_makeBWTSkew_OBJECTS =  \
+	metabeetl_db_makeBWTSkew-BuildChromosomeBwt.$(OBJEXT)
+metabeetl_db_makeBWTSkew_OBJECTS =  \
+	$(am_metabeetl_db_makeBWTSkew_OBJECTS)
+metabeetl_db_makeBWTSkew_LDADD = $(LDADD)
+metabeetl_db_makeBWTSkew_LINK = $(CXXLD) \
+	$(metabeetl_db_makeBWTSkew_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
+am_metabeetl_db_mergeBacteria_OBJECTS =  \
+	metabeetl_db_mergeBacteria-MergeBacteria.$(OBJEXT)
+metabeetl_db_mergeBacteria_OBJECTS =  \
+	$(am_metabeetl_db_mergeBacteria_OBJECTS)
+metabeetl_db_mergeBacteria_LDADD = $(LDADD)
+metabeetl_db_mergeBacteria_LINK = $(CXXLD) \
+	$(metabeetl_db_mergeBacteria_CXXFLAGS) $(CXXFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_findTaxa_OBJECTS = findCertainTaxLevel.$(OBJEXT)
-findTaxa_OBJECTS = $(am_findTaxa_OBJECTS)
-findTaxa_DEPENDENCIES = ../liball.a ../libzoo.a
-am_genomesToSingleSeq_OBJECTS = GenomesToSingleSeq.$(OBJEXT)
-genomesToSingleSeq_OBJECTS = $(am_genomesToSingleSeq_OBJECTS)
-genomesToSingleSeq_LDADD = $(LDADD)
-am_makeBWTSkew_OBJECTS = makeBWTSkew-BuildChromosomeBwt.$(OBJEXT)
-makeBWTSkew_OBJECTS = $(am_makeBWTSkew_OBJECTS)
-makeBWTSkew_LDADD = $(LDADD)
-makeBWTSkew_LINK = $(CXXLD) $(makeBWTSkew_CXXFLAGS) $(CXXFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_mergeBacteria_OBJECTS = mergeBacteria-MergeBacteria.$(OBJEXT)
-mergeBacteria_OBJECTS = $(am_mergeBacteria_OBJECTS)
-mergeBacteria_LDADD = $(LDADD)
-mergeBacteria_LINK = $(CXXLD) $(mergeBacteria_CXXFLAGS) $(CXXFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_parseMetagenomeOutput_OBJECTS = parse.$(OBJEXT)
-parseMetagenomeOutput_OBJECTS = $(am_parseMetagenomeOutput_OBJECTS)
-parseMetagenomeOutput_DEPENDENCIES = ../liball.a ../libzoo.a
+am_metabeetl_parseMetagenomeOutput_OBJECTS = parse.$(OBJEXT)
+metabeetl_parseMetagenomeOutput_OBJECTS =  \
+	$(am_metabeetl_parseMetagenomeOutput_OBJECTS)
+metabeetl_parseMetagenomeOutput_DEPENDENCIES = ../liball.a ../libzoo.a
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -184,14 +203,20 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(convertMetagenomicRangesToTaxa_SOURCES) \
-	$(findTaxa_SOURCES) $(genomesToSingleSeq_SOURCES) \
-	$(makeBWTSkew_SOURCES) $(mergeBacteria_SOURCES) \
-	$(parseMetagenomeOutput_SOURCES)
-DIST_SOURCES = $(convertMetagenomicRangesToTaxa_SOURCES) \
-	$(findTaxa_SOURCES) $(genomesToSingleSeq_SOURCES) \
-	$(makeBWTSkew_SOURCES) $(mergeBacteria_SOURCES) \
-	$(parseMetagenomeOutput_SOURCES)
+SOURCES = $(metabeetl_convertMetagenomicRangesToTaxa_SOURCES) \
+	$(metabeetl_convertMetagenomicRangesToTaxa_withMmap_SOURCES) \
+	$(metabeetl_db_findTaxa_SOURCES) \
+	$(metabeetl_db_genomesToSingleSeq_SOURCES) \
+	$(metabeetl_db_makeBWTSkew_SOURCES) \
+	$(metabeetl_db_mergeBacteria_SOURCES) \
+	$(metabeetl_parseMetagenomeOutput_SOURCES)
+DIST_SOURCES = $(metabeetl_convertMetagenomicRangesToTaxa_SOURCES) \
+	$(metabeetl_convertMetagenomicRangesToTaxa_withMmap_SOURCES) \
+	$(metabeetl_db_findTaxa_SOURCES) \
+	$(metabeetl_db_genomesToSingleSeq_SOURCES) \
+	$(metabeetl_db_makeBWTSkew_SOURCES) \
+	$(metabeetl_db_mergeBacteria_SOURCES) \
+	$(metabeetl_parseMetagenomeOutput_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -232,7 +257,6 @@ BOOST_PATH = @BOOST_PATH@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
 CXXCPP = @CXXCPP@
@@ -320,19 +344,24 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-dist_bin_SCRIPTS = arrayBWT.sh
-genomesToSingleSeq_SOURCES = GenomesToSingleSeq.cpp
-makeBWTSkew_SOURCES = BuildChromosomeBwt.cpp
-makeBWTSkew_CXXFLAGS = ${SEQAN_CXXFLAGS}
-mergeBacteria_SOURCES = MergeBacteria.cpp
-mergeBacteria_CXXFLAGS = -I$(srcdir) -I$(top_srcdir)/src/shared 
-findTaxa_SOURCES = findCertainTaxLevel.cpp
-findTaxa_LDADD = ../liball.a ../libzoo.a
-parseMetagenomeOutput_SOURCES = parse.cpp
-parseMetagenomeOutput_LDADD = ../liball.a ../libzoo.a
-convertMetagenomicRangesToTaxa_SOURCES = ConvertMetagenomicRangesToTaxa.cpp
-convertMetagenomicRangesToTaxa_CXXFLAGS = ${OPENMP_CXXFLAGS}
-convertMetagenomicRangesToTaxa_LDADD = ../liball.a ../libzoo.a
+dist_bin_SCRIPTS = metabeetl-db-arrayBWT.sh
+metabeetl_db_genomesToSingleSeq_SOURCES = GenomesToSingleSeq.cpp
+metabeetl_db_makeBWTSkew_SOURCES = BuildChromosomeBwt.cpp
+metabeetl_db_makeBWTSkew_CXXFLAGS = ${SEQAN_CXXFLAGS}
+metabeetl_db_mergeBacteria_SOURCES = MergeBacteria.cpp
+metabeetl_db_mergeBacteria_CXXFLAGS = -I$(srcdir) -I$(top_srcdir)/src/shared 
+metabeetl_db_findTaxa_SOURCES = findCertainTaxLevel.cpp
+metabeetl_db_findTaxa_LDADD = ../liball.a ../libzoo.a
+metabeetl_convertMetagenomicRangesToTaxa_SOURCES = ConvertMetagenomicRangesToTaxa.cpp
+metabeetl_convertMetagenomicRangesToTaxa_CXXFLAGS = ${OPENMP_CXXFLAGS}
+metabeetl_convertMetagenomicRangesToTaxa_LDADD = ../liball.a ../libzoo.a
+metabeetl_convertMetagenomicRangesToTaxa_withMmap_SOURCES = ConvertMetagenomicRangesToTaxa.cpp
+metabeetl_convertMetagenomicRangesToTaxa_withMmap_CXXFLAGS = ${OPENMP_CXXFLAGS} -DUSE_MMAP
+metabeetl_convertMetagenomicRangesToTaxa_withMmap_LDADD = ../liball.a ../libzoo.a
+
+# Soon to be deprecated:
+metabeetl_parseMetagenomeOutput_SOURCES = parse.cpp
+metabeetl_parseMetagenomeOutput_LDADD = ../liball.a ../libzoo.a
 noinst_HEADERS = metaShared.hh Krona.hh
 all: all-am
 
@@ -411,29 +440,33 @@ uninstall-binPROGRAMS:
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
-convertMetagenomicRangesToTaxa$(EXEEXT): $(convertMetagenomicRangesToTaxa_OBJECTS) $(convertMetagenomicRangesToTaxa_DEPENDENCIES) $(EXTRA_convertMetagenomicRangesToTaxa_DEPENDENCIES) 
-	@rm -f convertMetagenomicRangesToTaxa$(EXEEXT)
-	$(AM_V_CXXLD)$(convertMetagenomicRangesToTaxa_LINK) $(convertMetagenomicRangesToTaxa_OBJECTS) $(convertMetagenomicRangesToTaxa_LDADD) $(LIBS)
+metabeetl-convertMetagenomicRangesToTaxa$(EXEEXT): $(metabeetl_convertMetagenomicRangesToTaxa_OBJECTS) $(metabeetl_convertMetagenomicRangesToTaxa_DEPENDENCIES) $(EXTRA_metabeetl_convertMetagenomicRangesToTaxa_DEPENDENCIES) 
+	@rm -f metabeetl-convertMetagenomicRangesToTaxa$(EXEEXT)
+	$(AM_V_CXXLD)$(metabeetl_convertMetagenomicRangesToTaxa_LINK) $(metabeetl_convertMetagenomicRangesToTaxa_OBJECTS) $(metabeetl_convertMetagenomicRangesToTaxa_LDADD) $(LIBS)
 
-findTaxa$(EXEEXT): $(findTaxa_OBJECTS) $(findTaxa_DEPENDENCIES) $(EXTRA_findTaxa_DEPENDENCIES) 
-	@rm -f findTaxa$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(findTaxa_OBJECTS) $(findTaxa_LDADD) $(LIBS)
+metabeetl-convertMetagenomicRangesToTaxa_withMmap$(EXEEXT): $(metabeetl_convertMetagenomicRangesToTaxa_withMmap_OBJECTS) $(metabeetl_convertMetagenomicRangesToTaxa_withMmap_DEPENDENCIES) $(EXTRA_metabeetl_convertMetagenomicRangesToTaxa_withMmap_DEPENDENCIES) 
+	@rm -f metabeetl-convertMetagenomicRangesToTaxa_withMmap$(EXEEXT)
+	$(AM_V_CXXLD)$(metabeetl_convertMetagenomicRangesToTaxa_withMmap_LINK) $(metabeetl_convertMetagenomicRangesToTaxa_withMmap_OBJECTS) $(metabeetl_convertMetagenomicRangesToTaxa_withMmap_LDADD) $(LIBS)
 
-genomesToSingleSeq$(EXEEXT): $(genomesToSingleSeq_OBJECTS) $(genomesToSingleSeq_DEPENDENCIES) $(EXTRA_genomesToSingleSeq_DEPENDENCIES) 
-	@rm -f genomesToSingleSeq$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(genomesToSingleSeq_OBJECTS) $(genomesToSingleSeq_LDADD) $(LIBS)
+metabeetl-db-findTaxa$(EXEEXT): $(metabeetl_db_findTaxa_OBJECTS) $(metabeetl_db_findTaxa_DEPENDENCIES) $(EXTRA_metabeetl_db_findTaxa_DEPENDENCIES) 
+	@rm -f metabeetl-db-findTaxa$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(metabeetl_db_findTaxa_OBJECTS) $(metabeetl_db_findTaxa_LDADD) $(LIBS)
 
-makeBWTSkew$(EXEEXT): $(makeBWTSkew_OBJECTS) $(makeBWTSkew_DEPENDENCIES) $(EXTRA_makeBWTSkew_DEPENDENCIES) 
-	@rm -f makeBWTSkew$(EXEEXT)
-	$(AM_V_CXXLD)$(makeBWTSkew_LINK) $(makeBWTSkew_OBJECTS) $(makeBWTSkew_LDADD) $(LIBS)
+metabeetl-db-genomesToSingleSeq$(EXEEXT): $(metabeetl_db_genomesToSingleSeq_OBJECTS) $(metabeetl_db_genomesToSingleSeq_DEPENDENCIES) $(EXTRA_metabeetl_db_genomesToSingleSeq_DEPENDENCIES) 
+	@rm -f metabeetl-db-genomesToSingleSeq$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(metabeetl_db_genomesToSingleSeq_OBJECTS) $(metabeetl_db_genomesToSingleSeq_LDADD) $(LIBS)
 
-mergeBacteria$(EXEEXT): $(mergeBacteria_OBJECTS) $(mergeBacteria_DEPENDENCIES) $(EXTRA_mergeBacteria_DEPENDENCIES) 
-	@rm -f mergeBacteria$(EXEEXT)
-	$(AM_V_CXXLD)$(mergeBacteria_LINK) $(mergeBacteria_OBJECTS) $(mergeBacteria_LDADD) $(LIBS)
+metabeetl-db-makeBWTSkew$(EXEEXT): $(metabeetl_db_makeBWTSkew_OBJECTS) $(metabeetl_db_makeBWTSkew_DEPENDENCIES) $(EXTRA_metabeetl_db_makeBWTSkew_DEPENDENCIES) 
+	@rm -f metabeetl-db-makeBWTSkew$(EXEEXT)
+	$(AM_V_CXXLD)$(metabeetl_db_makeBWTSkew_LINK) $(metabeetl_db_makeBWTSkew_OBJECTS) $(metabeetl_db_makeBWTSkew_LDADD) $(LIBS)
 
-parseMetagenomeOutput$(EXEEXT): $(parseMetagenomeOutput_OBJECTS) $(parseMetagenomeOutput_DEPENDENCIES) $(EXTRA_parseMetagenomeOutput_DEPENDENCIES) 
-	@rm -f parseMetagenomeOutput$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(parseMetagenomeOutput_OBJECTS) $(parseMetagenomeOutput_LDADD) $(LIBS)
+metabeetl-db-mergeBacteria$(EXEEXT): $(metabeetl_db_mergeBacteria_OBJECTS) $(metabeetl_db_mergeBacteria_DEPENDENCIES) $(EXTRA_metabeetl_db_mergeBacteria_DEPENDENCIES) 
+	@rm -f metabeetl-db-mergeBacteria$(EXEEXT)
+	$(AM_V_CXXLD)$(metabeetl_db_mergeBacteria_LINK) $(metabeetl_db_mergeBacteria_OBJECTS) $(metabeetl_db_mergeBacteria_LDADD) $(LIBS)
+
+metabeetl-parseMetagenomeOutput$(EXEEXT): $(metabeetl_parseMetagenomeOutput_OBJECTS) $(metabeetl_parseMetagenomeOutput_DEPENDENCIES) $(EXTRA_metabeetl_parseMetagenomeOutput_DEPENDENCIES) 
+	@rm -f metabeetl-parseMetagenomeOutput$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(metabeetl_parseMetagenomeOutput_OBJECTS) $(metabeetl_parseMetagenomeOutput_LDADD) $(LIBS)
 install-dist_binSCRIPTS: $(dist_bin_SCRIPTS)
 	@$(NORMAL_INSTALL)
 	@list='$(dist_bin_SCRIPTS)'; test -n "$(bindir)" || list=; \
@@ -477,10 +510,11 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GenomesToSingleSeq.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/findCertainTaxLevel.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mergeBacteria-MergeBacteria.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/metabeetl_db_makeBWTSkew-BuildChromosomeBwt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/metabeetl_db_mergeBacteria-MergeBacteria.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parse.Po@am__quote@
 
 .cpp.o:
@@ -499,47 +533,61 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o: ConvertMetagenomicRangesToTaxa.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -MT convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o -MD -MP -MF $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo -c -o convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o `test -f 'ConvertMetagenomicRangesToTaxa.cpp' || echo '$(srcdir)/'`ConvertMetagenomicRangesToTaxa.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ConvertMetagenomicRangesToTaxa.cpp' object='convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o' libtool=no @AMDEPBACKSLASH@
+metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o: ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -MT metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o -MD -MP -MF $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo -c -o metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o `test -f 'ConvertMetagenomicRangesToTaxa.cpp' || echo '$(srcdir)/'`ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ConvertMetagenomicRangesToTaxa.cpp' object='metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -c -o convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o `test -f 'ConvertMetagenomicRangesToTaxa.cpp' || echo '$(srcdir)/'`ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -c -o metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.o `test -f 'ConvertMetagenomicRangesToTaxa.cpp' || echo '$(srcdir)/'`ConvertMetagenomicRangesToTaxa.cpp
 
-convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj: ConvertMetagenomicRangesToTaxa.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -MT convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj -MD -MP -MF $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo -c -o convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj `if test -f 'ConvertMetagenomicRangesToTaxa.cpp'; then $(CYGPATH_W) 'ConvertMetagenomicRangesToTaxa.cpp'; else $(CYGPATH_W) '$(srcdir)/ConvertMetagenomicRangesToTaxa.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo $(DEPDIR)/convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ConvertMetagenomicRangesToTaxa.cpp' object='convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj' libtool=no @AMDEPBACKSLASH@
+metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj: ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -MT metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj -MD -MP -MF $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo -c -o metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj `if test -f 'ConvertMetagenomicRangesToTaxa.cpp'; then $(CYGPATH_W) 'ConvertMetagenomicRangesToTaxa.cpp'; else $(CYGPATH_W) '$(srcdir)/ConvertMetagenomicRangesToTaxa.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Tpo $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ConvertMetagenomicRangesToTaxa.cpp' object='metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -c -o convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj `if test -f 'ConvertMetagenomicRangesToTaxa.cpp'; then $(CYGPATH_W) 'ConvertMetagenomicRangesToTaxa.cpp'; else $(CYGPATH_W) '$(srcdir)/ConvertMetagenomicRangesToTaxa.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_convertMetagenomicRangesToTaxa_CXXFLAGS) $(CXXFLAGS) -c -o metabeetl_convertMetagenomicRangesToTaxa-ConvertMetagenomicRangesToTaxa.obj `if test -f 'ConvertMetagenomicRangesToTaxa.cpp'; then $(CYGPATH_W) 'ConvertMetagenomicRangesToTaxa.cpp'; else $(CYGPATH_W) '$(srcdir)/ConvertMetagenomicRangesToTaxa.cpp'; fi`
 
-makeBWTSkew-BuildChromosomeBwt.o: BuildChromosomeBwt.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -MT makeBWTSkew-BuildChromosomeBwt.o -MD -MP -MF $(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Tpo -c -o makeBWTSkew-BuildChromosomeBwt.o `test -f 'BuildChromosomeBwt.cpp' || echo '$(srcdir)/'`BuildChromosomeBwt.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Tpo $(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BuildChromosomeBwt.cpp' object='makeBWTSkew-BuildChromosomeBwt.o' libtool=no @AMDEPBACKSLASH@
+metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.o: ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_convertMetagenomicRangesToTaxa_withMmap_CXXFLAGS) $(CXXFLAGS) -MT metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.o -MD -MP -MF $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.Tpo -c -o metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.o `test -f 'ConvertMetagenomicRangesToTaxa.cpp' || echo '$(srcdir)/'`ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.Tpo $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ConvertMetagenomicRangesToTaxa.cpp' object='metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -c -o makeBWTSkew-BuildChromosomeBwt.o `test -f 'BuildChromosomeBwt.cpp' || echo '$(srcdir)/'`BuildChromosomeBwt.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_convertMetagenomicRangesToTaxa_withMmap_CXXFLAGS) $(CXXFLAGS) -c -o metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.o `test -f 'ConvertMetagenomicRangesToTaxa.cpp' || echo '$(srcdir)/'`ConvertMetagenomicRangesToTaxa.cpp
 
-makeBWTSkew-BuildChromosomeBwt.obj: BuildChromosomeBwt.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -MT makeBWTSkew-BuildChromosomeBwt.obj -MD -MP -MF $(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Tpo -c -o makeBWTSkew-BuildChromosomeBwt.obj `if test -f 'BuildChromosomeBwt.cpp'; then $(CYGPATH_W) 'BuildChromosomeBwt.cpp'; else $(CYGPATH_W) '$(srcdir)/BuildChromosomeBwt.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Tpo $(DEPDIR)/makeBWTSkew-BuildChromosomeBwt.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BuildChromosomeBwt.cpp' object='makeBWTSkew-BuildChromosomeBwt.obj' libtool=no @AMDEPBACKSLASH@
+metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.obj: ConvertMetagenomicRangesToTaxa.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_convertMetagenomicRangesToTaxa_withMmap_CXXFLAGS) $(CXXFLAGS) -MT metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.obj -MD -MP -MF $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.Tpo -c -o metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.obj `if test -f 'ConvertMetagenomicRangesToTaxa.cpp'; then $(CYGPATH_W) 'ConvertMetagenomicRangesToTaxa.cpp'; else $(CYGPATH_W) '$(srcdir)/ConvertMetagenomicRangesToTaxa.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.Tpo $(DEPDIR)/metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ConvertMetagenomicRangesToTaxa.cpp' object='metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -c -o makeBWTSkew-BuildChromosomeBwt.obj `if test -f 'BuildChromosomeBwt.cpp'; then $(CYGPATH_W) 'BuildChromosomeBwt.cpp'; else $(CYGPATH_W) '$(srcdir)/BuildChromosomeBwt.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_convertMetagenomicRangesToTaxa_withMmap_CXXFLAGS) $(CXXFLAGS) -c -o metabeetl_convertMetagenomicRangesToTaxa_withMmap-ConvertMetagenomicRangesToTaxa.obj `if test -f 'ConvertMetagenomicRangesToTaxa.cpp'; then $(CYGPATH_W) 'ConvertMetagenomicRangesToTaxa.cpp'; else $(CYGPATH_W) '$(srcdir)/ConvertMetagenomicRangesToTaxa.cpp'; fi`
 
-mergeBacteria-MergeBacteria.o: MergeBacteria.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(mergeBacteria_CXXFLAGS) $(CXXFLAGS) -MT mergeBacteria-MergeBacteria.o -MD -MP -MF $(DEPDIR)/mergeBacteria-MergeBacteria.Tpo -c -o mergeBacteria-MergeBacteria.o `test -f 'MergeBacteria.cpp' || echo '$(srcdir)/'`MergeBacteria.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mergeBacteria-MergeBacteria.Tpo $(DEPDIR)/mergeBacteria-MergeBacteria.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='MergeBacteria.cpp' object='mergeBacteria-MergeBacteria.o' libtool=no @AMDEPBACKSLASH@
+metabeetl_db_makeBWTSkew-BuildChromosomeBwt.o: BuildChromosomeBwt.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_db_makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -MT metabeetl_db_makeBWTSkew-BuildChromosomeBwt.o -MD -MP -MF $(DEPDIR)/metabeetl_db_makeBWTSkew-BuildChromosomeBwt.Tpo -c -o metabeetl_db_makeBWTSkew-BuildChromosomeBwt.o `test -f 'BuildChromosomeBwt.cpp' || echo '$(srcdir)/'`BuildChromosomeBwt.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/metabeetl_db_makeBWTSkew-BuildChromosomeBwt.Tpo $(DEPDIR)/metabeetl_db_makeBWTSkew-BuildChromosomeBwt.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BuildChromosomeBwt.cpp' object='metabeetl_db_makeBWTSkew-BuildChromosomeBwt.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(mergeBacteria_CXXFLAGS) $(CXXFLAGS) -c -o mergeBacteria-MergeBacteria.o `test -f 'MergeBacteria.cpp' || echo '$(srcdir)/'`MergeBacteria.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_db_makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -c -o metabeetl_db_makeBWTSkew-BuildChromosomeBwt.o `test -f 'BuildChromosomeBwt.cpp' || echo '$(srcdir)/'`BuildChromosomeBwt.cpp
 
-mergeBacteria-MergeBacteria.obj: MergeBacteria.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(mergeBacteria_CXXFLAGS) $(CXXFLAGS) -MT mergeBacteria-MergeBacteria.obj -MD -MP -MF $(DEPDIR)/mergeBacteria-MergeBacteria.Tpo -c -o mergeBacteria-MergeBacteria.obj `if test -f 'MergeBacteria.cpp'; then $(CYGPATH_W) 'MergeBacteria.cpp'; else $(CYGPATH_W) '$(srcdir)/MergeBacteria.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mergeBacteria-MergeBacteria.Tpo $(DEPDIR)/mergeBacteria-MergeBacteria.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='MergeBacteria.cpp' object='mergeBacteria-MergeBacteria.obj' libtool=no @AMDEPBACKSLASH@
+metabeetl_db_makeBWTSkew-BuildChromosomeBwt.obj: BuildChromosomeBwt.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_db_makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -MT metabeetl_db_makeBWTSkew-BuildChromosomeBwt.obj -MD -MP -MF $(DEPDIR)/metabeetl_db_makeBWTSkew-BuildChromosomeBwt.Tpo -c -o metabeetl_db_makeBWTSkew-BuildChromosomeBwt.obj `if test -f 'BuildChromosomeBwt.cpp'; then $(CYGPATH_W) 'BuildChromosomeBwt.cpp'; else $(CYGPATH_W) '$(srcdir)/BuildChromosomeBwt.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/metabeetl_db_makeBWTSkew-BuildChromosomeBwt.Tpo $(DEPDIR)/metabeetl_db_makeBWTSkew-BuildChromosomeBwt.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='BuildChromosomeBwt.cpp' object='metabeetl_db_makeBWTSkew-BuildChromosomeBwt.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(mergeBacteria_CXXFLAGS) $(CXXFLAGS) -c -o mergeBacteria-MergeBacteria.obj `if test -f 'MergeBacteria.cpp'; then $(CYGPATH_W) 'MergeBacteria.cpp'; else $(CYGPATH_W) '$(srcdir)/MergeBacteria.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_db_makeBWTSkew_CXXFLAGS) $(CXXFLAGS) -c -o metabeetl_db_makeBWTSkew-BuildChromosomeBwt.obj `if test -f 'BuildChromosomeBwt.cpp'; then $(CYGPATH_W) 'BuildChromosomeBwt.cpp'; else $(CYGPATH_W) '$(srcdir)/BuildChromosomeBwt.cpp'; fi`
+
+metabeetl_db_mergeBacteria-MergeBacteria.o: MergeBacteria.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_db_mergeBacteria_CXXFLAGS) $(CXXFLAGS) -MT metabeetl_db_mergeBacteria-MergeBacteria.o -MD -MP -MF $(DEPDIR)/metabeetl_db_mergeBacteria-MergeBacteria.Tpo -c -o metabeetl_db_mergeBacteria-MergeBacteria.o `test -f 'MergeBacteria.cpp' || echo '$(srcdir)/'`MergeBacteria.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/metabeetl_db_mergeBacteria-MergeBacteria.Tpo $(DEPDIR)/metabeetl_db_mergeBacteria-MergeBacteria.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='MergeBacteria.cpp' object='metabeetl_db_mergeBacteria-MergeBacteria.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_db_mergeBacteria_CXXFLAGS) $(CXXFLAGS) -c -o metabeetl_db_mergeBacteria-MergeBacteria.o `test -f 'MergeBacteria.cpp' || echo '$(srcdir)/'`MergeBacteria.cpp
+
+metabeetl_db_mergeBacteria-MergeBacteria.obj: MergeBacteria.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_db_mergeBacteria_CXXFLAGS) $(CXXFLAGS) -MT metabeetl_db_mergeBacteria-MergeBacteria.obj -MD -MP -MF $(DEPDIR)/metabeetl_db_mergeBacteria-MergeBacteria.Tpo -c -o metabeetl_db_mergeBacteria-MergeBacteria.obj `if test -f 'MergeBacteria.cpp'; then $(CYGPATH_W) 'MergeBacteria.cpp'; else $(CYGPATH_W) '$(srcdir)/MergeBacteria.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/metabeetl_db_mergeBacteria-MergeBacteria.Tpo $(DEPDIR)/metabeetl_db_mergeBacteria-MergeBacteria.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='MergeBacteria.cpp' object='metabeetl_db_mergeBacteria-MergeBacteria.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(metabeetl_db_mergeBacteria_CXXFLAGS) $(CXXFLAGS) -c -o metabeetl_db_mergeBacteria-MergeBacteria.obj `if test -f 'MergeBacteria.cpp'; then $(CYGPATH_W) 'MergeBacteria.cpp'; else $(CYGPATH_W) '$(srcdir)/MergeBacteria.cpp'; fi`
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique

@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -36,8 +31,6 @@
 #include <memory>
 #include <sstream>
 #include <sys/stat.h>
-
-#include "../redist/gzstream.hh"
 
 using namespace std;
 using namespace BeetlConvertParameters;
@@ -435,7 +428,7 @@ void launchBeetlConvert()
             exit ( 1 );
         }
     }
-    else if ( params["input format"] == INPUT_FORMAT_BCL || params["input format"] == INPUT_FORMAT_BCL_GZ )
+    else if ( params["input format"] == INPUT_FORMAT_BCL )
     {
         if ( params["output format"] == OUTPUT_FORMAT_CYC )
         {
@@ -499,15 +492,7 @@ void launchBeetlConvert()
                 else
                     sprintf( inputFilename, params.getStringValue( "input filename" ).c_str(), cycleNum + 1 );
 
-                unique_ptr<istream> is;
-                if ( params["input format"] == INPUT_FORMAT_BCL_GZ )
-                {
-                    is.reset( new igzstream( inputFilename ) );
-                }
-                else
-                {
-                    is.reset( new ifstream( inputFilename, ios_base::binary ) );
-                }
+                unique_ptr<istream> is( new ifstream( inputFilename, ios_base::binary ) );
                 if ( !is->good() )
                 {
                     if ( cycleNum == -1 )
@@ -674,11 +659,21 @@ void launchBeetlConvert()
 
             return;
         }
-        else if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE_DYNAMIC )
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE_V2 )
         {
-            // BWT_RLE -> BWT_RLE_DYNAMIC
+            // BWT_RLE -> BWT_RLE_V2
             BwtReaderRunLength pReader( params.getStringValue( "input filename" ) );
-            BwtWriterRunLengthDynamic pWriter( params.getStringValue( "output filename" ) );
+            BwtWriterRunLengthV2 pWriter( params.getStringValue( "output filename" ) );
+
+            while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
+
+            return;
+        }
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE_V3 )
+        {
+            // BWT_RLE -> BWT_RLE_V3
+            BwtReaderRunLength pReader( params.getStringValue( "input filename" ) );
+            BwtWriterRunLengthV3 pWriter( params.getStringValue( "output filename" ) );
 
             while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
 
@@ -687,6 +682,55 @@ void launchBeetlConvert()
         else if ( params["output format"] == OUTPUT_FORMAT_FASTA || params["output format"] == OUTPUT_FORMAT_FASTQ || params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_CYC )
         {
             // BWT_RLE -> FASTA|FASTQ|SEQ|CYC
+            cerr << "Error: This is not a simple file conversion. Try \"beetl unbwt\"" << endl;
+            exit ( 1 );
+        }
+    }
+    else if ( params["input format"] == INPUT_FORMAT_BWT_RLE_V3 )
+    {
+        if ( params["output format"] == OUTPUT_FORMAT_BWT_ASCII )
+        {
+            // BWT_RLE_V3 -> BWT_ASCII
+            BwtReaderRunLengthV3 pReader( params.getStringValue( "input filename" ) );
+            BwtWriterASCII pWriter( params.getStringValue( "output filename" ) );
+
+            while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
+
+            return;
+        }
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE )
+        {
+            // BWT_RLE_V3 -> BWT_RLE
+            BwtReaderRunLengthV3 pReader( params.getStringValue( "input filename" ) );
+            BwtWriterRunLength pWriter( params.getStringValue( "output filename" ) );
+
+            while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
+
+            return;
+        }
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE53 )
+        {
+            // BWT_RLE_V3 -> BWT_RLE53
+            BwtReaderRunLengthV3 pReader( params.getStringValue( "input filename" ) );
+            BwtWriterRunLength_5_3 pWriter( params.getStringValue( "output filename" ) );
+
+            while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
+
+            return;
+        }
+        else if ( params["output format"] == OUTPUT_FORMAT_BWT_RLE_V2 )
+        {
+            // BWT_RLE_V3 -> BWT_RLE_V2
+            BwtReaderRunLengthV3 pReader( params.getStringValue( "input filename" ) );
+            BwtWriterRunLengthV2 pWriter( params.getStringValue( "output filename" ) );
+
+            while ( pReader.readAndSend( pWriter, 1000000000 ) > 0 ) {}
+
+            return;
+        }
+        else if ( params["output format"] == OUTPUT_FORMAT_FASTA || params["output format"] == OUTPUT_FORMAT_FASTQ || params["output format"] == OUTPUT_FORMAT_SEQ || params["output format"] == OUTPUT_FORMAT_CYC )
+        {
+            // BWT_RLE_V3 -> FASTA|FASTQ|SEQ|CYC
             cerr << "Error: This is not a simple file conversion. Try \"beetl unbwt\"" << endl;
             exit ( 1 );
         }

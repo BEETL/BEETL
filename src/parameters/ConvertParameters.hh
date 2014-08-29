@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -37,11 +32,11 @@ enum InputFormat
     INPUT_FORMAT_CYC,
     INPUT_FORMAT_SEQ,
     INPUT_FORMAT_BCL,
-    INPUT_FORMAT_BCL_GZ,
     INPUT_FORMAT_RUNFOLDER,
     INPUT_FORMAT_BWT_ASCII,
     INPUT_FORMAT_BWT_RLE,
     INPUT_FORMAT_BWT_RLE53,
+    INPUT_FORMAT_BWT_RLE_V3,
     INPUT_FORMAT_COUNT
 };
 
@@ -52,11 +47,11 @@ static const string inputFormatLabels[] =
     "cyc",
     "seq",
     "bcl",
-    "bcl.gz",
     "runFolder",
     "bwt_ascii",
     "bwt_rle",
     "bwt_rle53",
+    "bwt_rle_v3",
     "" // end marker
 };
 
@@ -73,7 +68,8 @@ enum OutputFormat
     OUTPUT_FORMAT_BWT_ASCII,
     OUTPUT_FORMAT_BWT_RLE,
     OUTPUT_FORMAT_BWT_RLE53,
-    OUTPUT_FORMAT_BWT_RLE_DYNAMIC,
+    OUTPUT_FORMAT_BWT_RLE_V2,
+    OUTPUT_FORMAT_BWT_RLE_V3,
     OUTPUT_FORMAT_COUNT
 };
 
@@ -87,7 +83,8 @@ static const string outputFormatLabels[] =
     "bwt_ascii",
     "bwt_rle",
     "bwt_rle53",
-    "bwt_rle_dynamic",
+    "bwt_rle_v2",
+    "bwt_rle_v3",
     "" // end marker
 };
 

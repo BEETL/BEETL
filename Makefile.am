@@ -1,6 +1,5 @@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = src scripts tests
+SUBDIRS = src scripts share tests doc
 
-EXTRA_DIST = LICENSE.pdf \
-             doc/BEETL.md \
-             share/HardwareConstraints/BeetlHardwareConstraints_amazon
+dist_doc_DATA = LICENSE
+

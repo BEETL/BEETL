@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -62,15 +57,6 @@ typedef ReadBuffer4Bits ReadBuffer;
 #else
 typedef ReadBufferASCII ReadBuffer;
 #endif
-#endif
-
-
-#ifdef COMPRESS_BWT
-typedef BwtReaderRunLength BwtReader;
-typedef BwtWriterRunLength BwtWriter;
-#else
-typedef BwtReaderASCII BwtReader;
-typedef BwtWriterASCII BwtWriter;
 #endif
 
 
@@ -153,8 +139,10 @@ void BCRext::run( void )
             whichPile[( int ) 'C'] != 2 ||
             whichPile[( int ) 'G'] != 3 ||
             whichPile[( int ) alphabet[4]] != 4 ||
-            whichPile[( int ) alphabet[5]] != 5 ||
-            whichPile[( int ) notInAlphabet] != 6
+            whichPile[( int ) alphabet[5]] != 5
+#ifdef USE_EXTRA_CHARACTER_Z
+            || whichPile[( int ) notInAlphabet] != 6
+#endif
        )
     {
         cerr << "Something seems to be wrong with the alphabet table!" << endl;
@@ -215,11 +203,14 @@ void BCRext::run( void )
     //outDollarBwt = fopen( fileName.c_str(), "w" );
     if ( useImplicitSort_ || useAsciiEncoder_ )
         outDollarBwt = new BwtWriterASCII( fileName.c_str() );
+#ifdef ACTIVATE_HUFFMAN
     else if ( useHuffmanEncoder_ )
         outDollarBwt = new BwtWriterHuffman( fileName.c_str() );
+#endif
     else if ( useRunlengthEncoder_ )
-        outDollarBwt = new BwtWriterRunLength( fileName.c_str() );
-
+        outDollarBwt = new BwtWriterRunLengthV3( fileName.c_str() );
+    else
+        assert( false );
 
     for ( int j( 1 ); j < alphabetSize; j++ )
     {
@@ -244,11 +235,14 @@ void BCRext::run( void )
 
         if ( useImplicitSort_ || useAsciiEncoder_ )
             outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+#ifdef ACTIVATE_HUFFMAN
         else if ( useHuffmanEncoder_ )
             outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
+#endif
         else if ( useRunlengthEncoder_ )
-            outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
-
+            outBwt[j] = new BwtWriterRunLengthV3( fileName.c_str() );
+        else
+            assert( false );
 
     } // ~for
 
@@ -421,10 +415,14 @@ void BCRext::run( void )
 
             if ( ( useImplicitSort_ && ( i != seqSize ) ) || useAsciiEncoder_ )
                 outBwt[j] = new BwtWriterASCII( fileName.c_str() );
+#ifdef ACTIVATE_HUFFMAN
             else if ( useHuffmanEncoder_ )
                 outBwt[j] = new BwtWriterHuffman( fileName.c_str() );
+#endif
             else if ( useRunlengthEncoder_ )
-                outBwt[j] = new BwtWriterRunLength( fileName.c_str() );
+                outBwt[j] = new BwtWriterRunLengthV3( fileName.c_str() );
+            else
+                assert( false );
 
             if ( useImplicitSort_ && ( i == seqSize ) )
             {
@@ -450,17 +448,20 @@ void BCRext::run( void )
                 inBwt[j] = new BwtReaderASCII( fileName.c_str() );
                 inBwt2[j] = new BwtReaderASCII( fileName.c_str() );
             }
+#ifdef ACTIVATE_HUFFMAN
             else if ( useHuffmanEncoder_ )
             {
                 inBwt[j] = new BwtReaderHuffman( fileName.c_str() );
                 inBwt2[j] = new BwtReaderHuffman( fileName.c_str() );
             }
+#endif
             else if ( useRunlengthEncoder_ )
             {
-                inBwt[j] = new BwtReaderRunLength( fileName.c_str() );
-                inBwt2[j] = new BwtReaderRunLength( fileName.c_str() );
+                inBwt[j] = new BwtReaderRunLengthV3( fileName.c_str() );
+                inBwt2[j] = new BwtReaderRunLengthV3( fileName.c_str() );
             }
-
+            else
+                assert( false );
 
 #ifdef DEBUG
             cout << "Prepping input file " << tmpIn << endl;

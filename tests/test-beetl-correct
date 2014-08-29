@@ -1,13 +1,14 @@
 #!/bin/bash
 
-## Copyright (c) 2013 Illumina, Inc.
+## Copyright (c) 2011-2014 Illumina, Inc.
 ##
-## 
-## This software is covered by the "Illumina Non-Commercial Use Software
-## and Source Code License Agreement" and any user of this software or
-## source file is bound by the terms therein (see accompanying file
-## Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
+## This file is part of the BEETL software package,
+## covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
 ##
+## Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
+## Lightweight BWT Construction for Very Large String Collections.
+## Proceedings of CPM 2011, pp.219-231
+
 
 ## test-beetl-correct
 ## Regression tests for beetl-correct
@@ -20,7 +21,7 @@ abspath=`dirname "$abscommand"`
 BEETL_CONVERT=`pwd`/../src/frontends/beetl-convert
 BEETL_BWT=`pwd`/../src/frontends/beetl-bwt
 BEETL_CORRECT=`pwd`/../src/frontends/beetl-correct
-BEETL_CORRECT_APPLY=`pwd`/../src/frontends/align-corrector-strings
+BEETL_CORRECT_APPLY=`pwd`/../src/frontends/beetl-correct-apply-corrections
 
 DATA_DIR=${abspath}/data
 INPUT_FASTA=${DATA_DIR}/testBeetlCorrect.30x10k.fasta

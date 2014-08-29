@@ -1,0 +1,219 @@
+#!/usr/bin/env perl
+
+=head1 LICENSE
+
+Copyright (c) 2011-2014 Illumina, Inc.
+
+This file is part of the BEETL software package,
+covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
+
+Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
+Lightweight BWT Construction for Very Large String Collections.
+Proceedings of CPM 2011, pp.219-231
+
+
+=head1 NAME
+
+beetl-tool-launchPerSubset
+
+=head1 DIAGNOSTICS
+
+=head2 Exit status
+
+0: successful completion
+1: abnormal completion
+2: fatal error
+
+=head2 Errors
+
+All error messages are prefixed with "ERROR: ".
+
+=head2 Warnings
+
+All warning messages are prefixed with "WARNING: ".
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+=back
+
+=head1 BUGS AND LIMITATIONS
+
+There are no known bugs in this module.
+
+All documented features are fully implemented.
+
+Please report problems to Illumina Technical Support (support@illumina.com)
+
+Patches are welcome.
+
+=head1 AUTHOR
+
+Lilian Janin
+
+=head1 EXAMPLE
+
+beetl-tool-launchPerSubset -j 4 -c "sleep 1; echo"
+
+=cut
+
+use warnings FATAL => 'all';
+use strict;
+use Cwd qw(abs_path);
+use POSIX qw(strftime);
+use IO::File;
+use Carp;
+use Cwd;
+use Switch;
+
+use Pod::Usage;
+use Getopt::Long;
+
+
+my $VERSION = '@BEETL_VERSION_FULL@';
+
+my $programName = (File::Spec->splitpath(abs_path($0)))[2];
+my $programPath = (File::Spec->splitpath(abs_path($0)))[1];
+my $Version_text =
+    "$programName $VERSION\n"
+  . "Copyright (c) 2011 Illumina\n"
+  . "This source file is covered by the \"Illumina Non-Commercial Use Software and\n"
+  . "Source Code License Agreement\" and bound by the terms therein.\n";
+
+my $usage =
+    "Usage: $programName [options]\n"
+  . "\t-j, --jobs=4|16|64           - Specifies the number of jobs (commands) to run simultaneously.\n"
+  . "\t-c, --command=STRING         - Command to run. The --subset=xx parameter will be added at the end\n"
+  . "\t-q, --use-qsub               - Launch the commands using qsub\n"
+  . "\t-o, --output-aggregate=FILE  - Concatenate these output filenames from each subdirectory\n"
+
+  . "\t--help                       - prints usage guide\n"
+  . "\t--version                    - prints version information\n"
+
+.<<'EXAMPLES_END';
+
+EXAMPLES:
+    (none)
+
+EXAMPLES_END
+
+my $help             = 'nohelp';
+my $isVersion        = 0;
+my %PARAMS           = ();
+
+my $argvStr = join ' ', @ARGV;
+
+$PARAMS{verbose} = 0;
+my @outputAggregate = ();
+
+my $result = GetOptions(
+    "jobs|j=i"             => \$PARAMS{jobs},
+    "command|c=s"          => \$PARAMS{command},
+    "use-qsub|q"           => \$PARAMS{useQsub},
+    "output-aggregate|o=s@"=> \@outputAggregate,
+
+    "version"              => \$isVersion,
+    "help"                 => \$help
+);
+
+# display the version info
+if ($isVersion) {
+    print $Version_text;
+    exit(0);
+}
+
+# display the help text when no output directory or other required options are given
+if ( ( $result == 0 || !defined($PARAMS{jobs}) || !defined($PARAMS{command}) ) && 'nohelp' eq $help)
+{
+  die "$usage";
+}
+
+die("ERROR: Unrecognized command-line argument(s): @ARGV")  if (0 < @ARGV);
+
+
+# Check that we won't overwrite any existing file
+#(! -e "$PARAMS{output}") or die "$PARAMS{output} already exists. Aborting.";
+
+# Subsets defintions
+my @subsets;
+switch ($PARAMS{jobs})
+{
+  case 4 { @subsets = ( 'A', 'C', 'G', 'T' ); }
+  case 16 { @subsets = ( 'AA', 'AC', 'AG', 'AT', 'CA', 'CC', 'CG', 'CT', 'GA', 'GC', 'GG', 'GT', 'TA', 'TC', 'TG', 'TT' ); }
+  case 64 { @subsets = (
+                        'AAA', 'AAC', 'AAG', 'AAT', 'ACA', 'ACC', 'ACG', 'ACT', 'AGA', 'AGC', 'AGG', 'AGT', 'ATA', 'ATC', 'ATG', 'ATT',
+                        'CAA', 'CAC', 'CAG', 'CAT', 'CCA', 'CCC', 'CCG', 'CCT', 'CGA', 'CGC', 'CGG', 'CGT', 'CTA', 'CTC', 'CTG', 'CTT',
+                        'GAA', 'GAC', 'GAG', 'GAT', 'GCA', 'GCC', 'GCG', 'GCT', 'GGA', 'GGC', 'GGG', 'GGT', 'GTA', 'GTC', 'GTG', 'GTT',
+                        'TAA', 'TAC', 'TAG', 'TAT', 'TCA', 'TCC', 'TCG', 'TCT', 'TGA', 'TGC', 'TGG', 'TGT', 'TTA', 'TTC', 'TTG', 'TTT'
+                       ); }
+  else {
+    print STDERR "Error: invalid number of jobs\n\n${usage}";
+    exit 1;
+  }
+}
+
+foreach my $subset (@subsets)
+{
+  my $cmd = "$PARAMS{command} --subset=${subset}";
+  mkdir ${subset};
+  chdir ${subset};
+  open (SCRIPT, '>script');
+  print SCRIPT "${cmd}\n";
+  close SCRIPT;
+
+  my $cwd = getcwd;
+  my $cmd2;
+  if (defined($PARAMS{useQsub}))
+  {
+    $cmd2 = "qsub -cwd -sync y script";
+    print "Launching in ${cwd}: \"${cmd2}\", where script=\"${cmd}\"\n";
+  }
+  else
+  {
+    $cmd2 = "${cmd} >script.out 2>script.err";
+    print "Launching in ${cwd}: \"${cmd2}\"\n";
+  }
+  launchCommand( ${cmd2} );
+  chdir "..";
+}
+
+
+# Wait for child processes to complete
+while (wait() != -1) {}
+
+
+# Gather all outputs
+my @outputFilesOfInterest = ( 'script.o', 'script.e' );
+push @outputFilesOfInterest, @outputAggregate;
+
+foreach my $filename (@outputFilesOfInterest) {
+  my $cmd = "cat";
+  foreach my $subset (@subsets) {
+    $cmd .= " ${subset}/${filename}*";
+  }
+  $cmd .= " > ${filename}";
+  print "Result aggregation: ${cmd}\n";
+  launchCommand( ${cmd} );
+}
+
+
+# Wait for child processes to complete
+while (wait() != -1) {}
+
+print "Done\n";
+
+
+
+
+sub launchCommand
+{
+  my ($cmd) = @_;
+
+  # Using forks to be able to wait for child completion downstream
+  my $pid = fork();
+  if ($pid == -1) {
+    die;
+  }
+  elsif ($pid == 0) {
+    exec ${cmd} or die;
+  }
+}

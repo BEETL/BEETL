@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -19,9 +14,24 @@
 
 using namespace std;
 
-bool ErrorInfo::SortByRead( ErrorInfo a, ErrorInfo b )
+bool ErrorInfo::SortByRead( ErrorInfo const & a, ErrorInfo const & b )
 {
-    return a.seqNum < b.seqNum;
+    // Multi-level comparison to ensure uniqueness of results when using different implementations of std::sort
+    if (a.seqNum < b.seqNum)
+        return true;
+    else if (a.seqNum == b.seqNum)
+    {
+        if (a.positionInRead < b.positionInRead)
+            return true;
+        else if (a.positionInRead == b.positionInRead)
+        {
+            if (a.correctorStart < b.correctorStart)
+                return true;
+            else if (a.correctorStart == b.correctorStart)
+                return ( a.corrector.compare( b.corrector ) < 0 );
+        }
+    }
+    return false;
 }
 
 

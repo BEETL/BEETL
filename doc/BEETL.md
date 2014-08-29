@@ -1,11 +1,10 @@
 BEETL: Burrows-Wheeler Extended Tool Library
 ============================================
 
-Copyright (c) 2013 Illumina, Inc.
+Copyright (c) 2011-2014 Illumina, Inc.
 
-This software is covered by the "Illumina Non-Commercial Use Software
-and Source Code License Agreement" and any user of this software or
-source file is bound by the terms therein.
+This software is covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
+and any user of this software or source file is bound by the terms therein.
 
 
 Description
@@ -22,12 +21,12 @@ External dependencies
 
 On a clean Amazon Ubuntu instance, you would need:
 
-    sudo apt-get install unzip g++ zlib1g-dev make
+    sudo apt-get install unzip g++ make
 
 
-On Mac with LLVM-clang (although unsupported), you may need to define `export CXX=c++; export CXXFLAGS="-stdlib=libc++"` before the configure step
+On Mac with LLVM-clang (although unsupported as it doesn't have OpenMP), you may need to define `export CXX=c++; export CXXFLAGS="-stdlib=libc++"`
 
-On Mac with a proper g++ (try macports) installed in /opt/local (warning: it may be in /usr/local!), you may need to define (adjust for your gcc version and path): `export LDFLAGS="-L/opt/local/lib/gcc49"; export CPPFLAGS="-I/opt/local/include/gcc49"`
+On Mac with g++ (try macports) installed in /opt/local (warning: it may be in /usr/local), you may need to define (adjust for your gcc version and path) `export LDFLAGS="-L/opt/local/lib/gcc49"; export CPPFLAGS="-I/opt/local/include/gcc49"`
 
 
 Installation
@@ -60,10 +59,10 @@ Running `beetl --help` shows a high-level description of each BEETL tool:
     beetl convert   Convert between file formats
 
 
-...and more tools:
+...and some higher level tools:
 
     beetl-fastq     Index and search FASTQ files
-    beetlflow-tumour-normal-filter.sh
+    beetl-flow-tumour-normal-fastq-filter   Tumour-normal subtraction, filtering out uninteresting reads for faster downstream analysis
 
 
 Paired and reverse-complemented reads
@@ -96,8 +95,8 @@ Examples
     # Optional: Index BWT files
     beetl-index -i bwt
 
-    # K-mer search (Remove --use-indexing if you didn't run the previous step)
-    beetl-search -i bwt -k ACGT -o searchedKmers.bwtIntervals --use-indexing
+    # K-mer search
+    beetl-search -i bwt -k ACGT -o searchedKmers.bwtIntervals
 
     # Propagation of the found intervals to end of reads, in order to identify sequence numbers
     beetl-extend -i searchedKmers.bwtIntervals -b bwt -o searchedKmers.sequenceNumbers
@@ -124,12 +123,12 @@ Examples
     beetl-correct -i outBwt -o corrections.csv -L 2000000 -e 10000 -k 30 -w 13
 
     # Applying corrections to origing fasta file
-    align-corrector-strings -i input.fasta -c corrections.csv -o corrected.fasta --input-reads-format=fasta --output-reads-format=fasta -a no-indels -q '?' --min-witness-length=14
+    beetl-correct-apply-corrections -i input.fasta -c corrections.csv -o corrected.fasta --input-reads-format=fasta --output-reads-format=fasta -a no-indels -q '?' --min-witness-length=14
 
 
 ### Tumour-normal filtering using BWT
 
-The tool 'beetlflow-tumour-normal-filter.sh' takes 2 datasets (tumour and normal), each made of 2 paired-end fastq or fastq.gz files (one for read 1, one for read 2).  
+The tool 'beetl-flow-tumour-normal-fastq-filter' takes 2 datasets (tumour and normal), each made of 2 paired-end fastq or fastq.gz files (one for read 1, one for read 2).  
 It extracts all the read pairs that contain suspected variants, and outputs 4 fastq files, subsets of the input files.  
 The output files are placed in the specified output directory and are called:
 - tumour\_read1.fastq
@@ -139,7 +138,7 @@ The output files are placed in the specified output directory and are called:
 
 Example:
 
-    beetlflow-tumour-normal-filter.sh \
+    beetl-flow-tumour-normal-fastq-filter \
       Tumour/lane1_NoIndex_L001_R1_001.fastq.gz \
       Tumour/lane1_NoIndex_L001_R2_001.fastq.gz \
       Normal/lane1_NoIndex_L001_R1_001.fastq.gz \
@@ -156,7 +155,7 @@ The first challenge is to get the metagenomic database. You can either download 
 
 #### Downloading the metagenomic database
 
-Note: If you are at Illumina, you can use the pre-installed data: `export METAGENOME_DATABASE_PATH=/illumina/scratch/BWT/metagenomics/allNucleotides/workDirFullRleInt`
+Note: If you are at Illumina, you can use the pre-installed data: `export METAGENOME_DATABASE_PATH=/illumina/scratch/BWT/metagenomics/metaBeetlNcbiDb/stable` (Note: use the `testing` version if you are also using the testing version of the tools)
 
 Otherwise, all the references and associated metadata used in the paper are available from Amazon S3 (24GB of files):
 
@@ -192,32 +191,32 @@ How to create a database of reference genomes for metaBEETL:
 ```
 
 3. Create single sequence files with the reverse complement of all genomes but exclude plasmids.  
-   For this, use genomesToSingleSeq.  
+   For this, use metabeetl-db-genomesToSingleSeq.  
    Do NOT change the names of the generated files.
 ```
-   genomesToSingleSeq -f all.fna/*/*.fna -s singleSeqGenomes
+   metabeetl-db-genomesToSingleSeq -f all.fna/*/*.fna -s singleSeqGenomes
    cd singleSeqGenomes
 ```
 
-4. Open the script arrayBWT.sh and adapt the paths.  
-   To create the BWTs for all the G\_\* and G\_\*\_rev files using a Grid Engine cluster, submit `qsub -t n arrayBWT.sh`, where n should be 1-500 if you have the files G\_1 till G\_500.  
-   As an alternative you can also run makeBWTSkew for each of the files individually.
+4. Open the script metabeetl-db-arrayBWT.sh and adapt the paths.  
+   To create the BWTs for all the G\_\* and G\_\*\_rev files using a Grid Engine cluster, submit `qsub -t n metabeetl-db-arrayBWT.sh`, where n should be 1-500 if you have the files G\_1 till G\_500.  
+   As an alternative you can also run metabeetl-db-makeBWTSkew for each of the files individually.
 ```
-   cp `which arrayBWT.sh` .
-   vi arrayBWT.sh  # Adjust paths in this file
-   qsub -t n arrayBWT.sh
+   cp `which metabeetl-db-arrayBWT.sh` .
+   vi metabeetl-db-arrayBWT.sh  # Adjust paths in this file
+   qsub -t n metabeetl-db-arrayBWT.sh
 ```
  OR
 ```
    ( echo -n "all: " ; for i in G_*; do echo -n " bwt_${i}-B00"; done ; echo -e "\n" ; \
-      for i in G_*; do echo "bwt_${i}-B00: ${i}"; echo -e "\tmakeBWTSkew ${i} ${i}\n" ; done ) > Makefile
+      for i in G_*; do echo "bwt_${i}-B00: ${i}"; echo -e "\tmetabeetl-db-makeBWTSkew ${i} ${i}\n" ; done ) > Makefile
    make -j
 ```
 
 5. Login on a machine with enough memory to load all sequences in RAM (~60GB) and run mergeBacteria on all files.  
    You will have to call this once for each of the piles created by BEETL which means six times overall e.g.  
 ```
-   for pileNum in `seq 0 5`; do mergeBacteria $pileNum ncbiMicros <( ls G_* ) ; done
+   for pileNum in `seq 0 5`; do metabeetl-db-mergeBacteria $pileNum ncbiMicros <( ls G_* ) ; done
 ```  
    For each pile this will create 3 files and one fileCounter.csv (which doesn't change)  
    The output files will be called: ncbiMicros-A0\*, -B0\* and -C0\*  
@@ -250,15 +249,15 @@ How to create a database of reference genomes for metaBEETL:
    gunzip gi_taxid_nucl.dmp.gz
    cd ..
 ```
-   Use the findTaxa script to find the taxonomic tree corresponding to the file numbers in the database.  
-   You will need the headerFile produced by running "genomeToSingleSeq" and 
+   Use the metabeetl-db-findTaxa script to find the taxonomic tree corresponding to the file numbers in the database.  
+   You will need the headerFile produced by running "metabeetl-db-genomesToSingleSeq" and 
    fileCounter created during the merging of the bacterial reference genomes.  
    Finally, you get for each file number in the database a taxonomic tree with the taxonomic ids.  
    There will be some 0 in the taxonomic tree. This is a taxonomic id which could not be 
    matched to: Superkingdom, Phylum, Order, Class, Family, Genus, Species or Strain.  
-   Sometimes there are just missing taxa in the taxonomy. 
+   Sometimes there are just missing taxa in the taxonomy. We supplement this with the file `metaBeetlExtraNames.dmp` below. 
 ```
-   findTaxa \
+   metabeetl-db-findTaxa \
      -nA downloads/names.dmp \
      -nO downloads/nodes.dmp \
      -nG downloads/gi_taxid_nucl.dmp \
@@ -266,28 +265,31 @@ How to create a database of reference genomes for metaBEETL:
      -f singleSeqGenomes/filecounter.csv \
      > ncbiFileNumToTaxTree
 
-   ( grep scientific downloads/names.dmp ; cat metaBeetlExtraNames.dmp ) > metaBeetlTaxonomyNames.dmp
+   ( grep scientific downloads/names.dmp ; cat ${BEETL_INSTALL_DIR}/share/beetl/metaBeetlExtraNames.dmp ) > metaBeetlTaxonomyNames.dmp
 ```
 
-8. Run meta-BEETL on each of the genomes to calculate the normalisation factors
+8. (Experimental, but nice) Run meta-BEETL on each of the genomes to calculate the normalisation factors
 ```
    mkdir normalisation
    cd normalisation
    for genome in ../singleSeqGenomes/G_*; do
-      genomeGNum=`basename ${genome}`
-      mkdir ${genomeGNum}
-      cd ${genomeGNum}
-      for i in ../singleSeqGenomes/bwt_${genomeGNum}-B0?; do ln -s ${i} ; done
-      for i in 0 1 2 3 4 5 6; do touch bwt_G_${genomeNum}-B0${i}; done
-      time beetl-compare --mode=metagenomics -a bwt_G_${genomeNum} -b ../../singleSeqGenomes/ncbiMicros -t ../../ncbiFileNumToTaxTree -w 20 -n 1 -k 50 --no-comparison-skip -v &> out.step1
-      rm -f metaBeetl.out/cycle51.subset*
-      time cat metaBeetl.out/cycle*.subset* | convertMetagenomicRangesToTaxa_withoutMmap ../../ncbiFileNumToTaxTree ${workDir}/ncbiMicros ../../metaBeetlTaxonomyNames.dmp 20 50 - &> out.step2
+     (
+      genomeNum=`basename ${genome}`
+      mkdir ${genomeNum}
+      cd ${genomeNum}
+      for i in ../../singleSeqGenomes/bwt_${genomeNum}-B0?; do ln -s ${i} ; done
+      for i in `seq 0 6`; do touch bwt_${genomeNum}-B0${i}; done
+      time beetl-compare --mode=metagenomics -a bwt_${genomeNum} -b ../../singleSeqGenomes/ncbiMicros -t ../../ncbiFileNumToTaxTree -w 20 -n 1 -k 50 --no-comparison-skip -v &> out.step1
+      rm -f BeetlCompareOutput/cycle51.subset*
+                  touch empty.txt
+      time cat BeetlCompareOutput/cycle*.subset* | metabeetl-convertMetagenomicRangesToTaxa ../../ncbiFileNumToTaxTree ../../singleSeqGenomes/ncbiMicros ../../metaBeetlTaxonomyNames.dmp empty.txt 20 50 - &> out.step2
       cd ..
-   done
+     ) &
+   done ; wait
 
-   for i in `seq 1 2977`; do echo "G_$i"; X=`grep -P "G_${i}$" /illumina/scratch/BWT/metagenomics/allNucleotides/20131201/filecounter.csv |cut -f 1 -d ','`; TAX=`grep -P "^${X} " /illumina/scratch/BWT/metagenomics/allNucleotides/20131201/ncbiFileNumToTaxTree` ; echo "TAX(${X}): ${TAX}"; TAXID=`echo "${TAX}" | sed 's/\( 0\)*$//g' |awk '{print $NF}'`; echo "TAXID=${TAXID}"; COUNTS=`grep Counts ${i}/out.step2`; echo "COUNTS=${COUNTS}"; MAIN_COUNT=`echo "${COUNTS}  " | sed "s/^.* ${TAXID}:\([0-9]*\) .*$/\1/ ; s/Counts.*/0/"` ; echo "MAIN_COUNT=${MAIN_COUNT}" ; SUM=`echo "${COUNTS}  " | tr ' ' '\n' | sed 's/.*://' | awk 'BEGIN { sum=0 } { sum+=$1 } END { print sum }'` ; echo "SUM=$SUM"; PERCENT=`echo -e "scale=5\n100*${MAIN_COUNT}/${SUM}" | bc` ; echo "PERCENT=${PERCENT}" ; echo "FINAL: G_${i} ${TAXID} ${MAIN_COUNT} ${SUM} ${COUNTS}" ; done > r2977
+   for i in `seq 1 2977`; do echo "G_$i"; X=`grep -P "G_${i}$" ../singleSeqGenomes/filecounter.csv |cut -f 1 -d ','`; TAX=`grep -P "^${X} " ../ncbiFileNumToTaxTree | tr -d "\n\r"` ; echo "TAX(${X}): ${TAX}."; TAXID=`echo "${TAX}" | sed 's/\( 0\)*$//g' |awk '{print $NF}'`; echo "TAXID=${TAXID}"; COUNTS=`grep Counts G_${i}/out.step2 | head -1`; echo "COUNTS=${COUNTS}"; MAIN_COUNT=`echo "${COUNTS}  " | sed "s/^.* ${TAXID}:\([0-9]*\) .*$/\1/ ; s/Counts.*/0/"` ; echo "MAIN_COUNT=${MAIN_COUNT}" ; SUM=`echo "${COUNTS}  " | tr ' ' '\n' | sed 's/.*://' | awk 'BEGIN { sum=0 } { sum+=$1 } END { print sum }'` ; echo "SUM=$SUM"; PERCENT=`echo -e "scale=5\n100*${MAIN_COUNT}/${SUM}" | bc` ; echo "PERCENT=${PERCENT}" ; echo "FINAL: G_${i} ${TAXID} ${MAIN_COUNT} ${SUM} ${COUNTS}" ; done > r2977
 
-   grep FINAL r2977 > ~/normalisation.txt
+   grep FINAL r2977 > ../normalisation.txt
 ```
 
 9. Link (or move) all the useful files to a final directory
@@ -295,6 +297,7 @@ How to create a database of reference genomes for metaBEETL:
    mkdir metaBeetlNcbiDb
    cd metaBeetlNcbiDb
    ln -s ../ncbiFileNumToTaxTree
+   ln -s ../normalisation.txt
    ln -s ../downloads/metaBeetlTaxonomyNames.dmp
    ln -s ../singleSeqGenomes/filecounter.csv
    ln -s ../singleSeqGenomes/headerFile.csv
@@ -351,42 +354,31 @@ Run BEETL metagenomic classification:
       -a bwt_SRS013948 \
       -b ${METAGENOME_DATABASE_PATH}/ncbiMicros \
       -t ${METAGENOME_DATABASE_PATH}/ncbiFileNumToTaxTree \
-      -w 50 \
+      -w 20 \
       -n 1 \
-      -k 100 \
+      -k 50 \
       --no-comparison-skip
 
-It currently generates many output files in a `metaBeetl.out` subdirectory.
-Since the algorithm repeatedly looks up the filenumbers for each BWT-Position we recommend to put these ncbiMicros-C0* files on a disk with fast read access.  
+It currently generates many output files in a `BeetlCompareOutput` directory, organised per cycle and containing the information about the BWT ranges of k-mers that start diverging between the input dataset and the database.
 Setting k = sequence length gets you the maximal amount of information but the output file will be large.
 
-If you are using development snapshots, a different experimental flow is in use from this point.  
-With the main BEETL release, we need to concatenate all the results into one file:
 
-    cat metaBeetl.out/cycle* > metaBeetlOutput.txt
+#### Gathering and visualisation of metagenomic results
 
+The `metabeetl-convertMetagenomicRangesToTaxa` tool converts the BWT ranges of k-mer matches from the previous stage into genome and ancestor IDs and generates text and graphical output files (currently html files using the Krona javascript visualisation library).
 
-#### Visualisation of metagenomic results
-
-The `parseMetagenomeOutput` tool is used to obtain a summary of the metaBEETL output which can then be visualized.
+Since the algorithm repeatedly looks up the filenumbers for each BWT position we recommend to put these ncbiMicros-C0* files on a disk with fast read access.
+Alternatively, if you have enough RAM, you can try `metabeetl-convertMetagenomicRangesToTaxa_withMmap`, which maps these files to RAM.
 
 Run:
 
-    parseMetagenomeOutput \
-      -f \
-      -b metaBeetlOutput.txt \
-      -t ${METAGENOME_DATABASE_PATH}/ncbiFileNumToTaxTree \
-      -n ${METAGENOME_DATABASE_PATH}/metaBeetlTaxonomyNames.dmp \
-      -w 50 75 100
-
--w is a vector of wordSizes for which results should be generated.  
-The results of the parsing are saved in files named after the chosen word sizes.  
-In addition a file will be generated with the information about the largest BWT positions.
-
-You can look at the files `50`, `75` and `100` by hand, and if you are at Illumina, you can
-visualise them by running the java program:
-
-     /illumina/scratch/BWT/metagenomics/Visualisation/visualisation
-
-Click on the bottom-left button "Load results" to open a data file.
-
+    cat BeetlCompareOutput/cycle*.subset* | \
+    metabeetl-convertMetagenomicRangesToTaxa \
+      ${METAGENOME_DATABASE_PATH}/ncbiFileNumToTaxTree \
+      ${METAGENOME_DATABASE_PATH}/ncbiMicros \
+      ${METAGENOME_DATABASE_PATH}/metaBeetlTaxonomyNames.dmp \
+      ${METAGENOME_DATABASE_PATH}/normalisation.txt \
+      20 \
+      50 \
+      - \
+      > metaBeetl.log

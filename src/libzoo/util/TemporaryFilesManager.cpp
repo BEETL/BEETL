@@ -1,13 +1,8 @@
 /**
- ** Copyright (c) 2011 Illumina, Inc.
+ ** Copyright (c) 2011-2014 Illumina, Inc.
  **
- **
- ** This software is covered by the "Illumina Non-Commercial Use Software
- ** and Source Code License Agreement" and any user of this software or
- ** source file is bound by the terms therein (see accompanying file
- ** Illumina_Non-Commercial_Use_Software_and_Source_Code_License_Agreement.pdf)
- **
- ** This file is part of the BEETL software package.
+ ** This file is part of the BEETL software package,
+ ** covered by the "BSD 2-Clause License" (see accompanying LICENSE file)
  **
  ** Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
  ** Lightweight BWT Construction for Very Large String Collections.
@@ -58,7 +53,17 @@ void TemporaryFilesManager::setTempPath( const string &path, const bool createUn
         }
 
         tempPathParent_ = ( path.empty() ? "" : ( path + "/" ) ) + "BEETL-Temp";
-        mkdir( tempPathParent_.c_str(), 0777 ); // If this fails, it will be detected and reported below
+        mode_t directoryCreationMode = 0777;
+
+        // When available, add username to temporary path name to make it user-independent and to rely a bit less on the extended permissions
+        char *username = getlogin();
+        if (username) {
+            tempPathParent_ += string("-") + string(username);
+            directoryCreationMode = 0700;
+        }
+
+        mkdir( tempPathParent_.c_str(), directoryCreationMode ); // If this fails, it will be detected and reported below
+        chmod( tempPathParent_.c_str(), directoryCreationMode ); // Useful in case umask affected mkdir's permissions
         if ( chdir( tempPathParent_.c_str() ) != 0 )
         {
             cerr << "Warning: Cannot enter directory " << tempPathParent_ << endl;
