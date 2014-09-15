@@ -194,11 +194,10 @@ if ($PARAMS{mode} eq "init")
 
   my $cmd;
   if ($PARAMS{input} =~ /.gz$/) {
-    $cmd = "zcat";
+    $cmd = "cat $PARAMS{input} | zcat |";
   } else {
-    $cmd = "cat";
+    $cmd = "cat $PARAMS{input} |";
   }
-  $cmd .= " $PARAMS{input} |";
 
   if ($PARAMS{sort})
   {

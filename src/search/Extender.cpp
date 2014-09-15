@@ -75,6 +75,7 @@ void Extender::fillRangeStore( RangeStoreExternal &rangeStore, const LetterCount
             IntervalRecord *recX = new IntervalRecord( rec );
             recX->position = pos;
             recX->count = count; // Very dirty. TODO: clean up
+            rec.subRecords.push_back( recX );
 
             if ( pos < minPos )
             {
@@ -266,7 +267,8 @@ void Extender::run()
         string outputFilename = extendParams_["sequence numbers output filename"];
         ofstream ofs( outputFilename.c_str() );
         IntervalWriter writer( ofs );
-        for ( auto rec : inputIntervals )
+
+        auto lambdaOutputDollarPos = [&] ( IntervalRecord &rec )
         {
             for ( auto dollarPos : rec.dollarSignPositions )
             {
@@ -290,6 +292,13 @@ void Extender::run()
 
                 ofs << seqN << " # " << rec.kmer << " (subSequence " << ( int )subSequenceNum << ")\n";
             }
+        };
+
+        for ( auto rec : inputIntervals )
+        {
+            lambdaOutputDollarPos( rec );
+            for ( auto subRec : rec.subRecords )
+                lambdaOutputDollarPos( *subRec );
         }
     }
 }

@@ -48,6 +48,7 @@ struct IntervalRecord
     LetterNumber position;
     LetterNumber count;
     vector<LetterNumber> dollarSignPositions;
+    vector< IntervalRecord* > subRecords;
 };
 
 class IntervalWriter

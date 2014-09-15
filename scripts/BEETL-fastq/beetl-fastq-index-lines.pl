@@ -37,7 +37,7 @@ if (@ARGV==0)
     print STDERR "indexing $rzFile\n";
 
     open (IDX, ">$rzFileIndex") || die "Failed to open $rzFileIndex: $!";
-    open (ZIP, "zcat $rzFile |") || die "Failed to open $rzFile: $!";
+    open (ZIP, "cat $rzFile | zcat |") || die "Failed to open $rzFile: $!";
     while ($thisLine=<ZIP>)
     {
    	if (($lineNum&$blockMask)==0)
