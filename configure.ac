@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.65)
 
-AC_INIT(BEETL, 1.0.1, acox@illumina.com)
+AC_INIT(BEETL, 1.0.2, acox@illumina.com)
 AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_CONFIG_SRCDIR([src/frontends/BeetlBwt.cpp])

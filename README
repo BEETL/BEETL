@@ -16,6 +16,12 @@ Documentation in: doc/BEETL.md
 
 *** Release notes ***
 
+Version 1.0.2 (19th September 2014)
+
+- Beetl-fastq: Can now run multiple instances simultaneously in same directory
++ Thanks to Stephen Sammut
+
+
 Version 1.0.1 (15th September 2014)
 
 - Beetl-extend: Fixed bug which was preventing output files from being written

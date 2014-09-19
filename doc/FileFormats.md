@@ -94,7 +94,8 @@ Key identifiers used across all the files:
 
 ## headerFile.csv
 
-GenBank id (1), chr name, metaBeetl genome num (2)
+//GenBank id (1), chr name, metaBeetl genome num (2)
+metaBeetl genome num (2 without_rev), chr name
 
 
 ## filecounter.csv
