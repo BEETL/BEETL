@@ -190,7 +190,7 @@ if ($PARAMS{mode} eq "init")
 
   my $readIdsFilename = $PARAMS{output} . ".readIds";
   my $qualsFilename = $PARAMS{output} . ".quals";
-  mkdir "cyc";
+  mkdir "$PARAMS{output}.cyc";
 
   my $cmd;
   if ($PARAMS{input} =~ /.gz$/) {
@@ -206,7 +206,7 @@ if ($PARAMS{mode} eq "init")
 
   open (FASTQ, ${cmd}) || die "Failed to open $PARAMS{input}: $!";
   open (READNAMES, ">${readIdsFilename}") || die "Failed to open ${readIdsFilename}: $!";
-  open (BASES, "|beetl-convert --input-format=seq --output-format=cyc -i - -o cyc/cyc") || die "Failed to run beetl-convert: $!";
+  open (BASES, "|beetl-convert --input-format=seq --output-format=cyc -i - -o $PARAMS{output}.cyc/cyc") || die "Failed to run beetl-convert: $!";
   open (QUALS, ">${qualsFilename}") || die "Failed to open ${qualsFilename}: $!";
   my $lineCount = 0;
   while (my $line=<FASTQ>)
@@ -235,13 +235,13 @@ if ($PARAMS{mode} eq "init")
   $cmd="razip -c ${qualsFilename} > ${qualsFilename}.rz";
   launchCommand( ${cmd} );
 
-  $cmd="beetl-bwt -i cyc/cyc --input-format=cyc -o $PARAMS{output} --generate-end-pos-file";
+  $cmd="beetl-bwt -i $PARAMS{output}.cyc/cyc --input-format=cyc -o $PARAMS{output} --generate-end-pos-file";
   launchCommand( ${cmd} );
 
   waitForChildrenToExitCleanly();
 
 
-  $cmd="rm -rf ${qualsFilename} ${readIdsFilename} cyc";
+  $cmd="rm -rf ${qualsFilename} ${readIdsFilename} $PARAMS{output}.cyc";
   launchCommand( ${cmd} );
 
   $cmd="${programPath}/../libexec/beetl-fastq-index-lines.pl ${qualsFilename}.rz";
