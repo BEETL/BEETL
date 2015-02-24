@@ -382,3 +382,14 @@ Run:
       50 \
       - \
       > metaBeetl.log
+
+Three TSV (tab-separated values) files are generated (column 1: Taxonomy Id, column 2: Taxonomy level, column 3: k-mer count, column 4: k-mer count including children):
+- metaBeetl.tsv: raw k-mer counts for every leaves and ancestors.
+- metaBeetl_normalised.tsv: some counts from ancestors are moved towards leaf items. The proportion thereof is pre-computed by aligning each individual genome to the full database.
+- metaBeetl_normalised2.tsv: Only leaves
+ of the taxonomy tree are kept, and counts are normalised relatively to genome sizes. 
+
+Three Krona files are also generated:
+- metaBeetl_krona.html
+- metaBeetl_krona_normalised.html
+- metaBeetl_krona_normalised2.html

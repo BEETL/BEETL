@@ -22,8 +22,16 @@
 using std::string;
 using std::vector;
 
+//#define USE_COMPACT_STRUCTURES
+#ifdef USE_COMPACT_STRUCTURES
+# define LETTER_COUNT_CLASS LetterCountCompact
+#else
+# define LETTER_COUNT_CLASS LetterCount
+#endif
+
 
 const vector<char> indexV1Header = { 'B', 'W', 'I', 13, 10, 26, 1, 0 };
+const vector<char> indexV2Header = { 'B', 'W', 'I', 13, 10, 26, 2, 0 };
 
 template< class T >
 class BwtReaderIndex : public T
@@ -81,11 +89,12 @@ protected:
 
     vector<LetterNumber> indexPosBwt0_;
     vector<LetterNumber> indexPosFile0_;
-    vector<LetterCountCompact> indexCount0_;
+    vector<LETTER_COUNT_CLASS> indexCount0_;
 
+    // Pointers to the same structure, used in case of mmapped files
     LetterNumber *indexPosBwt_;
     LetterNumber *indexPosFile_;
-    LetterCountCompact *indexCount_;
+    LETTER_COUNT_CLASS *indexCount_;
     uint32_t indexSize_;
 
     uint32_t indexNext_;

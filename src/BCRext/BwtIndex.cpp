@@ -194,7 +194,7 @@ void BwtReaderIndex<T>::initIndex( const string &optionalSharedMemoryPath )
                     assert( false );
                 }
                 assert( indexSize_ == *reinterpret_cast<uint32_t *>( mmappedFile ) );
-                indexCount_ = reinterpret_cast<LetterCountCompact *>( mmappedFile + sizeof( indexSize_ ) );
+                indexCount_ = reinterpret_cast<LETTER_COUNT_CLASS *>( mmappedFile + sizeof( indexSize_ ) );
                 close( fd );
             }
             {
@@ -230,6 +230,7 @@ void BwtReaderIndex<T>::initIndex( const string &optionalSharedMemoryPath )
     else
     {
         // read file header
+        bool isIndexV2 = false;
         uint8_t sizeOfAlphabet = 0;
         uint8_t sizeOfLetterNumber = 0;
         uint16_t sizeOfLetterCountCompact = 0;
@@ -242,9 +243,17 @@ void BwtReaderIndex<T>::initIndex( const string &optionalSharedMemoryPath )
             fread( &sizeOfLetterNumber, sizeof( uint8_t ), 1, pIndexFile_ );
             fread( &sizeOfLetterCountCompact, sizeof( uint16_t ), 1, pIndexFile_ );
         }
+        else if ( equal( buf.begin(), buf.end(), indexV2Header.begin() ) )
+        {
+            // index v2 detected
+            isIndexV2 = true;
+            fread( &sizeOfAlphabet, sizeof( uint8_t ), 1, pIndexFile_ );
+            fread( &sizeOfLetterNumber, sizeof( uint8_t ), 1, pIndexFile_ );
+            sizeOfLetterCountCompact = sizeof( LetterCountCompact ); // unused in index v2
+        }
         else
         {
-            // default value from previosu header-less format
+            // default value from previous header-less format
             sizeOfAlphabet = 7;
             sizeOfLetterNumber = 8;
             sizeOfLetterCountCompact = 4*sizeOfAlphabet;
@@ -275,8 +284,39 @@ void BwtReaderIndex<T>::initIndex( const string &optionalSharedMemoryPath )
         indexPosFile0_.push_back( 0 );
         while ( fread( &indexPosFile0_.back(), sizeof( LetterNumber ), 1, pIndexFile_ ) == 1 )
         {
-            indexCount0_.push_back( LetterCountCompact() );
-            assert ( fread( &indexCount0_.back(), sizeof( LetterCountCompact ), 1, pIndexFile_ ) == 1 );
+            indexCount0_.push_back( LETTER_COUNT_CLASS() );
+            if (!isIndexV2)
+            {
+                // In Index v1, counts were always stored using compact 32 bits values, which now need to be scaled to LETTER_COUNT_CLASS
+                for (int i=0; i<alphabetSize; ++i)
+                {
+                    assert ( fread( &indexCount0_.back().count_[i], sizeof( uint32_t ), 1, pIndexFile_ ) == 1 );
+                }
+                uint32_t unusedEntry;
+                for (int i=0; i<unusedAlphabetEntries; ++i)
+                {
+                    assert ( fread( &unusedEntry, sizeof( uint32_t ), 1, pIndexFile_ ) == 1 );
+                }
+            }
+            else
+            {
+                for (int i=0; i<alphabetSize; ++i)
+                {
+                    int byteCount;
+                    assert ( fread( &byteCount, 1, 1, pIndexFile_ ) == 1 );
+                    if (byteCount)
+                    {
+#ifdef USE_COMPACT_STRUCTURES
+                        if ( byteCount > sizeof(LetterNumberCompact) )
+                        {
+                            Logger::error() << "ERROR: Index file " << indexFilename_ << " contains large values. BEETL needs to be built without USE_COMPACT_STRUCTURES in BwtIndex.hh." << endl;
+                            exit( -1 );
+                        }
+#endif
+                        assert ( fread( &indexCount0_.back().count_[i], byteCount, 1, pIndexFile_ ) == 1 );
+                    }
+                }
+            }
             for ( int i( 0 ); i < alphabetSize; i++ )
                 currentPosBwt += indexCount0_.back().count_[i];
             indexPosBwt0_.push_back( currentPosBwt );
@@ -343,7 +383,7 @@ void buildIndex( BwtReaderBase *reader0, FILE *pIndexFile, const int indexBinSiz
     BwtReaderRunLengthBase *reader = dynamic_cast< BwtReaderRunLengthBase* >( reader0 );
     const int runsPerChunk( indexBinSize );
     int runsThisChunk( 0 );
-    LetterCountCompact countsThisChunk;
+    LetterCount countsThisChunk;
     LetterNumber runsSoFar( 0 ), chunksSoFar( 0 );
     bool lastRun = false;
 
@@ -355,13 +395,11 @@ void buildIndex( BwtReaderBase *reader0, FILE *pIndexFile, const int indexBinSiz
     reader->currentPos_ = 0;
 
     // Write file header
-    assert( fwrite( indexV1Header.data(), indexV1Header.size(), 1, pIndexFile ) == 1 );
+    assert( fwrite( indexV2Header.data(), indexV2Header.size(), 1, pIndexFile ) == 1 );
     uint8_t sizeOfAlphabet = alphabetSize;
     uint8_t sizeOfLetterNumber = sizeof( LetterNumber );
-    uint16_t sizeOfLetterCountCompact = sizeof( LetterCountCompact );
     fwrite( &sizeOfAlphabet, sizeof( uint8_t ), 1, pIndexFile );
     fwrite( &sizeOfLetterNumber, sizeof( uint8_t ), 1, pIndexFile );
-    fwrite( &sizeOfLetterCountCompact, sizeof( uint16_t ), 1, pIndexFile );
 
 
     while ( !lastRun )
@@ -391,8 +429,17 @@ void buildIndex( BwtReaderBase *reader0, FILE *pIndexFile, const int indexBinSiz
             assert
             ( fwrite( &posInFile, sizeof( LetterNumber ), 1, pIndexFile ) == 1 );
 
-            assert
-            ( fwrite( &countsThisChunk, sizeof( LetterCountCompact ), 1, pIndexFile ) == 1 );
+            // In index format v2, we write each LetterCount independently, encoding the number of bytes as first byte
+            for (int i=0; i<alphabetSize; ++i)
+            {
+                LetterNumber val = countsThisChunk.count_[i];
+                int bytesNeeded = 0;
+                while (val >> (8*bytesNeeded))
+                    ++bytesNeeded;
+                assert( fwrite( &bytesNeeded, 1, 1, pIndexFile ) == 1 );
+                if (bytesNeeded)
+                    assert( fwrite( &val, bytesNeeded, 1, pIndexFile ) == 1 );
+            }
 
             chunksSoFar++;
             runsThisChunk = 0;

@@ -26,4 +26,4 @@ metabeetl_parseMetagenomeOutput_SOURCES = parse.cpp
 metabeetl_parseMetagenomeOutput_LDADD = ../liball.a ../libzoo.a
 
 
-noinst_HEADERS = metaShared.hh Krona.hh
+noinst_HEADERS = metaShared.hh Krona.hh OutputTsv.hh

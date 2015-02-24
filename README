@@ -16,6 +16,14 @@ Documentation in: doc/BEETL.md
 
 *** Release notes ***
 
+Version 1.1.0 (24th February 2015)
+
+- Beetl-fastq: New --mode=restore option to restore the original fastq data. It is known to be very slow, as our beetl-unbwt algorithm didn't get any love for years.
+- Beetl-fastq now uses the output directory for intermediate files, to prevent read-only issues.
+- New BWT Index format, allowing run lengths longer that 2^32.
+- Additional tab-separated output file for metaBEETL.
+
+
 Version 1.0.2 (19th September 2014)
 
 - Beetl-fastq: Can now run multiple instances simultaneously in same directory

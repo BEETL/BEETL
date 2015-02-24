@@ -51,7 +51,9 @@ const LetterNumber matchFlag( ( ( LetterNumber )1 ) << ( ( 8 * sizeof( LetterNum
 const LetterNumber matchMask( ~matchFlag );
 
 // For Metagenomics
+//#define METABEETL_FOR_HIV
 const string taxLevelNames[] = {"superkingdom", "phylum", "class", "order", "family", "genus", "species", "subspecies", "unnamed rank 9", "unnamed rank 10", "unnamed rank 11"
+#ifdef METABEETL_FOR_HIV
 , "rank12"
 , "rank13"
 , "rank14"
@@ -163,8 +165,14 @@ const string taxLevelNames[] = {"superkingdom", "phylum", "class", "order", "fam
 , "rank120"
 , "rank121"
 , "rank122"
+#endif //ifdef METABEETL_FOR_HIV
 };
+#ifdef METABEETL_FOR_HIV
 const uint taxLevelSize = 122;
+#else
+const uint taxLevelSize = 11; // Change this to 122 for HIV
+#endif
+
 typedef uint32_t MetagFileNumRefType;
 
 // For generalized suffix array (GSA): Definition of each element

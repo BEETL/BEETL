@@ -77,31 +77,32 @@ my $Version_text =
 
 my $usage =
     "Usage: $programName [options]\n"
-#  . "\t-j, --jobs=4|16|64           - Specifies the number of jobs (commands) to run simultaneously.\n"
-  . "\t-m, --mode={init|search}     - Command to run\n"
-  . "\t-i, --input                  - Input filename or prefix\n"
-  . "\t-o, --output                 - Output filename or prefix\n"
+#  . "\t-j, --jobs=4|16|64               - Specifies the number of jobs (commands) to run simultaneously.\n"
+  . "\t-m, --mode={init|search|restore} - Command to run\n"
+  . "\t-i, --input                      - Input filename or prefix\n"
+  . "\t-o, --output                     - Output filename or prefix\n"
   . "\n"
   . "Init mode options:\n"
-  . "\t-s, --sort                   - Sort FastQ in Reverse Lexicographical Order (experimental)\n"
-  . "\t--sort-options               - Options to pass to the tool \"sort\", e.g. \"-S 40G\" to use 40G of RAM\n"
+  . "\t-s, --sort                       - Sort FastQ in Reverse Lexicographical Order (experimental)\n"
+  . "\t--sort-options                   - Options to pass to the tool \"sort\", e.g. \"-S 40G\" to use 40G of RAM\n"
   . "\n"
   . "Search mode options:\n"
-  . "\t-j, --input-kmer-file        - K-mer file, only used in search mode\n"
-  . "\t-k, --input-kmer             - K-mer value (-j and -k are mutually exclusive)\n"
-  . "\t-r, --repeat-threshold       - If a k-mer gets more matches than this, its reads won't be extracted (Default: 100)\n"
-  . "\t-p, --paired-reads           - Also extract paired reads, original fastq assumed to be {reads1 block, reads2 block}\n"
+  . "\t-j, --input-kmer-file            - K-mer file, only used in search mode\n"
+  . "\t-k, --input-kmer                 - K-mer value (-j and -k are mutually exclusive)\n"
+  . "\t-r, --repeat-threshold           - If a k-mer gets more matches than this, its reads won't be extracted (Default: 100)\n"
+  . "\t-p, --paired-reads               - Also extract paired reads, original fastq assumed to be {reads1 block, reads2 block}\n"
 
   . "\n"
-  . "\t-v, --verbose                - Verbose stdout\n"
-  . "\t--help                       - prints usage guide\n"
-  . "\t--version                    - prints version information\n"
+  . "\t-v, --verbose                    - Verbose output\n"
+  . "\t--help                           - Print usage guide\n"
+  . "\t--version                        - Print version information\n"
 
 .<<'EXAMPLES_END';
 
 EXAMPLES:
     beetl-fastq --mode=init -i data.fastq.gz -o prefix
     beetl-fastq --mode=search -i prefix -o result.fastq -k ACGTACGTACGT
+    beetl-fastq --mode=restore -i prefix -o data.fastq # Note: this functionality is known to be very slow, only provided for entertainment purposes
 
 EXAMPLES_END
 
@@ -273,8 +274,8 @@ elsif ($PARAMS{mode} eq "search")
   }
   else
     { $kmerId = $PARAMS{inputKmer}; }
-  my $intermediateFile1 = $PARAMS{input} . "-" . ${kmerId} . ".searchResults";
-  my $intermediateFile2 = $PARAMS{input} . "-" . ${kmerId} . ".extendResults";
+  my $intermediateFile1 = $PARAMS{output} . "-" . ${kmerId} . ".searchResults";
+  my $intermediateFile2 = $PARAMS{output} . "-" . ${kmerId} . ".extendResults";
 
   # Check that we won't overwrite any existing file
   if (-e "$PARAMS{output}") { print "$PARAMS{output} already exists. Aborting to avoid overwriting possibly important files.\n"; exit 1; }
@@ -457,6 +458,34 @@ elsif ($PARAMS{mode} eq "search")
 
   close (OUT);
   $cmd="rm -f ${intermediateFile1} ${intermediateFile1}.2 ${intermediateFile2} ${intermediateFile2}.2 ${intermediateFile2}.0 ${intermediateFile2}.3 ${intermediateFile2}.4 ${intermediateFile2}.5 ${intermediateFile2}.6";
+  launchCommandAndWait( ${cmd} );
+}
+
+if ($PARAMS{mode} eq "restore")
+{
+  # display the help text when mode-specific command line options are incorrect
+  if ( !defined($PARAMS{input}) || !defined($PARAMS{output}) )
+  {
+    die "$usage";
+  }
+
+  # Check that we won't overwrite any existing file
+  if (-e "$PARAMS{output}") {
+    print "WARNING: Output file $PARAMS{output} already exists. Your only chance to save this file is to Ctrl+C before the end of this script!\n";
+  }
+
+  my $intermediateFiles = $PARAMS{output} . ".tmp";
+
+  my $cmd='for i in ' . $PARAMS{input} . '-B0?; do beetl-convert --input-format=BWT_RLE_v3 --output-format=BWT_ASCII -i $i -o ' . $intermediateFiles . '.$i ; done';
+  launchCommandAndWait( ${cmd} );
+
+  $cmd="beetl-unbwt -i ${intermediateFiles}.$PARAMS{input} -o ${intermediateFiles}.fasta";
+  launchCommandAndWait( ${cmd} );
+
+  $cmd='bash -c \'paste <( zcat xx.readIds.rz ) <( sed -n "n;s/$/\t+/;p" ' . ${intermediateFiles} . '.fasta ) <( zcat xx.quals.rz ) | tr "\t" "\n" > ' . $PARAMS{output} . '\'';
+  launchCommandAndWait( ${cmd} );
+
+  $cmd="rm -f ${intermediateFiles}.*";
   launchCommandAndWait( ${cmd} );
 }
 

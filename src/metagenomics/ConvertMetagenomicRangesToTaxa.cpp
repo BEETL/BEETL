@@ -36,6 +36,7 @@ using namespace std;
 
 #include "metaShared.hh"
 #include "Krona.hh"
+#include "OutputTsv.hh"
 
 //#define DEBUG
 
@@ -112,14 +113,14 @@ struct ShortInputLineWithId
         , numA( 0 )
     {}
 
-    ShortInputLineWithId( const uint32_t id, const InputLine &inputLine, const int minKmerSize = 0, const int maxKmerSize = 0 )
+    ShortInputLineWithId( const uint32_t id, const InputLine &inputLine, const int minKmerSize = 0, const int maxKmerSize = 0, const bool useWeights = true )
         : id( id )
         //        , pileNum( inputLine.pileNum )
         , posB( inputLine.posB )
         , numB( inputLine.numB )
         , numA( inputLine.numA )
     {
-        if ( maxKmerSize > 0 )
+        if ( useWeights && maxKmerSize > 0 )
         {
             double weight = 1.0;
             if ( inputLine.header.find( "DIFF" ) == string::npos )
@@ -188,7 +189,7 @@ void loadFileNumToTaxIds( const string &taxIdFilename )
             cerr << "Tax Ids don't have enough taxonomic Information. Only " << taxIds.size() << " could be found (" << line << ")" << endl
                  << "Will add unknown taxa until size is right" << endl;
         else if ( taxIds.size() > taxLevelSize )
-            cerr << "Tax Ids have too much taxonomic information (" << line << ")" << endl
+            cerr << "Tax Ids have too much taxonomic information: " << taxIds.size() << " instead of " << taxLevelSize << "(" << line << ")" << endl
                  << "Please note, that the taxonomic information about one file should be shown as: " << endl
                  << "FileNumber Superkingdom Phylum Order Family Genus Species Strain " << endl;
         taxIds.resize( taxLevelSize );
@@ -270,6 +271,20 @@ void kronaOutput( const string &filename )
     printKronaChildren( topLevel, output, 0, taxInfo, /*wordMinSize.size()*/1 );
 
     printKronaFooter( output );
+    output.close();
+}
+
+void tsvOutput( const string &filename )
+{
+    clog << "TSV output" << endl;
+
+    ofstream output( filename );
+    printTsvHeader( output );
+
+    TAXMAP::iterator topLevel = taxInfo.find( 1 ); // top level has taxonomy Id 1
+    assert( topLevel != taxInfo.end() );
+    printTsvChildren( topLevel, output, 0, taxInfo, /*wordMinSize.size()*/1 );
+
     output.close();
 }
 
@@ -422,7 +437,7 @@ void normaliseLcaCounts_part2()
         clog << " 2b: Normalising database entry for " << taxId << " has a value of 0, making it impossible to normalise this genome" << endl;
         clog << "countInData=" << countInData;
         countInData *= countsAfterScaling;
-        countInData /= countsBeforeScaling;
+        countInData /= countsBeforeScaling?:1;
         clog << " => " << countInData << endl;
     }
 }
@@ -456,9 +471,15 @@ void pruneUnnormalisableCounts()
 
 int main( int argc, char **argv )
 {
+    bool useWeights = true;
+    if ( argc == 9 && string(argv[8]) == "--without-weights" )
+    {
+        useWeights = false;
+        --argc;
+    }
     if ( argc != 8 )
     {
-        cerr << "Usage: " << argv[0] << " fileNumToTaxTree databaseBwtPrefix names.dmp normalisationMetadata.txt minKmerSize maxKmerSize mainInputFilename/-" << endl;
+        cerr << "Usage: " << argv[0] << " fileNumToTaxTree databaseBwtPrefix names.dmp normalisationMetadata.txt minKmerSize maxKmerSize mainInputFilename/- <--without-weights>" << endl;
         exit( -1 );
     }
 
@@ -479,7 +500,7 @@ int main( int argc, char **argv )
     {
         //cout << inputLine << endl;
         //inputLines.push_back( inputLine );
-        shortInputLines[inputLine.pileNum].push_back( ShortInputLineWithId( id++, inputLine, minKmerSize, maxKmerSize ) );
+        shortInputLines[inputLine.pileNum].push_back( ShortInputLineWithId( id++, inputLine, minKmerSize, maxKmerSize, useWeights ) );
     }
 
     #pragma omp parallel for
@@ -605,6 +626,7 @@ int main( int argc, char **argv )
         cout << item.first << ":" << item.second << " ";
     cout << endl;
     kronaOutput( "metaBeetl_krona.html" );
+    tsvOutput( "metaBeetl.tsv" );
 
     clog << "Normalisation" << endl;
     normaliseLcaCounts( normalisationFilename );
@@ -617,10 +639,12 @@ int main( int argc, char **argv )
         cout << endl;
     */
     kronaOutput( "metaBeetl_krona_normalised.html" );
+    tsvOutput( "metaBeetl_normalised.tsv" );
 
     normaliseLcaCounts_part2();
     populateTaxInfoCountsUsingLcaCounts();
     kronaOutput( "metaBeetl_krona_normalised2.html" );
+    tsvOutput( "metaBeetl_normalised2.tsv" );
 
     // Final ranking
     vector< pair< int, uint64_t> > sortedLcaCounts;
