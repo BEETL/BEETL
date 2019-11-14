@@ -85,9 +85,10 @@ public:
     }
 
     // automatic cast operator to const char*
-    operator constCharStar( void ) const
+    operator constCharStar( void )
     {
-        return str().c_str();
+        str_ = str();
+        return str_.c_str();
     }
 
     virtual ~Filename() {}
