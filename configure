@@ -14,6 +14,15 @@
 ## M4sh Initialization. ##
 ## -------------------- ##
 
+# Manually added
+# Touch autotools files to prevent a full rebuild when `git clone` changes timestamps
+abscommand="$(cd "${0%/*}" 2>/dev/null; echo "$PWD"/"${0##*/}")"
+abspath=`dirname "$abscommand"`
+touch ${abspath}/aclocal.m4
+touch ${abspath}/configure
+touch ${abspath}/Makefile.am
+touch ${abspath}/Makefile.in
+
 # Be more Bourne compatible
 DUALCASE=1; export DUALCASE # for MKS sh
 if test -n "${ZSH_VERSION+set}" && (emulate sh) >/dev/null 2>&1; then :
