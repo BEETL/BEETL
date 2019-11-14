@@ -21,7 +21,8 @@ External dependencies
 
 On a clean Amazon Ubuntu instance, you would need:
 
-    sudo apt-get install unzip g++ make
+    sudo apt-get update
+    sudo apt-get install git unzip g++ make automake
 
 
 On Mac with LLVM-clang (although unsupported as it doesn't have OpenMP), you may need to define `export CXX=c++; export CXXFLAGS="-stdlib=libc++"`
