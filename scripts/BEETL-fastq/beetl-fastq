@@ -461,7 +461,7 @@ elsif ($PARAMS{mode} eq "search")
   launchCommandAndWait( ${cmd} );
 }
 
-if ($PARAMS{mode} eq "restore")
+elsif ($PARAMS{mode} eq "restore")
 {
   # display the help text when mode-specific command line options are incorrect
   if ( !defined($PARAMS{input}) || !defined($PARAMS{output}) )
