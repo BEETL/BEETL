@@ -1853,7 +1853,7 @@ void BCRexternalBWT::storeEntireBWT( const string &fn )
     FILE *OutFileBWT = fopen( fn.c_str(), "wb" );
     if ( OutFileBWT == NULL )
     {
-        cerr << "storeEntireBWT: Error opening " << endl;
+        cerr << "storeEntireBWT: Error opening " << fn << endl;   //2020-12-03
         exit ( EXIT_FAILURE );
     }
 
@@ -1890,7 +1890,8 @@ void BCRexternalBWT::storeEntireBWT( const string &fn )
     }
 
     cerr << "Entire BWT file" << endl;
-    cerr << "Concatenation of " << ( int )alphabetSize << " segments \n";
+    cerr << "Concatenation of " << ( int )alphabetSize << " segments;
+    cerr << " in " << fn << " file\n";     //2020-12-03
 
     cerr << "Compute the distribution of chars \n";
 
@@ -1904,6 +1905,7 @@ void BCRexternalBWT::storeEntireBWT( const string &fn )
             exit ( EXIT_FAILURE );
         }
         //cerr << "BWT file " << (int)g << "= ";
+        numchar = 1;   //2020-12-03
         while ( numchar != 0 )
         {
             numchar = fread( buffer, sizeof( uchar ), SIZEBUFFER, InFileBWT );
