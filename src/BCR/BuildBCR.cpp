@@ -2863,6 +2863,88 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
 void BCRexternalBWT::storeEntireLCP( const string &fn )
 {
     assert( false && "TODO" );
+    
+    //2020-12-03
+    LetterNumber numchar = 0;
+    LetterNumber numcharWrite = 0;
+
+    SequenceLength *bufferLCP = new SequenceLength[SIZEBUFFER];
+
+    string fnLCP = fn + ".lcp\0";
+    FILE *OutFileLCP = fopen( fnLCP.c_str(), "wb" );
+    
+    cerr << "Entire LCP file" << endl;
+    cerr << "Concatenation of " << ( int )alphabetSize << " segments";
+    cerr << " in " << fnLCP << " file\n";     //2020-12-03
+
+    LetterNumber numTotLcp = 0;
+
+    for ( AlphabetSymbol g = 0 ; g < alphabetSize; g++ )
+    {
+        TmpFilename filenameInLCP( "", g, ".lcp" );
+        FILE *InFileLCP = fopen( filenameInLCP, "rb" );
+        if ( InFileLCP == NULL )
+        {
+            cerr << "In LCP file " << filenameInLCP << ": Error opening "  << endl;
+            exit ( EXIT_FAILURE );
+        }
+
+
+        if ( InFileLCP == NULL )
+        {
+            cerr << "storeEntireLCP: " << "LCP file " << ( int )g << ": Error opening " << endl;
+            exit ( EXIT_FAILURE );
+        }
+        cerr << "LCP file " << fnLCP << "\n";
+        numchar = fread( bufferLCP, sizeof( SequenceLength ), SIZEBUFFER, InFileLCP );
+        cerr << "number read " << (int)numchar << "\n";
+        numcharWrite = fwrite( bufferLCP, sizeof( SequenceLength ), numchar, OutFileLCP );
+        checkIfEqual( numchar, numcharWrite ); // we should always read/write the same number of characters
+ 
+        while ( numchar != 0 )
+        {
+            numchar = fread( bufferLCP, sizeof( SequenceLength ), SIZEBUFFER, InFileLCP );
+            cerr << "number read " << (int)numchar << "\n";
+            numcharWrite = fwrite( bufferLCP, sizeof( SequenceLength ), numchar, OutFileLCP );
+            checkIfEqual( numchar, numcharWrite ); // we should always read/write the same number of characters
+            numTotLcp += numcharWrite;
+        }
+
+        fclose( InFileLCP );
+    }
+    fclose( OutFileLCP );
+
+    std::cerr << "LCP file contains " << numTotLcp << " values\n";
+
+    #if verboseEncode==1
+        std::cerr << "\nThe Entire LCP:"<< std::endl;
+        OutFileLCP = fopen( fnLCP.c_str(), "rb" );
+        if ( OutFileLCP == NULL )
+        {
+            cerr << "In LCP file " << fnLCP << ": Error opening "  << endl;
+            exit ( EXIT_FAILURE );
+        }
+        for (LetterNumber g = 0 ; g < SIZEBUFFER; g++)
+                bufferLCP[g] = '\0';
+        numchar = fread(bufferLCP,sizeof(SequenceLength),SIZEBUFFER,OutFileLCP);
+        if (numchar==0)
+            std::cerr  << "empty\n";
+        else
+            for (LetterNumber g = 0 ; g < numchar; g++)
+                std::cerr  << (unsigned int)bufferLCP[g] << " ";
+        while (numchar!=0) {
+            for (LetterNumber g = 0 ; g < SIZEBUFFER; g++)
+                bufferLCP[g] = '\0';
+            numchar = fread(bufferLCP,sizeof(SequenceLength),SIZEBUFFER,OutFileLCP);
+            if (numchar!=0)
+                for (LetterNumber g = 0 ; g < numchar; g++)
+                    std::cerr  << (unsigned int)bufferLCP[g] << " ";
+        }
+        std::cerr << std::endl;
+        fclose(OutFileLCP);
+    #endif
+
+    delete [] bufferLCP;
 }
 
 void BCRexternalBWT::pauseBetweenCyclesIfNeeded()
