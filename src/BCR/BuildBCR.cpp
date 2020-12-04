@@ -2912,7 +2912,6 @@ void BCRexternalBWT::storeEntireLCP( const string &fn )
         while ( numchar != 0 )
         {
             numchar = fread( bufferLCP, sizeof( SequenceLength ), SIZEBUFFER, InFileLCP );
-            cerr << "number read " << (int)numchar << "\n";
             numcharWrite = fwrite( bufferLCP, sizeof( SequenceLength ), numchar, OutFileLCP );
             checkIfEqual( numchar, numcharWrite ); // we should always read/write the same number of characters
             numTotLcp += numcharWrite;
