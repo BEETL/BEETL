@@ -6,12 +6,44 @@ This software is covered by the "BSD 2-Clause License" (see accompanying LICENSE
 and any user of this software or source file is bound by the terms therein.
 
 
-Citation: Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
-Lightweight BWT Construction for Very Large String Collections.
-Proceedings of CPM 2011, pp.219-231
+#### Citations
+
+*** BWT *** 
+
+  Markus J. Bauer, Anthony J. Cox, Giovanna Rosone: 
+  Lightweight BWT Construction for Very Large String Collections. 
+  Combinatorial Pattern Matching - 22nd Annual Symposium, CPM 2011, 
+  Lecture Notes in Computer Science 6661: 219-231
+  doi: 10.1007/978-3-642-21458-5_20, Springer 2011.
+
+  Markus J. Bauer, Anthony J. Cox, Giovanna Rosone: 
+  Lightweight algorithms for constructing and inverting the BWT of string collections. 
+  Theoretical Computer Science 483: 134-148 (2013). 
+  doi: 10.1016/j.tcs.2012.02.002. 
+
+*** BWT and LCP *** 
+
+  Markus J. Bauer, Anthony J. Cox, Giovanna Rosone and Marinella Sciortino: 
+  Lightweight LCP Construction for Next-Generation Sequencing Datasets. WABI 2012. 
+  Lecture Notes in Bioinformatics. Volume 7534, pp 326-337, 2012. Springer Berlin / Heidelberg.
+  doi: 10.1007/978-3-642-33122-0_26.
+
+*** FASTA compressor *** 
+
+  Anthony J. Cox, Markus J. Bauer, Tobias Jakobi, and Giovanna Rosone. 
+  Large-scale compression of genomic sequence databases with the Burrows-Wheeler transform. 
+  Bioinformatics. 28(11): 1415-1419, 2012. 
+  doi:10.1093/bioinformatics/bts173.
+
+***  FASTQ compressor *** 
+
+  Lilian Janin, Giovanna Rosone, and Anthony J. Cox: 
+  Adaptive reference-free compression of sequence quality scores. 
+  Bioinformatics (2014) 30 (1): 24-30
+  doi: 10.1093/bioinformatics/btt257.
 
 
-Documentation in: doc/BEETL.md
+#### Documentation in: doc/BEETL.md
 
 
 *** Release notes ***
@@ -146,8 +178,3 @@ Giovanna Rosone, University of Palermo
 Ole Schulz-Trieglaff, Illumina UK
 Lilian Janin, Illumina UK
 
-*** Citation ***
-
-Markus J. Bauer, Anthony J. Cox and Giovanna Rosone
-Lightweight BWT Construction for Very Large String Collections. 
-Proceedings of CPM 2011, pp.219-231
