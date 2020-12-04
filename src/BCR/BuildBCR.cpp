@@ -337,6 +337,15 @@ int BCRexternalBWT::buildBCR( const string &file1, const string &fileOut, const 
     }
 #endif //ifdef _OPENMP
 
+    //2020-12-04
+    if ( bwtParams_->getValue( PARAMETER_GENERATE_LCP ) == true )
+    {        
+        #if BUILD_LCP == 0
+            cerr << "++++ Sorry, for computing the LCP array, you must set BUILD_LCP to 1 in src/shared/Tools.hh and compile again! ++++" << endl;
+            exit ( EXIT_FAILURE );
+        #endif
+    }
+    
     const bool permuteQualities = ( bwtParams_->getValue( PARAMETER_PROCESS_QUALITIES ) == PROCESS_QUALITIES_PERMUTE );
     const bool generateCycleQualities = ( bwtParams_->getValue( PARAMETER_GENERATE_CYCLE_QUAL ) != GENERATE_CYCLE_QUAL_OFF );
     const bool readQualities = permuteQualities || generateCycleQualities;
@@ -778,13 +787,7 @@ int BCRexternalBWT::buildBCR( const string &file1, const string &fileOut, const 
 #endif
 
     if ( bwtParams_->getValue( PARAMETER_GENERATE_LCP ) == true )
-    {
-        //2020-12-04
-        #if BUILD_LCP == 0
-            Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "Sorry, you must set BUILD_LCP to 1 in src/BCR/Sorting.hh and compile again!" << endl;
-            checkIfEqual( 1, 0 );
-        #endif
-        
+    {        
         if ( bwtParams_->getValue( PARAMETER_OUTPUT_FORMAT ) != OUTPUT_FORMAT_ASCII )
         {
             // LCP source code only generate ASCII BWT, so we convert it here if needed
