@@ -779,6 +779,12 @@ int BCRexternalBWT::buildBCR( const string &file1, const string &fileOut, const 
 
     if ( bwtParams_->getValue( PARAMETER_GENERATE_LCP ) == true )
     {
+        //2020-12-04
+        #if BUILD_LCP == 0
+            Logger_if( LOG_FOR_DEBUGGING ) Logger::out() << "Sorry, you must set BUILD_LCP to 1 in src/BCR/Sorting.hh and compile again!" << endl;
+            checkIfEqual( 1, 0 );
+        #endif
+        
         if ( bwtParams_->getValue( PARAMETER_OUTPUT_FORMAT ) != OUTPUT_FORMAT_ASCII )
         {
             // LCP source code only generate ASCII BWT, so we convert it here if needed
@@ -1890,7 +1896,7 @@ void BCRexternalBWT::storeEntireBWT( const string &fn )
     }
 
     cerr << "Entire BWT file" << endl;
-    cerr << "Concatenation of " << ( int )alphabetSize << " segments;
+    cerr << "Concatenation of " << ( int )alphabetSize << " segments";
     cerr << " in " << fn << " file\n";     //2020-12-03
 
     cerr << "Compute the distribution of chars \n";
@@ -2862,7 +2868,7 @@ void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
 
 void BCRexternalBWT::storeEntireLCP( const string &fn )
 {
-    assert( false && "TODO" );
+    //assert( false && "TODO" );
     
     //2020-12-03
     LetterNumber numchar = 0;
@@ -2897,7 +2903,6 @@ void BCRexternalBWT::storeEntireLCP( const string &fn )
         }
         cerr << "LCP file " << fnLCP << "\n";
         numchar = fread( bufferLCP, sizeof( SequenceLength ), SIZEBUFFER, InFileLCP );
-        cerr << "number read " << (int)numchar << "\n";
         numcharWrite = fwrite( bufferLCP, sizeof( SequenceLength ), numchar, OutFileLCP );
         checkIfEqual( numchar, numcharWrite ); // we should always read/write the same number of characters
  
