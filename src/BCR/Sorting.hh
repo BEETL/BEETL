@@ -16,6 +16,9 @@
 #include "Alphabet.hh"
 #include "Types.hh"
 
+//2020-12-04
+#include "Tools.hh"  // it is included for BUILD_LCP
+
 #include <vector>
 
 using std::vector;
