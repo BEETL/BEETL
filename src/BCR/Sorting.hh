@@ -20,9 +20,6 @@
 
 using std::vector;
 
-//2020-12-04
-#define BUILD_LCP 0
-
 struct sortElement
 {
 #if BUILD_LCP == 0
