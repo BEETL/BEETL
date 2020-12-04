@@ -67,6 +67,15 @@ Running `beetl --help` shows a high-level description of each BEETL tool:
     beetl-flow-tumour-normal-fastq-filter   Tumour-normal subtraction, filtering out uninteresting reads for faster downstream analysis
 
 
+For computing LCP array
+-------------------------------------
+Set BUILD_LCP to 1 in src/shared/Tools.hh and compile
+
+Example:
+
+    beetl-bwt -i input.fasta -o myBWT --output-format=ascii --concatenate-output --generate-lcp
+    
+
 Paired and reverse-complemented reads
 -------------------------------------
 
