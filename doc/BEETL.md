@@ -38,13 +38,13 @@ Assuming the following paths:
 - /buildPath : temporary build directory 
 - /installPath : final installation directory
 
-`
+```sh
     cd /buildPath
     /sourcePath/configure --prefix=/installPath
     make
     make install
     export PATH=$PATH:/installPath/bin
-`
+```
 
 Tools
 -----
