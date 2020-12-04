@@ -603,6 +603,7 @@ void printUsage()
     cout << "    SAP      : implicit permutation to obtain more compressible BWT" << endl;
     cout << "    LCP      : length of Longest Common Prefix shared between a BWT letter and the next one. Stored using 4 bytes per BWT letter in files with -Lxx suffix." << endl;
     cout << "               (Note: forces algorithm=bcr, non-parallel and intermediate-format=ascii)" << endl;
+    cout << "               (++++ Sorry, for computing the LCP array, you must set BUILD_LCP to 1 in src/shared/Tools.hh and compile again! ++++)" << endl;   
     cout << "    PBE      : prediction-based encoding" << endl;
 #ifndef _OPENMP
     cout << endl;
