@@ -6,6 +6,9 @@ This software is covered by the "BSD 2-Clause License" (see accompanying LICENSE
 and any user of this software or source file is bound by the terms therein.
 
 
+#### Documentation in: 
+doc/BEETL.md
+
 #### Citations
 
 *** BWT *** 
@@ -41,9 +44,6 @@ and any user of this software or source file is bound by the terms therein.
   Adaptive reference-free compression of sequence quality scores. 
   Bioinformatics (2014) 30 (1): 24-30
   doi: 10.1093/bioinformatics/btt257.
-
-
-#### Documentation in: doc/BEETL.md
 
 
 *** Release notes ***
