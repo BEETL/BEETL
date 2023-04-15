@@ -2334,7 +2334,7 @@ void BCRexternalBWT::storeEntireSAfromPairSA( const char *fn )
 
 void BCRexternalBWT::storeBWTandLCP( uchar const *newSymb )
 {
-    SequenceLength maxValueLen = lengthRead + 2;
+    SequenceLength maxValueLen = lengthRead + 1;
     vector <SequenceLength> minLCPcur;
     vector <bool> minLCPcurFound;
     vector <SequenceLength> minLCPsuc;
